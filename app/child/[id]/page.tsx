@@ -13,7 +13,7 @@ export default async function ChildDashboardPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [{ data: child }, { data: games, error: gamesError }, { data: progress }] = await Promise.all([
+  const [{ data: child }, { data: games }, { data: progress }] = await Promise.all([
     supabase
       .from('children')
       .select('id, name, grade, parent_id')
@@ -28,9 +28,6 @@ export default async function ChildDashboardPage({
       .select('stars')
       .eq('child_id', id),
   ])
-
-  console.log('games data:', JSON.stringify(games, null, 2))
-  console.log('games error:', JSON.stringify(gamesError, null, 2))
 
   if (!child || child.parent_id !== user.id) notFound()
 
@@ -57,12 +54,6 @@ export default async function ChildDashboardPage({
             <span className="text-base text-gray-500 font-normal">כוכבים</span>
           </div>
         </div>
-
-        {/* DEBUG */}
-        <pre className="bg-gray-100 text-xs p-4 rounded mb-4 overflow-auto">
-          data: {JSON.stringify(games, null, 2)}{'\n'}
-          error: {JSON.stringify(gamesError, null, 2)}
-        </pre>
 
         {/* Games */}
         <h2 className="text-lg font-bold mb-3">משחקים</h2>
