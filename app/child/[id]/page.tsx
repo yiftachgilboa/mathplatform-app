@@ -29,6 +29,8 @@ export default async function ChildDashboardPage({
       .eq('child_id', id),
   ])
 
+  console.log('games query result:', JSON.stringify(games, null, 2))
+
   if (!child || child.parent_id !== user.id) notFound()
 
   const totalStars = progress?.reduce((sum, row) => sum + (row.stars ?? 0), 0) ?? 0
