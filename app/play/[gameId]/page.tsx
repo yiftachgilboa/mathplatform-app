@@ -20,7 +20,7 @@ export default async function PlayPage({
   if (!childId) redirect('/dashboard')
 
   const [{ data: game }, { data: child }] = await Promise.all([
-    supabase.from('games').select('id, name, url').eq('id', gameId).single(),
+    supabase.from('games').select('id, title, url').eq('id', gameId).single(),
     supabase.from('children').select('id, name, parent_id').eq('id', childId).single(),
   ])
 
@@ -37,9 +37,9 @@ export default async function PlayPage({
         >
           → חזרה
         </a>
-        <span className="text-white font-medium text-sm">{game.name}</span>
+        <span className="text-white font-medium text-sm">{game.title}</span>
       </div>
-      <GameFrame url={gameUrl} title={game.name} />
+      <GameFrame url={gameUrl} title={game.title} />
     </div>
   )
 }

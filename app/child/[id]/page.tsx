@@ -21,8 +21,8 @@ export default async function ChildDashboardPage({
       .single(),
     supabase
       .from('games')
-      .select('id, name, description, url')
-      .order('name'),
+      .select('id, title, description, url')
+      .order('title'),
     supabase
       .from('progress')
       .select('stars')
@@ -69,7 +69,7 @@ export default async function ChildDashboardPage({
                 className="bg-white rounded-2xl shadow-sm p-5 flex justify-between items-center hover:shadow-md transition"
               >
                 <div>
-                  <p className="text-lg font-semibold">{game.name}</p>
+                  <p className="text-lg font-semibold">{game.title}</p>
                   {game.description && (
                     <p className="text-sm text-gray-500">{game.description}</p>
                   )}
