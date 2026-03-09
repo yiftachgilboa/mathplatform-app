@@ -23,7 +23,9 @@ export async function POST(req: NextRequest) {
           game_id: gameId,
           stars: data.stars,
           score: data.score,
-          completed_at: timestamp,
+          correct_answers: data.correctAnswers,
+          total_questions: data.totalQuestions,
+          played_at: timestamp,
         },
         { onConflict: 'child_id,game_id' }
       )
@@ -44,7 +46,7 @@ export async function POST(req: NextRequest) {
       question_type: data.questionType,
       correct_answer: data.correctAnswer,
       child_answer: data.childAnswer,
-      timestamp,
+      attempt_number: data.attemptNumber,
     })
 
     if (error) {
