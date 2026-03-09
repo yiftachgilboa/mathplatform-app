@@ -25,13 +25,14 @@ export default async function ChildDashboardPage({
       .order('title'),
     supabase
       .from('progress')
-      .select('stars')
+      .select('game_id, stars')
       .eq('child_id', id),
   ])
 
   if (!child || child.parent_id !== user.id) notFound()
 
   const totalStars = progress?.reduce((sum, row) => sum + (row.stars ?? 0), 0) ?? 0
+  const progressByGame = Object.fromEntries((progress ?? []).map(r => [r.game_id, r.stars]))
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -69,21 +70,31 @@ export default async function ChildDashboardPage({
           <p className="text-center text-gray-500 mt-8">אין משחקים זמינים כרגע.</p>
         ) : (
           <div className="grid gap-4">
-            {games.map(game => (
-              <Link
-                key={game.id}
-                href={`/games/${game.id}?childId=${child.id}`}
-                className="bg-white rounded-2xl shadow-sm p-5 flex justify-between items-center hover:shadow-md transition"
-              >
-                <div>
-                  <p className="text-lg font-semibold">{game.title}</p>
-                  {game.description && (
-                    <p className="text-sm text-gray-500">{game.description}</p>
-                  )}
-                </div>
-                <span className="text-blue-400 text-xl">שחק ←</span>
-              </Link>
-            ))}
+            {games.map(game => {
+              const stars = progressByGame[game.id]
+              return (
+                <Link
+                  key={game.id}
+                  href={`/games/${game.id}?childId=${child.id}`}
+                  className="bg-white rounded-2xl shadow-sm p-5 flex justify-between items-center hover:shadow-md transition"
+                >
+                  <div>
+                    <p className="text-lg font-semibold">{game.title}</p>
+                    {game.description && (
+                      <p className="text-sm text-gray-500">{game.description}</p>
+                    )}
+                    {stars != null ? (
+                      <p className="text-base mt-1">
+                        {Array.from({ length: 3 }, (_, i) => i < stars ? '⭐' : '☆').join('')}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-gray-400 mt-1">טרם שוחק</p>
+                    )}
+                  </div>
+                  <span className="text-blue-400 text-xl">שחק ←</span>
+                </Link>
+              )
+            })}
           </div>
         )}
       </div>
