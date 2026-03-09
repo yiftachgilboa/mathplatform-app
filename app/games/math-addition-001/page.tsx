@@ -103,7 +103,7 @@ export default function MathAddition001() {
               {stars === 3 ? '⭐⭐⭐' : stars === 2 ? '⭐⭐' : '⭐'}
             </div>
             <p className="text-2xl font-bold">כל הכבוד!</p>
-            <p className="text-gray-500 text-lg">ניקוד: {score} / 100</p>
+            <p className="text-gray-800 text-lg">ניקוד: {score} / 100</p>
             <button
               onClick={handleRestart}
               className="bg-blue-500 hover:bg-blue-600 text-white text-xl font-bold py-4 px-10 rounded-2xl transition"
@@ -116,7 +116,7 @@ export default function MathAddition001() {
           <>
             {/* Question */}
             <div className="text-center">
-              <p className="text-5xl font-bold mb-2">1 + 1 = ?</p>
+              <p className="text-5xl font-bold mb-2 text-gray-800" dir="ltr">1 + 1 = ?</p>
               {phase === 'feedback-correct' && (
                 <p className="text-3xl mt-4">✅ נכון!</p>
               )}
@@ -132,7 +132,7 @@ export default function MathAddition001() {
                   key={opt}
                   onClick={() => phase === 'playing' && handleAnswer(opt)}
                   disabled={phase !== 'playing'}
-                  className="flex-1 bg-white border-2 border-blue-200 text-4xl font-bold py-8 rounded-2xl shadow-sm hover:border-blue-400 active:scale-95 transition disabled:opacity-50"
+                  className="flex-1 bg-white border-2 border-blue-200 text-4xl font-bold py-8 rounded-2xl shadow-sm hover:border-blue-400 active:scale-95 transition disabled:opacity-50 text-gray-800"
                 >
                   {opt}
                 </button>
