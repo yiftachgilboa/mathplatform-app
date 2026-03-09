@@ -65,7 +65,7 @@ export default async function ChildDashboardPage({
             {games.map(game => (
               <Link
                 key={game.id}
-                href={`/play/${game.id}?childId=${child.id}`}
+                href={`/games/${game.id}?childId=${child.id}`}
                 className="bg-white rounded-2xl shadow-sm p-5 flex justify-between items-center hover:shadow-md transition"
               >
                 <div>
