@@ -16,7 +16,7 @@ export default async function ChildDashboardPage({
   const [{ data: child }, { data: games }, { data: progress }] = await Promise.all([
     supabase
       .from('children')
-      .select('id, name, grade, parent_id')
+      .select('id, name, grade, parent_id, coins')
       .eq('id', id)
       .single(),
     supabase
@@ -48,10 +48,17 @@ export default async function ChildDashboardPage({
         <div className="bg-white rounded-2xl shadow-sm p-6 mb-6 text-center">
           <h1 className="text-3xl font-bold mb-1">{child.name}</h1>
           <p className="text-gray-500 mb-4">כיתה {child.grade}</p>
-          <div className="flex items-center justify-center gap-2 text-2xl font-semibold text-yellow-500">
-            <span>⭐</span>
-            <span>{totalStars}</span>
-            <span className="text-base text-gray-500 font-normal">כוכבים</span>
+          <div className="flex items-center justify-center gap-6 text-2xl font-semibold">
+            <div className="flex items-center gap-2 text-yellow-500">
+              <span>⭐</span>
+              <span>{totalStars}</span>
+              <span className="text-base text-gray-500 font-normal">כוכבים</span>
+            </div>
+            <div className="flex items-center gap-2 text-amber-600">
+              <span>🪙</span>
+              <span>{child.coins ?? 0}</span>
+              <span className="text-base text-gray-500 font-normal">מטבעות</span>
+            </div>
           </div>
         </div>
 
