@@ -1,0 +1,59 @@
+import { createClient } from '@supabase/supabase-js'
+import { NextRequest, NextResponse } from 'next/server'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SECRET_KEY!
+)
+
+export async function POST(req: NextRequest) {
+  const body = await req.json()
+  const { event, childId, gameId, data, timestamp } = body
+
+  if (!event || !childId) {
+    return NextResponse.json({ error: 'Missing event or childId' }, { status: 400 })
+  }
+
+  if (event === 'GAME_OVER') {
+    const { error } = await supabase
+      .from('progress')
+      .upsert(
+        {
+          child_id: childId,
+          game_id: gameId,
+          stars: data.stars,
+          score: data.score,
+          completed_at: timestamp,
+        },
+        { onConflict: 'child_id,game_id' }
+      )
+
+    if (error) {
+      console.error('[SDK] GAME_OVER upsert error:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ ok: true })
+  }
+
+  if (event === 'ANSWER' && data?.correct === false) {
+    const { error } = await supabase.from('wrong_answers').insert({
+      child_id: childId,
+      game_id: gameId,
+      question_id: data.questionId,
+      question_type: data.questionType,
+      correct_answer: data.correctAnswer,
+      child_answer: data.childAnswer,
+      timestamp,
+    })
+
+    if (error) {
+      console.error('[SDK] ANSWER insert error:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ ok: true })
+  }
+
+  return NextResponse.json({ ok: true })
+}
