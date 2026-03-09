@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 
 type Phase = 'playing' | 'feedback-correct' | 'feedback-wrong' | 'end'
 
-export default function MathAddition001() {
+function GameContent() {
   const searchParams = useSearchParams()
   const childId = searchParams.get('childId') ?? ''
   const sdkLoaded = useRef(false)
@@ -144,5 +144,13 @@ export default function MathAddition001() {
 
       <div /> {/* spacer */}
     </div>
+  )
+}
+
+export default function GamePage() {
+  return (
+    <Suspense fallback={<div>טוען...</div>}>
+      <GameContent />
+    </Suspense>
   )
 }
