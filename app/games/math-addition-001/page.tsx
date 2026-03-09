@@ -1,13 +1,14 @@
 'use client'
 
 import { Suspense, useEffect, useRef, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 
 type Phase = 'playing' | 'feedback-correct' | 'feedback-wrong' | 'end'
 
 function GameContent() {
   const searchParams = useSearchParams()
   const childId = searchParams.get('childId') ?? ''
+  const router = useRouter()
   const sdkLoaded = useRef(false)
   const attemptRef = useRef(1)
 
@@ -104,12 +105,20 @@ function GameContent() {
             </div>
             <p className="text-2xl font-bold">כל הכבוד!</p>
             <p className="text-gray-800 text-lg">ניקוד: {score} / 100</p>
-            <button
-              onClick={handleRestart}
-              className="bg-blue-500 hover:bg-blue-600 text-white text-xl font-bold py-4 px-10 rounded-2xl transition"
-            >
-              שחק שוב
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={handleRestart}
+                className="bg-blue-500 hover:bg-blue-600 text-white text-xl font-bold py-4 px-8 rounded-2xl transition"
+              >
+                שחק שוב
+              </button>
+              <button
+                onClick={() => router.push(`/child/${childId}`)}
+                className="bg-gray-200 hover:bg-gray-300 text-gray-800 text-xl font-bold py-4 px-8 rounded-2xl transition"
+              >
+                חזרה לדשבורד
+              </button>
+            </div>
           </div>
         ) : (
           // Game screen
