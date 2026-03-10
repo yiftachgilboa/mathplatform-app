@@ -22,6 +22,7 @@ export default async function ChildDashboardPage({
     supabase
       .from('games')
       .select('id, title, description, url')
+      .eq('is_visible', true)
       .order('title'),
     supabase
       .from('progress')
