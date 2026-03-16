@@ -36,7 +36,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && pathname === '/login') {
-    return NextResponse.redirect(new URL('/parent/dashboard', request.url))
+    return NextResponse.redirect(new URL('/select-child', request.url))
   }
 
   return supabaseResponse
