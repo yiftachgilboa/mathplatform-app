@@ -1,5 +1,5 @@
 import { redirect, notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase-server-client'
+import { createClient } from '@/lib/supabase/server'
 import GameFrame from './GameFrame'
 
 export default async function PlayPage({
