@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 const STARS = Array.from({ length: 50 }, (_, i) => ({
@@ -14,6 +15,10 @@ const STARS = Array.from({ length: 50 }, (_, i) => ({
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
+  const [pwEmail, setPwEmail] = useState('')
+  const [pwPassword, setPwPassword] = useState('')
+  const [pwError, setPwError] = useState('')
+  const router = useRouter()
 
   async function handleGoogle() {
     setLoading(true)
@@ -36,6 +41,20 @@ export default function LoginPage() {
     })
     setLoading(false)
     alert('שלחנו לך אימייל — בדוק את תיבת הדואר')
+  }
+
+  async function handlePasswordLogin(e: React.FormEvent) {
+    e.preventDefault()
+    setPwError('')
+    setLoading(true)
+    const supabase = createClient()
+    const { error } = await supabase.auth.signInWithPassword({ email: pwEmail, password: pwPassword })
+    setLoading(false)
+    if (error) {
+      setPwError(error.message)
+    } else {
+      router.push('/parent/dashboard')
+    }
   }
 
   return (
@@ -266,6 +285,76 @@ export default function LoginPage() {
           >
             ✉ כניסה עם אימייל
           </button>
+
+          {/* Password login form */}
+          <form onSubmit={handlePasswordLogin} style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <input
+              type="email"
+              placeholder="האימייל שלך"
+              value={pwEmail}
+              onChange={e => setPwEmail(e.target.value)}
+              required
+              disabled={loading}
+              style={{
+                width: '100%',
+                padding: '12px 14px',
+                background: 'rgba(255,255,255,0.06)',
+                border: '1.5px solid var(--color-card-border)',
+                borderRadius: 'var(--radius-input)',
+                color: 'var(--color-text-primary)',
+                fontSize: '15px',
+                fontFamily: 'var(--font-primary)',
+                direction: 'rtl',
+                boxSizing: 'border-box',
+                outline: 'none',
+              }}
+            />
+            <input
+              type="password"
+              placeholder="סיסמה"
+              value={pwPassword}
+              onChange={e => setPwPassword(e.target.value)}
+              required
+              disabled={loading}
+              style={{
+                width: '100%',
+                padding: '12px 14px',
+                background: 'rgba(255,255,255,0.06)',
+                border: '1.5px solid var(--color-card-border)',
+                borderRadius: 'var(--radius-input)',
+                color: 'var(--color-text-primary)',
+                fontSize: '15px',
+                fontFamily: 'var(--font-primary)',
+                direction: 'rtl',
+                boxSizing: 'border-box',
+                outline: 'none',
+              }}
+            />
+            <button
+              type="submit"
+              className="lp-btn"
+              disabled={loading}
+              style={{
+                width: '100%',
+                padding: '13px 20px',
+                borderRadius: 'var(--radius-button)',
+                background: 'var(--color-accent)',
+                border: 'none',
+                color: '#000',
+                fontSize: '15px',
+                fontWeight: 700,
+                fontFamily: 'var(--font-primary)',
+                cursor: 'pointer',
+              }}
+            >
+              כניסה →
+            </button>
+            {pwError && (
+              <p style={{ margin: 0, fontSize: '13px', color: '#f87171', textAlign: 'right' }}>
+                {pwError}
+              </p>
+            )}
+          </form>
 
           {/* Footer */}
           <p
