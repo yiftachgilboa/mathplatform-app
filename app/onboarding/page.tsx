@@ -44,26 +44,43 @@ export default function OnboardingPage() {
   async function handleFinish() {
     setError('')
     setLoading(true)
-    try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('לא מחובר')
 
-      const { error: insertError } = await supabase.from('children').insert({
-        parent_id: user.id,
-        name: childName,
-        grade: selectedGrade,
-        avatar: selectedAvatar,
-        theme: 'default',
-      })
+    const supabase = createClient()
 
-      if (insertError) throw insertError
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    console.log('user:', user)
+    console.log('userError:', userError)
 
-      router.push('/parent/dashboard')
-    } catch {
-      setError('משהו השתבש — נסה שוב')
+    if (!user) {
+      setError('לא מחובר — אנא התחבר מחדש')
       setLoading(false)
+      return
     }
+
+    const insertData = {
+      parent_id: user.id,
+      name: childName,
+      grade: Number(selectedGrade),
+      avatar: selectedAvatar,
+      theme: 'default'
+    }
+    console.log('inserting:', insertData)
+
+    const { data, error } = await supabase
+      .from('children')
+      .insert(insertData)
+      .select()
+
+    console.log('result:', data, error)
+
+    if (error) {
+      console.error('insert error:', error)
+      setError(`שגיאה: ${error.message} | ${error.code}`)
+      setLoading(false)
+      return
+    }
+
+    router.push('/parent/dashboard')
   }
 
   return (
