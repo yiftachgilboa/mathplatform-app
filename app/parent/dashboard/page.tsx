@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import SignOutButton from '@/app/dashboard/SignOutButton'
+import SignOutButton from '@/app/parent/dashboard/SignOutButton'
 
 const GRADE_LABELS: Record<number, string> = {
   1: 'כיתה א׳', 2: 'כיתה ב׳', 3: 'כיתה ג׳',
