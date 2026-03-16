@@ -29,14 +29,14 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  const isProtected = pathname.startsWith('/dashboard') || pathname.startsWith('/child')
+  const isProtected = pathname.startsWith('/parent/dashboard') || pathname.startsWith('/child')
 
   if (!user && isProtected) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
   if (user && pathname === '/login') {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    return NextResponse.redirect(new URL('/parent/dashboard', request.url))
   }
 
   return supabaseResponse
