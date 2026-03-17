@@ -1,0 +1,491 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import Image from 'next/image'
+
+type Child = {
+  id: string
+  name: string
+  grade: number
+  coins: number
+}
+
+type StationState = 'done' | 'active' | 'future'
+
+const STATIONS: { label: string; icon: string; state: StationState }[] = [
+  { label: 'חיבור עד 10', icon: '➕', state: 'done' },
+  { label: 'חיבור עד 20', icon: '➕', state: 'done' },
+  { label: 'חיבור עד 50', icon: '➕', state: 'active' },
+  { label: 'חיסור בסיסי', icon: '➖', state: 'future' },
+  { label: 'חיסור עד 20', icon: '➖', state: 'future' },
+  { label: 'כפל ×2',      icon: '✖',  state: 'future' },
+  { label: 'כפל ×3',      icon: '✖',  state: 'future' },
+]
+
+const CARD_COLORS = [
+  'rgba(42,90,74,0.92)',
+  'rgba(35,80,90,0.92)',
+  'rgba(50,80,65,0.92)',
+  'rgba(40,70,85,0.92)',
+  'rgba(55,75,60,0.92)',
+  'rgba(38,85,70,0.92)',
+  'rgba(45,72,80,0.92)',
+]
+
+// Station 0 uses the croc mascot, rest use default
+const MASCOTS = ['/mascot-croc.png', null, null, null, null, null, null]
+
+// Deterministic spark data: 6 connectors × 3 sparks
+const SPARKS = Array.from({ length: 6 }, (_, ci) =>
+  Array.from({ length: 3 }, (_, si) => ({
+    delay: `${((ci * 3 + si) * 0.47) % 2.5}s`,
+    dur:   `${1.5 + ((ci * 3 + si) * 0.23) % 1.5}s`,
+    size:  `${8 + ((ci * 3 + si) * 7) % 5}px`,
+  }))
+)
+
+// Deterministic star data
+const STARS = Array.from({ length: 40 }, (_, i) => ({
+  sz:    i % 3 === 0 ? 3 : 2,
+  left:  `${(i * 61 + 7) % 100}%`,
+  top:   `${(i * 37 + 11) % 100}%`,
+  delay: `${((i * 0.31) % 4).toFixed(2)}s`,
+  dur:   `${(2 + (i % 10) * 0.3).toFixed(2)}s`,
+}))
+
+const PILL: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.1)',
+  border: '1.5px solid rgba(255,255,255,0.2)',
+  borderRadius: '50px',
+  backdropFilter: 'blur(10px)',
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18), 0 2px 8px rgba(0,0,0,0.12)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+}
+
+function splitTitle(label: string): [string, string] {
+  const i = label.indexOf(' ')
+  return i === -1 ? [label, ''] : [label.slice(0, i), label.slice(i + 1)]
+}
+
+const GRADE_LABELS: Record<number, string> = {
+  1: 'כיתה א׳', 2: 'כיתה ב׳', 3: 'כיתה ג׳',
+  4: 'כיתה ד׳', 5: 'כיתה ה׳', 6: 'כיתה ו׳',
+}
+
+export default function ChildDashboardClient({ child }: { child: Child }) {
+  const initialActive = STATIONS.findIndex(s => s.state === 'active')
+  const [selectedIdx, setSelectedIdx] = useState(initialActive)
+  const [isDone, setIsDone] = useState(false)
+  const [todayIdx, setTodayIdx] = useState<number | null>(null)
+
+  useEffect(() => {
+    setTodayIdx(new Date().getDay())
+  }, [])
+
+  function selectStation(idx: number) {
+    if (STATIONS[idx].state === 'future') return
+    setSelectedIdx(idx)
+    setIsDone(false)
+  }
+
+  function nodeState(idx: number): StationState {
+    if (idx === selectedIdx) return 'active'
+    return STATIONS[idx].state
+  }
+
+  const fillPct   = isDone ? 100 : 62
+  const mascotSrc = MASCOTS[selectedIdx] ?? '/mascot-default.png'
+  const [titleLine1, titleLine2] = splitTitle(STATIONS[selectedIdx].label)
+  const cardBg = CARD_COLORS[selectedIdx % CARD_COLORS.length]
+
+  return (
+    <>
+      <style>{`
+        @keyframes tw     { 0%,100%{opacity:0}        50%{opacity:0.5} }
+        @keyframes scTw   { 0%,100%{opacity:0;transform:scale(0.7)} 50%{opacity:0.85;transform:scale(1.2)} }
+        @keyframes pulse  {
+          0%,100%{box-shadow:0 0 14px rgba(255,237,221,0.3)}
+          50%    {box-shadow:0 0 28px rgba(255,237,221,0.6), 0 0 50px rgba(190,166,148,0.35)}
+        }
+        @keyframes flt    { 0%,100%{transform:translateY(0) rotate(-1deg)} 50%{transform:translateY(-10px) rotate(1deg)} }
+        @keyframes spk    { 0%,100%{opacity:0.4;transform:scale(0.88)} 50%{opacity:1;transform:scale(1.2)} }
+        @keyframes spkDeco{ 0%,100%{opacity:0.4;transform:scale(0.8) rotate(-10deg)} 50%{opacity:1;transform:scale(1.2) rotate(10deg)} }
+        .sdot       { position:absolute; background:white; border-radius:50%; opacity:0; animation:tw ease-in-out infinite; pointer-events:none; }
+        .sc         { opacity:0; color:rgba(182,212,158,0.75); animation:scTw ease-in-out infinite; }
+        .mascot-flt { animation:flt 3.6s ease-in-out infinite; }
+        .snode-done   { background:rgba(99,177,133,0.22);  border:2px solid #63B185;                color:#B6D49E; }
+        .snode-active { background:rgba(255,237,221,0.18); border:2px solid #FFEDDD;                color:white;  animation:pulse 2.5s ease-in-out infinite; }
+        .snode-future { background:rgba(255,255,255,0.05); border:2px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.3); cursor:default; }
+        .play-btn:hover  { transform:translateY(-2px); }
+        .play-btn:active { transform:scale(0.97); }
+        .replay-btn:hover { background:rgba(255,255,255,0.14) !important; color:white !important; }
+      `}</style>
+
+      {/* ── Screen ── */}
+      <div
+        dir="rtl"
+        style={{
+          fontFamily: "var(--font-secular, 'Secular One', sans-serif)",
+          width: '100%',
+          height: '100vh',
+          background: 'linear-gradient(180deg, #1F4A38 0%, #1A3C2F 100%)',
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative',
+          overflow: 'hidden',
+          padding: '16px 16px 0',
+          gap: '12px',
+        }}
+      >
+        {/* Dot-grid overlay */}
+        <div aria-hidden style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0,
+          backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px)',
+          backgroundSize: '30px 30px',
+        }} />
+
+        {/* Central glow */}
+        <div aria-hidden style={{
+          position: 'absolute', width: '700px', height: '500px', borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 65%)',
+          top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+          pointerEvents: 'none', zIndex: 0, filter: 'blur(12px)',
+        }} />
+
+        {/* Stars */}
+        {STARS.map((s, i) => (
+          <span key={i} className="sdot" style={{
+            width: `${s.sz}px`, height: `${s.sz}px`,
+            left: s.left, top: s.top,
+            animationDelay: s.delay, animationDuration: s.dur,
+          }} />
+        ))}
+
+        {/* ── Top row ── */}
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          position: 'relative', zIndex: 10, flexShrink: 0, gap: '10px',
+        }}>
+          <Link href="/select-child" style={{
+            ...PILL, width: '48px', height: '48px',
+            color: 'white', fontSize: '20px', flexShrink: 0, textDecoration: 'none',
+          }}>→</Link>
+
+          <div style={{ ...PILL, flex: 1, height: '48px', padding: '0 20px', fontSize: '16px', color: 'rgba(255,255,255,0.9)' }}>
+            <span>שלום, <span style={{ color: '#7CFF9F' }}>{child.name}</span> 👋</span>
+          </div>
+
+          <div style={{ ...PILL, height: '48px', padding: '0 18px', gap: '10px', flexShrink: 0 }}>
+            <span style={{ fontSize: '22px' }}>🪙</span>
+            <span style={{ fontSize: '16px', color: 'white', minWidth: '52px', textAlign: 'right' }}>
+              {child.coins.toLocaleString('he-IL')}
+            </span>
+          </div>
+        </div>
+
+        {/* ── Main area ── */}
+        <div style={{
+          flex: 1, display: 'flex', gap: '12px',
+          overflow: 'hidden', position: 'relative', zIndex: 2, minHeight: 0,
+        }}>
+
+          {/* ── Track panel ── */}
+          <div style={{
+            width: '110px', flexShrink: 0,
+            display: 'flex', flexDirection: 'column', gap: '8px',
+          }}>
+            <button style={{
+              width: '100%', padding: '12px 8px', borderRadius: '16px',
+              background: 'linear-gradient(135deg, #283E30 0%, #5F8367 100%)',
+              border: '1.5px solid rgba(255,255,255,0.22)',
+              color: 'white', fontSize: '14px',
+              fontFamily: "var(--font-secular, 'Secular One', sans-serif)",
+              cursor: 'pointer', textAlign: 'center',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2)',
+              lineHeight: 1.5, flexShrink: 0,
+            }}>
+              בחירת נושאי לימוד
+            </button>
+
+            <div style={{
+              flex: 1, overflowY: 'auto', overflowX: 'hidden',
+              scrollbarWidth: 'none', padding: '10px 0 16px',
+              position: 'relative', minHeight: 0,
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+            }}>
+              {STATIONS.map((station, i) => {
+                const state = nodeState(i)
+                return (
+                  <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div
+                      className={`snode-${state}`}
+                      onClick={() => selectStation(i)}
+                      style={{
+                        width: '64px', height: '64px', borderRadius: '50%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexDirection: 'column', gap: '2px',
+                        fontSize: '22px', cursor: state === 'future' ? 'default' : 'pointer',
+                        transition: 'all 0.2s', position: 'relative',
+                      }}
+                    >
+                      {station.icon}
+                      <span style={{ fontSize: '9px', color: 'inherit', textAlign: 'center', lineHeight: 1.2, padding: '0 4px', wordBreak: 'break-word' }}>
+                        {station.label}
+                      </span>
+                      {STATIONS[i].state === 'done' && (
+                        <span style={{
+                          position: 'absolute', top: '-3px', right: '-3px',
+                          width: '18px', height: '18px', background: '#63B185',
+                          borderRadius: '50%', fontSize: '10px',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: 'white', pointerEvents: 'none',
+                        }}>✓</span>
+                      )}
+                    </div>
+                    {i < STATIONS.length - 1 && (
+                      <div style={{
+                        display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', height: '44px', justifyContent: 'space-evenly',
+                      }}>
+                        {SPARKS[i].map((spark, j) => (
+                          <span key={j} className="sc" style={{ animationDelay: spark.delay, animationDuration: spark.dur, fontSize: spark.size }}>✦</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* ── Card wrap ── */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
+            <div style={{
+              width: '64%', margin: '0 auto', flex: 1, minHeight: 0,
+              background: cardBg,
+              border: '3px solid rgba(255,255,255,0.85)',
+              boxShadow: '0 0 24px rgba(255,255,255,0.15), 0 0 48px rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.3)',
+              borderRadius: '40px',
+              padding: '20px 24px',
+              position: 'relative', overflow: 'hidden',
+              backdropFilter: 'blur(8px)',
+              display: 'flex', flexDirection: 'column',
+              transition: 'background 0.6s ease',
+            }}>
+
+              {/* Shimmer line */}
+              <div aria-hidden style={{
+                position: 'absolute', top: 0, left: '12%', right: '12%', height: '1.5px',
+                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
+              }} />
+
+              {/* ── Card top ── */}
+              <div style={{
+                display: 'flex', alignItems: 'center',
+                flex: 1, minHeight: 0, gap: '16px', marginBottom: '12px',
+                overflow: 'hidden', position: 'relative', zIndex: 1,
+              }}>
+
+                {/* col-text (right in RTL) */}
+                <div style={{
+                  flex: 1, display: 'flex', flexDirection: 'column',
+                  justifyContent: 'center', alignItems: 'flex-end', minWidth: 0,
+                  position: 'relative',
+                }}>
+                  {/* Sparkle decos */}
+                  <span aria-hidden style={{ position: 'absolute', top: '-8px', left: '60px', color: '#FFCC00', fontSize: '14px', animation: 'spkDeco 1.5s ease-in-out infinite', filter: 'drop-shadow(0 0 4px rgba(255,204,0,0.8))', zIndex: 3, pointerEvents: 'none', animationDelay: '0s' }}>✦</span>
+                  <span aria-hidden style={{ position: 'absolute', top: '20px',  left: '20px', color: '#FFCC00', fontSize: '10px', animation: 'spkDeco 1.5s ease-in-out infinite', filter: 'drop-shadow(0 0 4px rgba(255,204,0,0.8))', zIndex: 3, pointerEvents: 'none', animationDelay: '0.7s' }}>✦</span>
+                  <span aria-hidden style={{ position: 'absolute', bottom: '20px', left: '50px', color: '#FFCC00', fontSize: '11px', animation: 'spkDeco 1.5s ease-in-out infinite', filter: 'drop-shadow(0 0 4px rgba(255,204,0,0.8))', zIndex: 3, pointerEvents: 'none', animationDelay: '1.3s' }}>✦</span>
+
+                  {/* Title row (LTR: pill-vert on left, title on right) */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', direction: 'ltr' }}>
+                    {/* Vertical pill column */}
+                    <div style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center',
+                      gap: '3px', flexShrink: 0, alignSelf: 'stretch', justifyContent: 'center',
+                    }}>
+                      <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', alignSelf: 'flex-start', marginBottom: '2px' }}>
+                        {GRADE_LABELS[child.grade] ?? `כיתה ${child.grade}`}
+                      </span>
+                      <span style={{ fontSize: '12px', color: '#B6D49E', lineHeight: 1, animation: 'spk 1.8s ease-in-out infinite' }}>✦</span>
+                      <div style={{
+                        width: '14px', flex: 1, maxHeight: '110px',
+                        background: 'linear-gradient(180deg, #A0E6FF 0%, #7CFF9F 100%)',
+                        borderRadius: '10px', opacity: 0.88,
+                      }} />
+                      <span style={{ fontSize: '12px', color: '#B6D49E', lineHeight: 1, animation: 'spk 1.8s ease-in-out infinite', animationDelay: '0.9s' }}>✦</span>
+                    </div>
+
+                    {/* Title text */}
+                    <div style={{
+                      fontSize: '72px', color: 'white', lineHeight: 1.05,
+                      textShadow: '0 2px 20px rgba(0,0,0,0.25)',
+                      textAlign: 'right', position: 'relative', zIndex: 2,
+                      transition: 'all 0.3s ease',
+                    }}>
+                      {titleLine1}<br />{titleLine2}
+                    </div>
+                  </div>
+
+                  {/* Subtitle */}
+                  <div style={{ fontSize: '15px', color: 'rgba(124,255,159,0.85)', marginTop: '6px', textAlign: 'right' }}>
+                    המשימה היומית
+                  </div>
+                </div>
+
+                {/* col-mascot (left in RTL) */}
+                <div style={{ flexShrink: 0, position: 'relative', width: '220px', height: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Image
+                    key={mascotSrc}
+                    src={mascotSrc}
+                    alt="mascot"
+                    width={220}
+                    height={220}
+                    className="mascot-flt"
+                    style={{ objectFit: 'contain' }}
+                    priority
+                  />
+                </div>
+              </div>
+
+              {/* ── Slider row ── */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: '12px', position: 'relative', flexShrink: 0, zIndex: 1 }}>
+                {/* Track */}
+                <div style={{ flex: 1, height: '10px', position: 'relative', margin: '0 -2px' }}>
+                  <div style={{ width: '100%', height: '10px', background: 'rgba(0,0,0,0.22)', overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%', width: `${fillPct}%`,
+                      background: 'linear-gradient(90deg, #7CFF9F, #00FF9F)',
+                      transition: 'width 0.8s cubic-bezier(0.34,1.56,0.64,1)',
+                    }} />
+                  </div>
+                  {/* Thumb */}
+                  <div style={{
+                    position: 'absolute', top: '50%', left: `${fillPct}%`,
+                    transform: 'translate(-50%,-50%)',
+                    width: '36px', height: '36px',
+                    background: 'rgba(255,255,255,0.15)',
+                    border: '2px solid rgba(255,255,255,0.45)', borderRadius: '10px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3,
+                    transition: 'left 0.8s cubic-bezier(0.34,1.56,0.64,1)',
+                  }}>
+                    <div style={{ width: '10px', height: '10px', background: 'white', borderRadius: '3px', opacity: 0.72 }} />
+                  </div>
+                </div>
+                {/* Icon (bars) */}
+                <div style={{
+                  width: '36px', height: '36px', background: 'rgba(255,255,255,0.9)',
+                  border: '1.5px solid rgba(255,255,255,0.95)', borderRadius: '10px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, zIndex: 2,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '16px' }}>
+                    <span style={{ display: 'block', width: '4px', height: '8px',  background: '#63B185', borderRadius: '2px 2px 0 0' }} />
+                    <span style={{ display: 'block', width: '4px', height: '12px', background: '#63B185', borderRadius: '2px 2px 0 0' }} />
+                    <span style={{ display: 'block', width: '4px', height: '16px', background: '#63B185', borderRadius: '2px 2px 0 0' }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Play button ── */}
+              {!isDone && (
+                <button
+                  className="play-btn"
+                  onClick={() => {
+                    setIsDone(true)
+                    // fire and forget
+                    fetch('/api/child/session', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ childId: child.id }),
+                    }).catch(() => {})
+                  }}
+                  style={{
+                    position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1,
+                    width: '58%', margin: '0 auto', height: '72px',
+                    borderRadius: '39px', border: 'none', cursor: 'pointer', overflow: 'hidden',
+                    background: 'linear-gradient(135deg, #7CFF9F 0%, #40c080 40%, #FF9F7C 100%)',
+                    boxShadow: '0 4px 18px rgba(124,255,159,0.35), 0 8px 24px rgba(0,0,0,0.2)',
+                    fontFamily: "var(--font-secular, 'Secular One', sans-serif)",
+                    fontSize: '30px', color: 'white', flexShrink: 0,
+                    textShadow: '0 1px 8px rgba(0,0,0,0.3)', letterSpacing: '0.5px',
+                    transition: 'transform 0.2s',
+                  }}
+                >
+                  התחל
+                </button>
+              )}
+
+              {/* ── Done state ── */}
+              {isDone && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flexShrink: 0, position: 'relative', zIndex: 1 }}>
+                  <div style={{
+                    textAlign: 'center', padding: '10px', borderRadius: '14px',
+                    background: 'rgba(99,177,133,0.12)', border: '1px solid rgba(99,177,133,0.35)',
+                    fontSize: '14px', color: '#B6D49E',
+                  }}>
+                    🎉 כל הכבוד! סיימת את המשימה להיום
+                  </div>
+                  <button
+                    className="replay-btn"
+                    onClick={() => setIsDone(false)}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      width: '58%', margin: '0 auto', padding: '16px', borderRadius: '50px',
+                      border: '1.5px solid rgba(255,255,255,0.18)', background: 'rgba(255,255,255,0.08)',
+                      color: 'rgba(255,255,255,0.65)',
+                      fontFamily: "var(--font-secular, 'Secular One', sans-serif)",
+                      fontSize: '18px', cursor: 'pointer', transition: 'all 0.2s',
+                    }}
+                  >
+                    שחק שוב
+                  </button>
+                </div>
+              )}
+
+            </div>
+          </div>
+
+        </div>
+
+        {/* ── Week bar ── */}
+        <div style={{
+          flexShrink: 0, display: 'flex', justifyContent: 'center',
+          padding: '8px 0 14px', position: 'relative', zIndex: 2,
+        }}>
+          <div style={{
+            width: '64%', display: 'flex', alignItems: 'center',
+            justifyContent: 'space-between', gap: 0,
+          }}>
+            {["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"].map((label, i) => {
+              const isToday = todayIdx === i
+              return (
+                <div
+                  key={i}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '8px 4px', cursor: 'pointer', borderRadius: '26px', flex: 1,
+                    background: isToday ? 'rgba(60,120,90,0.85)' : 'transparent',
+                    border: isToday ? '1.5px solid rgba(124,255,159,0.5)' : '1.5px solid transparent',
+                  }}
+                >
+                  <span style={{
+                    fontSize: '22px',
+                    color: isToday ? '#7CFF9F' : 'rgba(255,255,255,0.75)',
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {label}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+      </div>
+    </>
+  )
+}
