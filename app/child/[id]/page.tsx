@@ -24,5 +24,13 @@ export default async function ChildDashboardPage({
 
   if (!child) redirect('/select-child')
 
-  return <ChildDashboardClient child={child} />
+  // Fetch games for this child's grade
+  const { data: games } = await supabase
+    .from('games')
+    .select('id, title, topic, thumbnail')
+    .eq('grade', child.grade)
+    .eq('is_visible', true)
+    .order('difficulty', { ascending: true })
+
+  return <ChildDashboardClient child={child} games={games ?? []} />
 }

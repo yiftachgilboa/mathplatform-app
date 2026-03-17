@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 
@@ -11,17 +12,32 @@ type Child = {
   coins: number
 }
 
+type Game = {
+  id: string
+  title: string
+  topic: string
+  thumbnail: string
+}
+
 type StationState = 'done' | 'active' | 'future'
 
-const STATIONS: { label: string; icon: string; state: StationState }[] = [
-  { label: 'חיבור עד 10', icon: '➕', state: 'done' },
-  { label: 'חיבור עד 20', icon: '➕', state: 'done' },
-  { label: 'חיבור עד 50', icon: '➕', state: 'active' },
-  { label: 'חיסור בסיסי', icon: '➖', state: 'future' },
-  { label: 'חיסור עד 20', icon: '➖', state: 'future' },
-  { label: 'כפל ×2',      icon: '✖',  state: 'future' },
-  { label: 'כפל ×3',      icon: '✖',  state: 'future' },
-]
+type Station = {
+  id: string
+  title: string
+  topic: string
+  icon: string
+  state: StationState
+}
+
+function buildStations(games: Game[]): Station[] {
+  return games.map((g, i) => ({
+    id: g.id,
+    title: g.title,
+    topic: g.topic,
+    icon: g.thumbnail,
+    state: i === 0 ? 'active' : 'future',
+  }))
+}
 
 const CARD_COLORS = [
   'rgba(42,90,74,0.92)',
@@ -34,16 +50,18 @@ const CARD_COLORS = [
 ]
 
 // Station 0 uses the croc mascot, rest use default
-const MASCOTS = ['/mascot-croc.png', null, null, null, null, null, null]
+function getMascot(idx: number) {
+  return idx === 0 ? '/mascot-croc.png' : '/mascot-default.png'
+}
 
-// Deterministic spark data: 6 connectors × 3 sparks
-const SPARKS = Array.from({ length: 6 }, (_, ci) =>
-  Array.from({ length: 3 }, (_, si) => ({
+// Deterministic spark data for a connector at index ci
+function sparksFor(ci: number) {
+  return Array.from({ length: 3 }, (_, si) => ({
     delay: `${((ci * 3 + si) * 0.47) % 2.5}s`,
     dur:   `${1.5 + ((ci * 3 + si) * 0.23) % 1.5}s`,
     size:  `${8 + ((ci * 3 + si) * 7) % 5}px`,
   }))
-)
+}
 
 // Deterministic star data
 const STARS = Array.from({ length: 40 }, (_, i) => ({
@@ -75,8 +93,10 @@ const GRADE_LABELS: Record<number, string> = {
   4: 'כיתה ד׳', 5: 'כיתה ה׳', 6: 'כיתה ו׳',
 }
 
-export default function ChildDashboardClient({ child }: { child: Child }) {
-  const initialActive = STATIONS.findIndex(s => s.state === 'active')
+export default function ChildDashboardClient({ child, games }: { child: Child; games: Game[] }) {
+  const router = useRouter()
+  const stations = buildStations(games)
+  const initialActive = Math.max(stations.findIndex(s => s.state === 'active'), 0)
   const [selectedIdx, setSelectedIdx] = useState(initialActive)
   const [isDone, setIsDone] = useState(false)
   const [todayIdx, setTodayIdx] = useState<number | null>(null)
@@ -86,19 +106,20 @@ export default function ChildDashboardClient({ child }: { child: Child }) {
   }, [])
 
   function selectStation(idx: number) {
-    if (STATIONS[idx].state === 'future') return
+    if (stations[idx].state === 'future') return
     setSelectedIdx(idx)
     setIsDone(false)
   }
 
   function nodeState(idx: number): StationState {
     if (idx === selectedIdx) return 'active'
-    return STATIONS[idx].state
+    return stations[idx].state
   }
 
+  const selected = stations[selectedIdx]
   const fillPct   = isDone ? 100 : 62
-  const mascotSrc = MASCOTS[selectedIdx] ?? '/mascot-default.png'
-  const [titleLine1, titleLine2] = splitTitle(STATIONS[selectedIdx].label)
+  const mascotSrc = getMascot(selectedIdx)
+  const [titleLine1, titleLine2] = selected ? splitTitle(selected.title) : ['', '']
   const cardBg = CARD_COLORS[selectedIdx % CARD_COLORS.length]
 
   return (
@@ -206,7 +227,8 @@ export default function ChildDashboardClient({ child }: { child: Child }) {
               cursor: 'pointer', textAlign: 'center',
               boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2)',
               lineHeight: 1.5, flexShrink: 0,
-            }}>
+            }}
+            onClick={() => router.push('/parent/dashboard')}>
               בחירת נושאי לימוד
             </button>
 
@@ -216,10 +238,10 @@ export default function ChildDashboardClient({ child }: { child: Child }) {
               position: 'relative', minHeight: 0,
               display: 'flex', flexDirection: 'column', alignItems: 'center',
             }}>
-              {STATIONS.map((station, i) => {
+              {stations.map((station, i) => {
                 const state = nodeState(i)
                 return (
-                  <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div key={station.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     <div
                       className={`snode-${state}`}
                       onClick={() => selectStation(i)}
@@ -233,9 +255,9 @@ export default function ChildDashboardClient({ child }: { child: Child }) {
                     >
                       {station.icon}
                       <span style={{ fontSize: '9px', color: 'inherit', textAlign: 'center', lineHeight: 1.2, padding: '0 4px', wordBreak: 'break-word' }}>
-                        {station.label}
+                        {station.topic}
                       </span>
-                      {STATIONS[i].state === 'done' && (
+                      {station.state === 'done' && (
                         <span style={{
                           position: 'absolute', top: '-3px', right: '-3px',
                           width: '18px', height: '18px', background: '#63B185',
@@ -245,12 +267,12 @@ export default function ChildDashboardClient({ child }: { child: Child }) {
                         }}>✓</span>
                       )}
                     </div>
-                    {i < STATIONS.length - 1 && (
+                    {i < stations.length - 1 && (
                       <div style={{
                         display: 'flex', flexDirection: 'column',
                         alignItems: 'center', height: '44px', justifyContent: 'space-evenly',
                       }}>
-                        {SPARKS[i].map((spark, j) => (
+                        {sparksFor(i).map((spark, j) => (
                           <span key={j} className="sc" style={{ animationDelay: spark.delay, animationDuration: spark.dur, fontSize: spark.size }}>✦</span>
                         ))}
                       </div>
