@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-interface Child { id: string; name: string; grade: string; avatar: string; coins: number }
+interface Child { id: string; name: string; grade: string; avatar: string; coins: number; theme?: string | null }
 interface Lesson { id: string; name: string; grade: string }
 interface Props { children: Child[]; lessons: Lesson[]; childLessonsMap: Record<string, string[]> }
 
@@ -15,6 +15,13 @@ export default function ParentDashboardClient({ children, lessons, childLessonsM
   const [initialSelected, setInitialSelected] = useState<Set<string>>(new Set())
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<'success' | 'error' | null>(null)
+  const [themeModalOpen, setThemeModalOpen] = useState(false)
+
+  const THEMES = [
+    { key: 'default',        label: 'ברירת מחדל', gradient: 'linear-gradient(135deg,#1F4A38,#1A3C2F)' },
+    { key: 'magical-forest', label: 'יער קסמים',  gradient: 'linear-gradient(135deg,#2d5a20,#1a3d12)' },
+    { key: 'monsters',       label: 'מפלצות',     gradient: 'linear-gradient(135deg,#2a1a4a,#150d28)' },
+  ]
 
   const activeChild = children[activeChildIdx] ?? null
 
@@ -176,9 +183,14 @@ export default function ParentDashboardClient({ children, lessons, childLessonsM
             <div style={{ width:34, height:34, borderRadius:'50%', background:'linear-gradient(135deg,#9E5C8E,#703A67)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}>{activeChild?.avatar || '🦊'}</div>
             <div style={{ fontSize:15, color:'#3a3a3a' }}>בחרו נושאי לימוד ל{activeChild?.name}</div>
           </div>
-          <button onClick={handleSave} style={{ height:32, padding:'0 16px', borderRadius:20, border:'none', cursor:'pointer', background:'#00D45A', color:'#fff', fontSize:12, fontFamily:"'Varela Round',sans-serif", boxShadow:'0 0 10px rgba(0,212,90,.35)', opacity: isDirty ? 1 : 0, pointerEvents: isDirty ? 'all' : 'none', transition:'opacity .15s' }}>
-            {saving ? '...' : 'שמור ✓'}
-          </button>
+          <div style={{ display:'flex', gap:8 }}>
+            <button onClick={() => setThemeModalOpen(true)} style={{ height:32, padding:'0 14px', borderRadius:20, border:'1px solid #E0E0E0', cursor:'pointer', background:'#F5F5F5', color:'#555', fontSize:12, fontFamily:"'Varela Round',sans-serif" }}>
+              🎒 הרפתקאה
+            </button>
+            <button onClick={handleSave} style={{ height:32, padding:'0 16px', borderRadius:20, border:'none', cursor:'pointer', background:'#00D45A', color:'#fff', fontSize:12, fontFamily:"'Varela Round',sans-serif", boxShadow:'0 0 10px rgba(0,212,90,.35)', opacity: isDirty ? 1 : 0, pointerEvents: isDirty ? 'all' : 'none', transition:'opacity .15s' }}>
+              {saving ? '...' : 'שמור ✓'}
+            </button>
+          </div>
         </div>
 
         {/* Child Switcher */}
@@ -226,6 +238,29 @@ export default function ParentDashboardClient({ children, lessons, childLessonsM
         </div>
         <style>{`@keyframes orbP{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.18)}} @keyframes sTw{0%,100%{opacity:0}50%{opacity:1}} @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}`}</style>
       </div>
+
+      {themeModalOpen && (
+        <div onClick={() => setThemeModalOpen(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:16, padding:'24px 20px', width:280, boxShadow:'0 8px 32px rgba(0,0,0,0.18)', fontFamily:"'Varela Round',sans-serif", direction:'rtl' }}>
+            <div style={{ fontSize:15, color:'#3a3a3a', marginBottom:16, fontWeight:600 }}>בחר הרפתקאה ל{activeChild?.name}</div>
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              {THEMES.map(t => {
+                const isActive = (activeChild?.theme ?? 'default') === t.key
+                return (
+                  <div key={t.key} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 12px', borderRadius:10, border: isActive ? '1.5px solid #00D45A' : '1.5px solid #E8EDE9', background: isActive ? '#F5FDF8' : '#FAFAFA', cursor:'pointer' }}>
+                    <div style={{ width:40, height:40, borderRadius:8, background:t.gradient, flexShrink:0 }} />
+                    <div style={{ flex:1, fontSize:14, color:'#3a3a3a' }}>{t.label}</div>
+                    {isActive && <span style={{ fontSize:14, color:'#00D45A' }}>✓</span>}
+                  </div>
+                )
+              })}
+            </div>
+            <button onClick={() => setThemeModalOpen(false)} style={{ marginTop:16, width:'100%', height:34, borderRadius:20, border:'1px solid #E0E0E0', background:'#F5F5F5', cursor:'pointer', fontSize:13, color:'#777', fontFamily:"'Varela Round',sans-serif" }}>
+              סגור
+            </button>
+          </div>
+        </div>
+      )}
 
       {toast && (
         <div style={{ position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)', padding:'10px 20px', borderRadius:20, fontSize:13, fontFamily:"'Varela Round',sans-serif", color:'#fff', background: toast==='success' ? '#00A045' : '#C0392B', zIndex:100, animation:'toastIn .2s ease' }}>
