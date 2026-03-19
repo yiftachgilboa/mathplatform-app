@@ -255,7 +255,7 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
                     >
                       {station.icon}
                       <span style={{ fontSize: '9px', color: 'inherit', textAlign: 'center', lineHeight: 1.2, padding: '0 4px', wordBreak: 'break-word' }}>
-                        {station.topic}
+                        {station.title}
                       </span>
                       {station.state === 'done' && (
                         <span style={{
