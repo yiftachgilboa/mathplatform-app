@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import ParentDashboardClient from './ParentDashboardClient'
 
-export default async function ParentDashboardPage() {
+export default async function ParentDashboardPage({ searchParams }: { searchParams: Promise<{ childId?: string }> }) {
+  const { childId } = await searchParams
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -50,6 +51,7 @@ export default async function ParentDashboardPage() {
       children={childList}
       lessons={lessons ?? []}
       childLessonsMap={childLessonsMap}
+      initialChildId={childId}
     />
   )
 }

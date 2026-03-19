@@ -259,7 +259,7 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
               boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2)',
               lineHeight: 1.5, flexShrink: 0,
             }}
-            onClick={() => router.push('/parent/dashboard')}>
+            onClick={() => router.push(`/parent/dashboard?childId=${child.id}`)}>
               בחירת נושאי לימוד
             </button>
 
