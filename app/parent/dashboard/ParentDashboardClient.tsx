@@ -51,7 +51,7 @@ export default function ParentDashboardClient({ children, lessons, childLessonsM
       const res = await fetch(`/api/children/${activeChild.id}/lessons`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lessonIds: trackOrder.filter(id => selected.has(id)) }),
+        body: JSON.stringify({ gameIds: trackOrder.filter(id => selected.has(id)) }),
       })
       if (!res.ok) throw new Error()
       setInitialSelected(new Set(selected))
