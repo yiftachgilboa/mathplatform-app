@@ -16,14 +16,18 @@ export default function ParentDashboardClient({ children, lessons, childLessonsM
   const router = useRouter()
   const initialIdx = initialChildId ? children.findIndex(c => c.id === initialChildId) : 0
   const [activeChildIdx, setActiveChildIdx] = useState(initialIdx > -1 ? initialIdx : 0)
-  const [currentGrade, setCurrentGrade] = useState('')
+  const [currentGrade, setCurrentGrade] = useState(
+    initialChildId ? String(children[initialIdx > -1 ? initialIdx : 0]?.grade ?? '1') : '1'
+  )
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [trackOrder, setTrackOrder] = useState<string[]>([])
   const [initialSelected, setInitialSelected] = useState<Set<string>>(new Set())
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<'success' | 'error' | null>(null)
   const [themeModalOpen, setThemeModalOpen] = useState(false)
-  const [childThemeMap, setChildThemeMap] = useState<Record<string, string | null>>({})
+  const [childThemeMap, setChildThemeMap] = useState<Record<string, string>>(
+    children.reduce((acc, c) => ({ ...acc, [c.id]: c.theme ?? 'default' }), {} as Record<string, string>)
+  )
 
   const THEMES = [
     { key: 'default',        label: 'ברירת מחדל', gradient: 'linear-gradient(135deg,#1F4A38,#1A3C2F)' },
@@ -208,15 +212,14 @@ export default function ParentDashboardClient({ children, lessons, childLessonsM
         {/* Header */}
         <div style={{ padding:'20px 22px 15px', display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:'1px solid #EEF2EF', flexShrink:0 }}>
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-            <button onClick={() => window.history.back()} style={{ width:34, height:34, borderRadius:'50%', background:'#F2F5F2', border:'none', cursor:'pointer', fontSize:28, color:'#556655' }}>→</button>
-            <div style={{ width:34, height:34, borderRadius:'50%', background:'linear-gradient(135deg,#9E5C8E,#703A67)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:32 }}>{activeChild?.avatar || '🦊'}</div>
-            <div style={{ fontSize:30, color:'#3a3a3a' }}>בחרו נושאי לימוד ל{activeChild?.name}</div>
+            <button onClick={() => window.history.back()} style={{ width:34, height:34, borderRadius:'50%', background:'#F2F5F2', border:'none', cursor:'pointer', fontSize:22, color:'#556655' }}>→</button>
+            <div style={{ width:34, height:34, borderRadius:'50%', background:'linear-gradient(135deg,#9E5C8E,#703A67)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:26 }}>{activeChild?.avatar || '🦊'}</div>
           </div>
           <div style={{ display:'flex', gap:8 }}>
-            <button onClick={() => setThemeModalOpen(true)} style={{ height:32, padding:'0 14px', borderRadius:20, border:'1px solid #E0E0E0', cursor:'pointer', background:'#F5F5F5', color:'#555', fontSize:24, fontFamily:"'Varela Round',sans-serif" }}>
+            <button onClick={() => setThemeModalOpen(true)} style={{ height:32, padding:'0 14px', borderRadius:20, border:'1px solid #E0E0E0', cursor:'pointer', background:'#F5F5F5', color:'#555', fontSize:19, fontFamily:"'Varela Round',sans-serif" }}>
               🎒 הרפתקאה: {THEME_LABELS[activeTheme] ?? 'ברירת מחדל'}
             </button>
-            <button onClick={handleSave} style={{ height:32, padding:'0 16px', borderRadius:20, border:'none', cursor:'pointer', background:'#00D45A', color:'#fff', fontSize:24, fontFamily:"'Varela Round',sans-serif", boxShadow:'0 0 10px rgba(0,212,90,.35)', opacity: isDirty ? 1 : 0, pointerEvents: isDirty ? 'all' : 'none', transition:'opacity .15s' }}>
+            <button onClick={handleSave} style={{ height:32, padding:'0 16px', borderRadius:20, border:'none', cursor:'pointer', background:'#00D45A', color:'#fff', fontSize:19, fontFamily:"'Varela Round',sans-serif", boxShadow:'0 0 10px rgba(0,212,90,.35)', opacity: isDirty ? 1 : 0, pointerEvents: isDirty ? 'all' : 'none', transition:'opacity .15s' }}>
               {saving ? '...' : 'שמור ✓'}
             </button>
           </div>
@@ -226,7 +229,7 @@ export default function ParentDashboardClient({ children, lessons, childLessonsM
         {children.length > 1 && !initialChildId && (
           <div style={{ display:'flex', gap:6, padding:'10px 22px 0', flexShrink:0 }}>
             {children.map((c, i) => (
-              <button key={c.id} onClick={() => setActiveChildIdx(i)} style={{ height:26, padding:'0 12px', borderRadius:20, border: i===activeChildIdx ? '1px solid rgba(0,180,80,.25)' : '1px solid transparent', cursor:'pointer', fontSize:24, fontFamily:"'Varela Round',sans-serif", background: i===activeChildIdx ? '#E8FBF0' : '#F2F5F2', color: i===activeChildIdx ? '#00A045' : '#778877' }}>
+              <button key={c.id} onClick={() => setActiveChildIdx(i)} style={{ height:26, padding:'0 12px', borderRadius:20, border: i===activeChildIdx ? '1px solid rgba(0,180,80,.25)' : '1px solid transparent', cursor:'pointer', fontSize:19, fontFamily:"'Varela Round',sans-serif", background: i===activeChildIdx ? '#E8FBF0' : '#F2F5F2', color: i===activeChildIdx ? '#00A045' : '#778877' }}>
                 {c.avatar} {c.name}
               </button>
             ))}
@@ -236,7 +239,7 @@ export default function ParentDashboardClient({ children, lessons, childLessonsM
         {/* Grade Tabs */}
         <div style={{ display:'flex', gap:5, flexWrap:'wrap', padding:'12px 22px 10px', borderBottom:'1px solid #EEF2EF', flexShrink:0 }}>
           {GRADES.map(g => (
-            <button key={g} onClick={() => setCurrentGrade(g)} style={{ height:27, padding:'0 12px', borderRadius:20, border: currentGrade===g ? '1px solid rgba(0,180,80,.25)' : '1px solid transparent', cursor:'pointer', fontSize:24, fontFamily:"'Varela Round',sans-serif", background: currentGrade===g ? '#E8FBF0' : '#F2F5F2', color: currentGrade===g ? '#00A045' : '#778877' }}>
+            <button key={g} onClick={() => setCurrentGrade(g)} style={{ height:27, padding:'0 12px', borderRadius:20, border: currentGrade===g ? '1px solid rgba(0,180,80,.25)' : '1px solid transparent', cursor:'pointer', fontSize:19, fontFamily:"'Varela Round',sans-serif", background: currentGrade===g ? '#E8FBF0' : '#F2F5F2', color: currentGrade===g ? '#00A045' : '#778877' }}>
               כיתה {GRADE_LABELS[g]}
             </button>
           ))}
@@ -246,9 +249,9 @@ export default function ParentDashboardClient({ children, lessons, childLessonsM
         <div style={{ flex:1, overflowY:'auto', padding:'14px 20px 20px' }}>
           {gradesLessons.map(l => (
             <div key={l.id} onClick={() => toggleLesson(l.id)} style={{ background: selected.has(l.id) ? '#F5FDF8' : '#fff', borderRadius:10, padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'pointer', marginBottom:6, border: selected.has(l.id) ? '1.5px solid rgba(0,200,80,.38)' : '1.5px solid #EAF0EA', boxShadow:'0 1px 3px rgba(0,0,0,.04)', userSelect:'none' }}>
-              <div style={{ fontSize:30, color:'#3a3a3a' }}>{l.name}</div>
+              <div style={{ fontSize:24, color:'#3a3a3a' }}>{l.name}</div>
               <div style={{ width:32, height:32, borderRadius:'50%', border: selected.has(l.id) ? '1.5px solid #00D45A' : '1.5px solid #C8D8C8', background: selected.has(l.id) ? '#00D45A' : '#fff', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all .18s' }}>
-                {selected.has(l.id) && <span style={{ color:'#fff', fontSize:24 }}>✓</span>}
+                {selected.has(l.id) && <span style={{ color:'#fff', fontSize:19 }}>✓</span>}
               </div>
             </div>
           ))}
@@ -258,10 +261,10 @@ export default function ParentDashboardClient({ children, lessons, childLessonsM
       {/* LEFT PANEL — Track SVG */}
       <div style={{ flex:1, background:'linear-gradient(160deg,#3d1a2e 0%,#2a0f1e 45%,#1a0912 100%)', position:'relative', overflow:'hidden', display:'flex', flexDirection:'column', alignItems:'center' }}>
         <div style={{ position:'absolute', width:260, height:260, borderRadius:'50%', background:'radial-gradient(circle,rgba(255,150,200,.09) 0%,transparent 65%)', top:'50%', left:'50%', transform:'translate(-50%,-50%)', pointerEvents:'none', animation:'orbP 7s ease-in-out infinite' }} />
-        <div style={{ position:'relative', zIndex:2, flexShrink:0, marginTop:20, fontSize:22, color:'rgba(255,180,210,.45)', letterSpacing:'1.8px' }}>מסלול הלימוד של {activeChild?.name}</div>
+        <div style={{ position:'relative', zIndex:2, flexShrink:0, marginTop:20, fontSize:18, color:'rgba(255,180,210,.45)', letterSpacing:'1.8px' }}>מסלול הלימוד של {activeChild?.name}</div>
         <div ref={trackWrapRef} style={{ position:'relative', zIndex:2, flex:1, width:'100%', overflowY:'auto', overflowX:'hidden', padding:'12px 0 20px' }}>
           {trackOrder.filter(id => selected.has(id)).length === 0
-            ? <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'rgba(255,180,210,.3)', fontSize:26 }}>בחר שיעורים כדי לבנות את המסלול</div>
+            ? <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'rgba(255,180,210,.3)', fontSize:21 }}>בחר שיעורים כדי לבנות את המסלול</div>
             : <svg ref={svgRef} style={{ display:'block', margin:'0 auto', overflow:'visible' }} />
           }
         </div>
@@ -271,20 +274,20 @@ export default function ParentDashboardClient({ children, lessons, childLessonsM
       {themeModalOpen && (
         <div onClick={() => setThemeModalOpen(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center' }}>
           <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:16, padding:'24px 20px', width:280, boxShadow:'0 8px 32px rgba(0,0,0,0.18)', fontFamily:"'Varela Round',sans-serif", direction:'rtl' }}>
-            <div style={{ fontSize:30, color:'#3a3a3a', marginBottom:16, fontWeight:600 }}>בחר הרפתקאה ל{activeChild?.name}</div>
+            <div style={{ fontSize:24, color:'#3a3a3a', marginBottom:16, fontWeight:600 }}>בחר הרפתקאה ל{activeChild?.name}</div>
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
               {THEMES.map(t => {
                 const isActive = activeTheme === t.key
                 return (
                   <div key={t.key} onClick={() => handleThemeChange(t.key)} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 12px', borderRadius:10, border: isActive ? '1.5px solid #00D45A' : '1.5px solid #E8EDE9', background: isActive ? '#F5FDF8' : '#FAFAFA', cursor:'pointer' }}>
                     <div style={{ width:40, height:40, borderRadius:8, background:t.gradient, flexShrink:0 }} />
-                    <div style={{ flex:1, fontSize:28, color:'#3a3a3a' }}>{t.label}</div>
-                    {isActive && <span style={{ fontSize:28, color:'#00D45A' }}>✓</span>}
+                    <div style={{ flex:1, fontSize:22, color:'#3a3a3a' }}>{t.label}</div>
+                    {isActive && <span style={{ fontSize:22, color:'#00D45A' }}>✓</span>}
                   </div>
                 )
               })}
             </div>
-            <button onClick={() => setThemeModalOpen(false)} style={{ marginTop:16, width:'100%', height:34, borderRadius:20, border:'1px solid #E0E0E0', background:'#F5F5F5', cursor:'pointer', fontSize:26, color:'#777', fontFamily:"'Varela Round',sans-serif" }}>
+            <button onClick={() => setThemeModalOpen(false)} style={{ marginTop:16, width:'100%', height:34, borderRadius:20, border:'1px solid #E0E0E0', background:'#F5F5F5', cursor:'pointer', fontSize:21, color:'#777', fontFamily:"'Varela Round',sans-serif" }}>
               סגור
             </button>
           </div>
@@ -292,7 +295,7 @@ export default function ParentDashboardClient({ children, lessons, childLessonsM
       )}
 
       {toast && (
-        <div style={{ position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)', padding:'10px 20px', borderRadius:20, fontSize:26, fontFamily:"'Varela Round',sans-serif", color:'#fff', background: toast==='success' ? '#00A045' : '#C0392B', zIndex:100, animation:'toastIn .2s ease' }}>
+        <div style={{ position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)', padding:'10px 20px', borderRadius:20, fontSize:21, fontFamily:"'Varela Round',sans-serif", color:'#fff', background: toast==='success' ? '#00A045' : '#C0392B', zIndex:100, animation:'toastIn .2s ease' }}>
           {toast === 'success' ? '✓ השינויים נשמרו' : '✗ שגיאה בשמירה'}
         </div>
       )}
