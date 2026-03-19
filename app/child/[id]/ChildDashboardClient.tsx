@@ -114,6 +114,17 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
     setTodayIdx(new Date().getDay())
   }, [])
 
+  useEffect(() => {
+    const themes = [
+      '/art/backgrounds/bg-magical-forest.jpg',
+      '/art/backgrounds/bg_monsters.jpg',
+    ]
+    themes.forEach(src => {
+      const img = new Image()
+      img.src = src
+    })
+  }, [])
+
   function selectStation(idx: number) {
     if (stations[idx].state === 'future') return
     setSelectedIdx(idx)
