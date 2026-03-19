@@ -89,6 +89,7 @@ export default function ParentDashboardClient({ children, lessons, childLessonsM
         body: JSON.stringify({ theme }),
       })
       if (!res.ok) throw new Error()
+      router.refresh()
     } catch {
       setChildThemeMap(prev => ({ ...prev, [activeChild.id]: prevTheme }))
       alert('שגיאה בשמירה, נסה שוב')
