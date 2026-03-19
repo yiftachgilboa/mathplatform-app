@@ -1,11 +1,13 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 interface Child { id: string; name: string; grade: string; avatar: string; coins: number }
 interface Lesson { id: string; name: string; grade: string }
 interface Props { children: Child[]; lessons: Lesson[]; childLessonsMap: Record<string, string[]> }
 
 export default function ParentDashboardClient({ children, lessons, childLessonsMap }: Props) {
+  const router = useRouter()
   const [activeChildIdx, setActiveChildIdx] = useState(0)
   const [currentGrade, setCurrentGrade] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -56,6 +58,7 @@ export default function ParentDashboardClient({ children, lessons, childLessonsM
       if (!res.ok) throw new Error()
       setInitialSelected(new Set(selected))
       setToast('success')
+      router.refresh()
     } catch {
       setToast('error')
     } finally {
