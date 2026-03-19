@@ -19,9 +19,10 @@ export default function ParentDashboardClient({ children, lessons, childLessonsM
   const [currentGrade, setCurrentGrade] = useState(
     initialChildId ? String(children[initialIdx > -1 ? initialIdx : 0]?.grade ?? '1') : '1'
   )
-  const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [trackOrder, setTrackOrder] = useState<string[]>([])
-  const [initialSelected, setInitialSelected] = useState<Set<string>>(new Set())
+  const _initIds = childLessonsMap[children[initialIdx > -1 ? initialIdx : 0]?.id] ?? []
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(_initIds))
+  const [trackOrder, setTrackOrder] = useState<string[]>(() => [..._initIds])
+  const [initialSelected, setInitialSelected] = useState<Set<string>>(() => new Set(_initIds))
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<'success' | 'error' | null>(null)
   const [themeModalOpen, setThemeModalOpen] = useState(false)
@@ -214,6 +215,7 @@ export default function ParentDashboardClient({ children, lessons, childLessonsM
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>
             <button onClick={() => window.history.back()} style={{ width:34, height:34, borderRadius:'50%', background:'#F2F5F2', border:'none', cursor:'pointer', fontSize:22, color:'#556655' }}>→</button>
             <div style={{ width:34, height:34, borderRadius:'50%', background:'linear-gradient(135deg,#9E5C8E,#703A67)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:26 }}>{activeChild?.avatar || '🦊'}</div>
+            <div style={{ fontSize:19, color:'#3a3a3a' }}>{activeChild?.name}</div>
           </div>
           <div style={{ display:'flex', gap:8 }}>
             <button onClick={() => setThemeModalOpen(true)} style={{ height:32, padding:'0 14px', borderRadius:20, border:'1px solid #E0E0E0', cursor:'pointer', background:'#F5F5F5', color:'#555', fontSize:19, fontFamily:"'Varela Round',sans-serif" }}>
