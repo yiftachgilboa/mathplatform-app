@@ -10,6 +10,7 @@ type Child = {
   name: string
   grade: number
   coins: number
+  theme: string | null
 }
 
 type Game = {
@@ -48,6 +49,13 @@ const CARD_COLORS = [
   'rgba(38,85,70,0.92)',
   'rgba(45,72,80,0.92)',
 ]
+
+function getBgForTheme(theme: string | null): string {
+  switch (theme) {
+    case 'magical-forest': return '/art/backgrounds/bg-magical-forest.jpg';
+    default: return '';
+  }
+}
 
 // Station 0 uses the croc mascot, rest use default
 function getMascot(idx: number) {
@@ -118,6 +126,10 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
 
   const selected = stations[selectedIdx]
   const fillPct   = isDone ? 100 : 62
+  const bgUrl = getBgForTheme(child.theme)
+  const screenStyle = bgUrl
+    ? { backgroundImage: `url(${bgUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    : {}
   const mascotSrc = getMascot(selectedIdx)
   const [titleLine1, titleLine2] = selected ? splitTitle(selected.title) : ['', '']
   const cardBg = CARD_COLORS[selectedIdx % CARD_COLORS.length]
@@ -153,6 +165,7 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
           width: '100%',
           height: '100vh',
           background: 'linear-gradient(180deg, #1F4A38 0%, #1A3C2F 100%)',
+          ...screenStyle,
           display: 'flex',
           flexDirection: 'column',
           position: 'relative',
@@ -217,6 +230,12 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
           <div style={{
             width: '110px', flexShrink: 0,
             display: 'flex', flexDirection: 'column', gap: '8px',
+            background: 'rgba(0,0,0,0.35)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.15)',
+            borderRadius: '20px',
+            padding: '8px',
           }}>
             <button style={{
               width: '100%', padding: '12px 8px', borderRadius: '16px',
@@ -286,13 +305,14 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
             <div style={{
               width: '64%', margin: '0 auto', flex: 1, minHeight: 0,
-              background: cardBg,
-              border: '3px solid rgba(255,255,255,0.85)',
+              background: 'rgba(0,0,0,0.35)',
+              border: '1px solid rgba(255,255,255,0.15)',
               boxShadow: '0 0 24px rgba(255,255,255,0.15), 0 0 48px rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.3)',
               borderRadius: '40px',
               padding: '20px 24px',
               position: 'relative', overflow: 'hidden',
-              backdropFilter: 'blur(8px)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
               display: 'flex', flexDirection: 'column',
               transition: 'background 0.6s ease',
             }}>
