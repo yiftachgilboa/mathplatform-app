@@ -1,20 +1,29 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
-const STARS = Array.from({ length: 50 }, (_, i) => ({
-  id: i,
-  top: `${Math.random() * 100}%`,
-  left: `${Math.random() * 100}%`,
-  size: `${2 + Math.random() * 3}px`,
-  delay: `${Math.random() * 4}s`,
-  duration: `${2 + Math.random() * 3}s`,
-}))
+type Star = { id: number; top: string; left: string; size: string; delay: string; duration: string }
+
+function generateStars(): Star[] {
+  return Array.from({ length: 50 }, (_, i) => ({
+    id: i,
+    top: `${Math.random() * 100}%`,
+    left: `${Math.random() * 100}%`,
+    size: `${2 + Math.random() * 3}px`,
+    delay: `${Math.random() * 4}s`,
+    duration: `${2 + Math.random() * 3}s`,
+  }))
+}
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
+  const [stars, setStars] = useState<Star[]>([])
+
+  useEffect(() => {
+    setStars(generateStars())
+  }, [])
   const [pwEmail, setPwEmail] = useState('')
   const [pwPassword, setPwPassword] = useState('')
   const [pwError, setPwError] = useState('')
@@ -113,7 +122,7 @@ export default function LoginPage() {
         }}
       >
         {/* Stars */}
-        {STARS.map((s) => (
+        {stars.map((s) => (
           <span
             key={s.id}
             className="lp-star"

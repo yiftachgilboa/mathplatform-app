@@ -30,18 +30,18 @@ export default async function ParentDashboardPage() {
   const { data: childLessonsRows } = childIds.length > 0
     ? await supabase
         .from('child_lessons')
-        .select('child_id, lesson_id, position')
+        .select('child_id, game_id, position')
         .in('child_id', childIds)
         .order('position', { ascending: true })
     : { data: [] }
 
-  const childLessonsMap: Record<string, number[]> = {}
+  const childLessonsMap: Record<string, string[]> = {}
   for (const child of childList) {
     childLessonsMap[child.id] = []
   }
   for (const row of childLessonsRows ?? []) {
     if (childLessonsMap[row.child_id]) {
-      childLessonsMap[row.child_id].push(row.lesson_id)
+      childLessonsMap[row.child_id].push(row.game_id)
     }
   }
 

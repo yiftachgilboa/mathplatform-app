@@ -2,15 +2,15 @@
 import { useEffect, useRef, useState } from 'react'
 
 interface Child { id: string; name: string; grade: string; avatar: string; coins: number }
-interface Lesson { id: number; name: string; grade: string }
-interface Props { children: Child[]; lessons: Lesson[]; childLessonsMap: Record<string, number[]> }
+interface Lesson { id: string; name: string; grade: string }
+interface Props { children: Child[]; lessons: Lesson[]; childLessonsMap: Record<string, string[]> }
 
 export default function ParentDashboardClient({ children, lessons, childLessonsMap }: Props) {
   const [activeChildIdx, setActiveChildIdx] = useState(0)
   const [currentGrade, setCurrentGrade] = useState('')
-  const [selected, setSelected] = useState<Set<number>>(new Set())
-  const [trackOrder, setTrackOrder] = useState<number[]>([])
-  const [initialSelected, setInitialSelected] = useState<Set<number>>(new Set())
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [trackOrder, setTrackOrder] = useState<string[]>([])
+  const [initialSelected, setInitialSelected] = useState<Set<string>>(new Set())
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<'success' | 'error' | null>(null)
 
@@ -30,7 +30,7 @@ export default function ParentDashboardClient({ children, lessons, childLessonsM
     setTrackOrder([...ids])
   }, [activeChildIdx])
 
-  function toggleLesson(id: number) {
+  function toggleLesson(id: string) {
     setSelected(prev => {
       const next = new Set(prev)
       if (next.has(id)) {
@@ -75,7 +75,7 @@ export default function ParentDashboardClient({ children, lessons, childLessonsM
     if (!svg || !wrap) return
     svg.innerHTML = ''
 
-    const map: Record<number, Lesson> = {}
+    const map: Record<string, Lesson> = {}
     lessons.forEach(l => { map[l.id] = l })
 
     const items = trackOrder.filter(id => selected.has(id)).map(id => map[id]).filter(Boolean)

@@ -24,13 +24,35 @@ export default async function ChildDashboardPage({
 
   if (!child) redirect('/select-child')
 
-  // Fetch games for this child's grade
-  const { data: games } = await supabase
-    .from('games')
-    .select('id, title, topic, thumbnail')
-    .eq('grade', child.grade)
-    .eq('is_visible', true)
-    .order('difficulty', { ascending: true })
+  // Fetch parent-assigned track for this child
+  const { data: childLessons } = await supabase
+    .from('child_lessons')
+    .select('game_id, position')
+    .eq('child_id', id)
+    .order('position', { ascending: true })
 
-  return <ChildDashboardClient child={child} games={games ?? []} />
+  let games
+  if (childLessons && childLessons.length > 0) {
+    // Load games in the order the parent defined
+    const gameIds = childLessons.map(l => l.game_id)
+    const { data: fetchedGames } = await supabase
+      .from('games')
+      .select('id, title, topic, thumbnail')
+      .in('id', gameIds)
+      .eq('is_visible', true)
+    // Re-order to match the parent's track order
+    const byId = Object.fromEntries((fetchedGames ?? []).map(g => [g.id, g]))
+    games = gameIds.map(gid => byId[gid]).filter(Boolean)
+  } else {
+    // Fallback: all games for this grade, ordered by difficulty
+    const { data: gradeGames } = await supabase
+      .from('games')
+      .select('id, title, topic, thumbnail')
+      .eq('grade', child.grade)
+      .eq('is_visible', true)
+      .order('difficulty', { ascending: true })
+    games = gradeGames ?? []
+  }
+
+  return <ChildDashboardClient child={child} games={games} />
 }
