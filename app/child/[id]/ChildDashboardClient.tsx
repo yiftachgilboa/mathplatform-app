@@ -53,6 +53,7 @@ const CARD_COLORS = [
 function getBgForTheme(theme: string | null): string {
   switch (theme) {
     case 'magical-forest': return '/art/backgrounds/bg-magical-forest.jpg';
+    case 'monsters': return '/art/backgrounds/bg_monsters.jpg';
     default: return '';
   }
 }
