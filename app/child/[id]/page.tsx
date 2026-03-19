@@ -19,7 +19,7 @@ export default async function ChildDashboardPage({
   // Fetch child — verify ownership
   const { data: child } = await supabase
     .from('children')
-    .select('id, name, grade, coins')
+    .select('id, name, grade, coins, theme')
     .eq('id', id)
     .eq('parent_id', session.user.id)
     .single()
