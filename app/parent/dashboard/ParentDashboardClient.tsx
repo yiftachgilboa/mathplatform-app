@@ -16,6 +16,7 @@ export default function ParentDashboardClient({ children, lessons, childLessonsM
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<'success' | 'error' | null>(null)
   const [themeModalOpen, setThemeModalOpen] = useState(false)
+  const [childThemeMap, setChildThemeMap] = useState<Record<string, string | null>>({})
 
   const THEMES = [
     { key: 'default',        label: 'ברירת מחדל', gradient: 'linear-gradient(135deg,#1F4A38,#1A3C2F)' },
@@ -71,6 +72,26 @@ export default function ParentDashboardClient({ children, lessons, childLessonsM
     } finally {
       setSaving(false)
       setTimeout(() => setToast(null), 2500)
+    }
+  }
+
+  const activeTheme = childThemeMap[activeChild?.id ?? ''] ?? activeChild?.theme ?? 'default'
+
+  async function handleThemeChange(theme: string) {
+    if (!activeChild) return
+    const prevTheme = activeTheme
+    setChildThemeMap(prev => ({ ...prev, [activeChild.id]: theme }))
+    setThemeModalOpen(false)
+    try {
+      const res = await fetch(`/api/children/${activeChild.id}/theme`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ theme }),
+      })
+      if (!res.ok) throw new Error()
+    } catch {
+      setChildThemeMap(prev => ({ ...prev, [activeChild.id]: prevTheme }))
+      alert('שגיאה בשמירה, נסה שוב')
     }
   }
 
@@ -245,9 +266,9 @@ export default function ParentDashboardClient({ children, lessons, childLessonsM
             <div style={{ fontSize:15, color:'#3a3a3a', marginBottom:16, fontWeight:600 }}>בחר הרפתקאה ל{activeChild?.name}</div>
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
               {THEMES.map(t => {
-                const isActive = (activeChild?.theme ?? 'default') === t.key
+                const isActive = activeTheme === t.key
                 return (
-                  <div key={t.key} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 12px', borderRadius:10, border: isActive ? '1.5px solid #00D45A' : '1.5px solid #E8EDE9', background: isActive ? '#F5FDF8' : '#FAFAFA', cursor:'pointer' }}>
+                  <div key={t.key} onClick={() => handleThemeChange(t.key)} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 12px', borderRadius:10, border: isActive ? '1.5px solid #00D45A' : '1.5px solid #E8EDE9', background: isActive ? '#F5FDF8' : '#FAFAFA', cursor:'pointer' }}>
                     <div style={{ width:40, height:40, borderRadius:8, background:t.gradient, flexShrink:0 }} />
                     <div style={{ flex:1, fontSize:14, color:'#3a3a3a' }}>{t.label}</div>
                     {isActive && <span style={{ fontSize:14, color:'#00D45A' }}>✓</span>}
