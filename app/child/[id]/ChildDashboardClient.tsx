@@ -253,7 +253,6 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
                         transition: 'all 0.2s', position: 'relative',
                       }}
                     >
-                      {station.icon}
                       <span style={{ fontSize: '9px', color: 'inherit', textAlign: 'center', lineHeight: 1.2, padding: '0 4px', wordBreak: 'break-word' }}>
                         {station.title}
                       </span>
