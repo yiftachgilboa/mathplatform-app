@@ -317,7 +317,7 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
             <div style={{
               width: '64%', margin: '0 auto', flex: 1, minHeight: 0,
-              background: 'rgba(0,0,0,0.35)',
+              background: 'rgba(0,0,0,0.15)',
               border: '1px solid rgba(255,255,255,0.15)',
               boxShadow: '0 0 24px rgba(255,255,255,0.15), 0 0 48px rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.3)',
               borderRadius: '40px',
