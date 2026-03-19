@@ -11,11 +11,11 @@ export default async function ParentDashboardPage({ searchParams }: { searchPara
 
   const { data: children } = await supabase
     .from('children')
-    .select('id, name, grade, avatar, coins')
+    .select('id, name, grade, avatar, coins, theme')
     .eq('parent_id', user.id)
     .order('created_at', { ascending: true })
 
-  const childList = children ?? []
+  const childList = (children ?? []).map(c => ({ ...c, grade: String(c.grade) }))
 
   const { data: gamesData } = await supabase
     .from('games')
