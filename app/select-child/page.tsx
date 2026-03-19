@@ -3,15 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-
-const STARS = Array.from({ length: 50 }, (_, i) => ({
-  id: i,
-  top: `${Math.random() * 100}%`,
-  left: `${Math.random() * 100}%`,
-  size: `${2 + Math.random() * 3}px`,
-  delay: `${Math.random() * 4}s`,
-  duration: `${2 + Math.random() * 3}s`,
-}))
+import StarsBackground from './StarsBackground'
 
 const GRADE_LABELS: Record<number, string> = {
   1: 'כיתה א׳', 2: 'כיתה ב׳', 3: 'כיתה ג׳',
@@ -102,22 +94,7 @@ export default function SelectChildPage() {
         }}
       >
         {/* Stars */}
-        {STARS.map((s) => (
-          <span
-            key={s.id}
-            className="sc-star"
-            style={
-              {
-                top: s.top,
-                left: s.left,
-                width: s.size,
-                height: s.size,
-                '--delay': s.delay,
-                '--dur': s.duration,
-              } as React.CSSProperties
-            }
-          />
-        ))}
+        <StarsBackground />
 
         {/* Central glow */}
         <div
