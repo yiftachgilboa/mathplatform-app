@@ -16,6 +16,14 @@ export default function SelectChildPage() {
   const router = useRouter()
   const [children, setChildren] = useState<Child[]>([])
   const [loading, setLoading] = useState(true)
+  const [deleteTarget, setDeleteTarget] = useState<Child | null>(null)
+
+  async function handleDelete(child: Child) {
+    const supabase = createClient()
+    await supabase.from('children').delete().eq('id', child.id)
+    setChildren(prev => prev.filter(c => c.id !== child.id))
+    setDeleteTarget(null)
+  }
 
   useEffect(() => {
     async function load() {
@@ -202,9 +210,65 @@ export default function SelectChildPage() {
               children={children}
               onSelect={(id) => router.push(`/child/${id}`)}
               onAdd={() => router.push('/onboarding')}
+              onDelete={(child) => setDeleteTarget(child)}
             />
           )}
         </div>
+
+        {deleteTarget && (
+          <div
+            onClick={() => setDeleteTarget(null)}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 100,
+              background: 'rgba(0,0,0,0.55)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: 'linear-gradient(170deg, #3A1E1E, #2B1212)',
+                border: '1.5px solid rgba(192,57,43,0.35)',
+                borderRadius: '22px',
+                padding: '28px 24px',
+                width: '280px',
+                textAlign: 'center',
+                fontFamily: 'var(--font-primary)',
+              }}
+            >
+              <div style={{ fontSize: '16px', color: 'white', marginBottom: '8px' }}>
+                למחוק את {deleteTarget.name}?
+              </div>
+              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', marginBottom: '24px' }}>
+                הפעולה לא ניתנת לביטול
+              </div>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => setDeleteTarget(null)}
+                  style={{
+                    flex: 1, height: '42px', borderRadius: '11px',
+                    border: '1.5px solid rgba(255,255,255,0.14)',
+                    background: 'transparent', color: 'rgba(255,255,255,0.5)',
+                    fontSize: '14px', fontFamily: 'var(--font-primary)', cursor: 'pointer',
+                  }}
+                >
+                  ביטול
+                </button>
+                <button
+                  onClick={() => handleDelete(deleteTarget)}
+                  style={{
+                    flex: 1, height: '42px', borderRadius: '11px',
+                    border: 'none', background: '#C0392B',
+                    color: 'white', fontSize: '14px',
+                    fontFamily: 'var(--font-primary)', cursor: 'pointer',
+                  }}
+                >
+                  מחק
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   )
@@ -215,10 +279,12 @@ function ChildGrid({
   children,
   onSelect,
   onAdd,
+  onDelete,
 }: {
   children: Child[]
   onSelect: (id: string) => void
   onAdd: () => void
+  onDelete: (child: Child) => void
 }) {
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -230,7 +296,7 @@ function ChildGrid({
         }}
       >
         {children.map((child) => (
-          <ChildCard key={child.id} child={child} onClick={() => onSelect(child.id)} />
+          <ChildCard key={child.id} child={child} onClick={() => onSelect(child.id)} onDelete={() => onDelete(child)} />
         ))}
       </div>
       <AddButton onClick={onAdd} />
@@ -239,44 +305,65 @@ function ChildGrid({
 }
 
 /* ── Child card ── */
-function ChildCard({ child, onClick }: { child: Child; onClick: () => void }) {
+function ChildCard({ child, onClick, onDelete }: { child: Child; onClick: () => void; onDelete: () => void }) {
+  const [hovered, setHovered] = useState(false)
+
   return (
-    <button
-      className="sc-child-card"
-      onClick={onClick}
-      style={{
-        background: 'var(--color-card-bg)',
-        border: '1.5px solid var(--color-card-border)',
-        borderRadius: 'var(--radius-card)',
-        backdropFilter: 'blur(10px)',
-        padding: '28px 16px 24px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '10px',
-        cursor: 'pointer',
-        fontFamily: 'var(--font-primary)',
-      }}
-    >
-      <span style={{ fontSize: '64px', lineHeight: 1 }}>{child.avatar}</span>
-      <span
+    <div style={{ position: 'relative' }}>
+      <button
+        className="sc-child-card"
+        onClick={onClick}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         style={{
-          fontSize: '18px',
-          fontWeight: 700,
-          color: 'var(--color-text-primary)',
+          width: '100%',
+          background: 'var(--color-card-bg)',
+          border: '1.5px solid var(--color-card-border)',
+          borderRadius: 'var(--radius-card)',
+          backdropFilter: 'blur(10px)',
+          padding: '28px 16px 24px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '10px',
+          cursor: 'pointer',
+          fontFamily: 'var(--font-primary)',
         }}
       >
-        {child.name}
-      </span>
-      <span
-        style={{
-          fontSize: '13px',
-          color: 'var(--color-text-muted)',
-        }}
-      >
-        {GRADE_LABELS[child.grade] ?? `כיתה ${child.grade}`}
-      </span>
-    </button>
+        <span style={{ fontSize: '64px', lineHeight: 1 }}>{child.avatar}</span>
+        <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+          {child.name}
+        </span>
+        <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>
+          {GRADE_LABELS[child.grade] ?? `כיתה ${child.grade}`}
+        </span>
+      </button>
+
+      {hovered && (
+        <div
+          onMouseEnter={() => setHovered(true)}
+          onClick={e => { e.stopPropagation(); onDelete() }}
+          style={{
+            position: 'absolute',
+            top: '8px',
+            left: '8px',
+            width: '22px',
+            height: '22px',
+            borderRadius: '50%',
+            background: 'rgba(192,57,43,0.85)',
+            color: 'white',
+            fontSize: '11px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: 5,
+          }}
+        >
+          ✕
+        </div>
+      )}
+    </div>
   )
 }
 
