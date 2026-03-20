@@ -20,8 +20,17 @@ export default function SelectChildPage() {
 
   async function handleDelete(child: Child) {
     const supabase = createClient()
+
+    // מחיקת רשומות תלויות קודם
+    await supabase.from('child_lessons').delete().eq('child_id', child.id)
+    await supabase.from('progress').delete().eq('child_id', child.id)
+    await supabase.from('wrong_answers').delete().eq('child_id', child.id)
+    await supabase.from('sessions').delete().eq('child_id', child.id)
+
+    // עכשיו מחיקת הילד עצמו
     const { error } = await supabase.from('children').delete().eq('id', child.id)
     console.log('delete result:', { id: child.id, error })
+
     setChildren(prev => prev.filter(c => c.id !== child.id))
     setDeleteTarget(null)
   }
