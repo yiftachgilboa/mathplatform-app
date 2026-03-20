@@ -93,6 +93,40 @@ export default function SelectChildPage() {
           padding: '40px 16px',
         }}
       >
+        {/* Sign out */}
+        <button
+          onClick={async () => {
+            const supabase = createClient()
+            await supabase.auth.signOut()
+            router.push('/login')
+          }}
+          style={{
+            position: 'absolute',
+            top: '16px',
+            left: '16px',
+            zIndex: 10,
+            padding: '6px 14px',
+            borderRadius: '999px',
+            border: '1px solid rgba(255,255,255,0.1)',
+            background: 'transparent',
+            color: 'rgba(255,255,255,0.45)',
+            fontSize: '12px',
+            fontFamily: 'var(--font-primary)',
+            cursor: 'pointer',
+            transition: 'color 0.15s, border-color 0.15s',
+          }}
+          onMouseEnter={e => {
+            (e.target as HTMLButtonElement).style.color = 'rgba(255,255,255,0.8)'
+            ;(e.target as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.25)'
+          }}
+          onMouseLeave={e => {
+            (e.target as HTMLButtonElement).style.color = 'rgba(255,255,255,0.45)'
+            ;(e.target as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.1)'
+          }}
+        >
+          התנתק
+        </button>
+
         {/* Stars */}
         <StarsBackground />
 
