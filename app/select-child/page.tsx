@@ -20,7 +20,8 @@ export default function SelectChildPage() {
 
   async function handleDelete(child: Child) {
     const supabase = createClient()
-    await supabase.from('children').delete().eq('id', child.id)
+    const { error } = await supabase.from('children').delete().eq('id', child.id)
+    console.log('delete result:', { id: child.id, error })
     setChildren(prev => prev.filter(c => c.id !== child.id))
     setDeleteTarget(null)
   }
