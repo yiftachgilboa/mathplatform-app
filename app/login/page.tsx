@@ -62,7 +62,7 @@ export default function LoginPage() {
     if (error) {
       setPwError(error.message)
     } else {
-      router.push('/parent/dashboard')
+      router.push('/select-child')
     }
   }
 
