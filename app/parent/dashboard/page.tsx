@@ -49,7 +49,7 @@ export default async function ParentDashboardPage({ searchParams }: { searchPara
     .order('id', { ascending: true })
   const lessons = (gamesData ?? []).map((g: any) => ({ id: g.id, name: g.title, grade: String(g.grade) }))
 
-  const childIds = childList.map((c) => c.id)
+  const childIds = childList.map((c: { id: string }) => c.id)
 
   const { data: childLessonsRows } = childIds.length > 0
     ? await db
