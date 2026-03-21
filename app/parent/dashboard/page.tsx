@@ -69,11 +69,6 @@ export default async function ParentDashboardPage({ searchParams }: { searchPara
     }
   }
 
-  console.log('[DEBUG] childList:', JSON.stringify(childList.map(c => c.id)))
-  console.log('[DEBUG] childLessonsRows:', JSON.stringify(childLessonsRows))
-  console.log('[DEBUG] childLessonsMap:', JSON.stringify(childLessonsMap))
-  console.log('[DEBUG] initialChildId:', childId)
-
   return (
     <ParentDashboardClient
       children={childList}
