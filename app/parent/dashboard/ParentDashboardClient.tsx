@@ -14,12 +14,11 @@ const THEME_LABELS: Record<string, string> = {
 
 export default function ParentDashboardClient({ children, lessons, childLessonsMap, initialChildId }: Props) {
   const router = useRouter()
-  const initialIdx = initialChildId ? children.findIndex(c => c.id === initialChildId) : 0
-  const [activeChildIdx, setActiveChildIdx] = useState(initialIdx > -1 ? initialIdx : 0)
+  const [selectedChildId, setSelectedChildId] = useState(initialChildId ?? children[0]?.id ?? '')
   const [currentGrade, setCurrentGrade] = useState(
-    initialChildId ? String(children[initialIdx > -1 ? initialIdx : 0]?.grade ?? '1') : '1'
+    () => children.find(c => c.id === (initialChildId ?? children[0]?.id))?.grade ?? '1'
   )
-  const _initIds = childLessonsMap[children[initialIdx > -1 ? initialIdx : 0]?.id] ?? []
+  const _initIds = childLessonsMap[initialChildId ?? children[0]?.id ?? ''] ?? []
   const [selected, setSelected] = useState<Set<string>>(() => new Set(_initIds))
   const [trackOrder, setTrackOrder] = useState<string[]>(() => [..._initIds])
   const [initialSelected, setInitialSelected] = useState<Set<string>>(() => new Set(_initIds))
@@ -36,7 +35,7 @@ export default function ParentDashboardClient({ children, lessons, childLessonsM
     { key: 'monsters',       label: 'מפלצות',     gradient: 'linear-gradient(135deg,#2a1a4a,#150d28)' },
   ]
 
-  const activeChild = children[activeChildIdx] ?? null
+  const activeChild = children.find(c => c.id === selectedChildId) ?? null
 
   const trackWrapRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
@@ -44,13 +43,17 @@ export default function ParentDashboardClient({ children, lessons, childLessonsM
   const R = 44, SPACING = R * 4, PAD = R + 20
 
   useEffect(() => {
+    console.log('[DEBUG CLIENT] selectedChildId:', selectedChildId)
+    console.log('[DEBUG CLIENT] activeChild:', activeChild)
+    console.log('[DEBUG CLIENT] childLessonsMap keys:', Object.keys(childLessonsMap))
     if (!activeChild) return
-    setCurrentGrade(activeChild.grade)
     const ids = childLessonsMap[activeChild.id] ?? []
+    console.log('[DEBUG CLIENT] ids:', ids)
+    setCurrentGrade(activeChild.grade)
     setSelected(new Set(ids))
     setInitialSelected(new Set(ids))
     setTrackOrder([...ids])
-  }, [activeChildIdx])
+  }, [selectedChildId])
 
   function toggleLesson(id: string) {
     setSelected(prev => {
@@ -230,8 +233,8 @@ export default function ParentDashboardClient({ children, lessons, childLessonsM
         {/* Child Switcher */}
         {children.length > 1 && !initialChildId && (
           <div style={{ display:'flex', gap:6, padding:'10px 22px 0', flexShrink:0 }}>
-            {children.map((c, i) => (
-              <button key={c.id} onClick={() => setActiveChildIdx(i)} style={{ height:26, padding:'0 12px', borderRadius:20, border: i===activeChildIdx ? '1px solid rgba(0,180,80,.25)' : '1px solid transparent', cursor:'pointer', fontSize:19, fontFamily:"'Varela Round',sans-serif", background: i===activeChildIdx ? '#E8FBF0' : '#F2F5F2', color: i===activeChildIdx ? '#00A045' : '#778877' }}>
+            {children.map((c) => (
+              <button key={c.id} onClick={() => setSelectedChildId(c.id)} style={{ height:26, padding:'0 12px', borderRadius:20, border: c.id===selectedChildId ? '1px solid rgba(0,180,80,.25)' : '1px solid transparent', cursor:'pointer', fontSize:19, fontFamily:"'Varela Round',sans-serif", background: c.id===selectedChildId ? '#E8FBF0' : '#F2F5F2', color: c.id===selectedChildId ? '#00A045' : '#778877' }}>
                 {c.avatar} {c.name}
               </button>
             ))}

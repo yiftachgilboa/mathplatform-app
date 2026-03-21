@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 import ChildDashboardClient from './ChildDashboardClient'
 
 export default async function ChildDashboardPage({
@@ -14,17 +15,32 @@ export default async function ChildDashboardPage({
 
   // Session check
   const { data: { session } } = await supabase.auth.getSession()
-  if (!session) redirect('/login')
 
-  // Fetch child — verify ownership
-  const { data: child } = await supabase
-    .from('children')
-    .select('id, name, grade, coins, theme')
-    .eq('id', id)
-    .eq('parent_id', session.user.id)
-    .single()
-
-  if (!child) redirect('/select-child')
+  let child
+  if (session) {
+    // הורה — בדוק ownership
+    const { data } = await supabase
+      .from('children')
+      .select('id, name, grade, coins, theme')
+      .eq('id', id)
+      .eq('parent_id', session.user.id)
+      .single()
+    if (!data) redirect('/select-child')
+    child = data
+  } else {
+    // ילד — שלוף ישירות עם service role
+    const s = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SECRET_KEY!
+    )
+    const { data } = await s
+      .from('children')
+      .select('id, name, grade, coins, avatar, theme, parent_id')
+      .eq('id', id)
+      .single()
+    if (!data) redirect('/login')
+    child = data
+  }
 
   // Fetch parent-assigned track for this child
   const { data: childLessons } = await supabase
