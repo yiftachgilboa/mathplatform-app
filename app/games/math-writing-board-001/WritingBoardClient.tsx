@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 
 // ─── Audio ────────────────────────────────────────────────────────────────────
 let _actx: AudioContext | null = null;
@@ -50,6 +51,8 @@ type Ghost = { label: string|number; x: number; y: number };
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function WritingBoardClient() {
+  const router = useRouter()
+  const childId = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('childId') : null
   const [equation, setEquation] = useState<Tile[]>([]);
   const [hearts,   setHearts]   = useState<Heart[]>([]);
   const [coins,    setCoins]    = useState<Coin[]>([]);
@@ -280,7 +283,7 @@ export default function WritingBoardClient() {
               <button style={S.doneBtn} onClick={() => { setScore(0); setEquation([]); setDone(false); (window as any).MathPlatformSDK?.emit('GAME_STARTED', { gameId: GAME_ID }); }}>
                 שחק שוב
               </button>
-              <button style={S.continueBtn} onClick={() => { window.history.back(); }}>
+              <button style={S.continueBtn} onClick={() => { router.push(childId ? `/child/${childId}` : '/select-child'); }}>
                 המשך
               </button>
             </div>
