@@ -453,7 +453,7 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ childId: child.id }),
                     }).catch(() => {})
-                    router.push(`/games/${selected.id}`)
+                    router.push(`/games/${selected.id}?childId=${child.id}`)
                   }}
                   style={{
                     position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1,
