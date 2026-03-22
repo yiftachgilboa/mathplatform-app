@@ -447,13 +447,13 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
                 <button
                   className="play-btn"
                   onClick={() => {
-                    setIsDone(true)
                     // fire and forget
                     fetch('/api/child/session', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ childId: child.id }),
                     }).catch(() => {})
+                    router.push(`/games/${selected.id}`)
                   }}
                   style={{
                     position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1,
