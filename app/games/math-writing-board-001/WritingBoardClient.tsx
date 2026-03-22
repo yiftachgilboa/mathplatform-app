@@ -67,13 +67,21 @@ export default function WritingBoardClient() {
   const boardOverRef  = useRef(false);
   const heartThrottle = useRef(0);
   const scoreRef      = useRef(0);
+  const sdkLoaded     = useRef(false);
 
   // keep scoreRef in sync
   useEffect(() => { scoreRef.current = score; }, [score]);
 
-  // ── SDK init ───────────────────────────────────────────────────────────────
+  // ── SDK load + init ────────────────────────────────────────────────────────
   useEffect(() => {
-    (window as any).MathPlatformSDK?.emit('GAME_STARTED', { gameId: GAME_ID });
+    if (sdkLoaded.current) return;
+    sdkLoaded.current = true;
+    const script = document.createElement('script');
+    script.src = '/sdk/mathplatform-sdk-v1.js';
+    script.onload = () => {
+      (window as any).MathPlatformSDK?.emit('GAME_STARTED', { gameId: GAME_ID });
+    };
+    document.head.appendChild(script);
   }, []);
 
   // ── Board highlight (direct DOM, no re-render) ─────────────────────────────
