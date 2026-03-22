@@ -268,9 +268,14 @@ export default function WritingBoardClient() {
             <div style={{fontSize:52}}>🌟</div>
             <h1 style={S.doneTitle}>כל הכבוד! סיימת!</h1>
             <p  style={S.doneSub}>כתבת {TOTAL} דברים יפים 🎨</p>
-            <button style={S.doneBtn} onClick={() => { setScore(0); setEquation([]); setDone(false); (window as any).MathPlatformSDK?.emit('GAME_STARTED', { gameId: GAME_ID }); }}>
-              שחק שוב
-            </button>
+            <div style={{ display:'flex', gap:12, justifyContent:'center' }}>
+              <button style={S.doneBtn} onClick={() => { setScore(0); setEquation([]); setDone(false); (window as any).MathPlatformSDK?.emit('GAME_STARTED', { gameId: GAME_ID }); }}>
+                שחק שוב
+              </button>
+              <button style={S.continueBtn} onClick={() => { window.location.href = document.referrer || '/'; }}>
+                המשך
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -521,5 +526,13 @@ const S: Record<string,React.CSSProperties> = {
     fontSize:16, fontWeight:'bold',
     cursor:'pointer', fontFamily:'inherit',
     boxShadow:'0 4px 16px rgba(201,99,73,0.4)',
+  },
+  continueBtn:{
+    background:'linear-gradient(135deg,#558E9B,#84A48B)',
+    border:'none', borderRadius:99,
+    padding:'10px 28px', color:'#fff',
+    fontSize:16, fontWeight:'bold',
+    cursor:'pointer', fontFamily:'inherit',
+    boxShadow:'0 4px 16px rgba(85,142,155,0.4)',
   },
 };
