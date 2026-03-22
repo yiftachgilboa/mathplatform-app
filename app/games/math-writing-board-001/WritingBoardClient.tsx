@@ -29,7 +29,7 @@ const playCoin    = () => { [880,1100,1320].forEach((f,i) => tone(f,'square',0.0
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 const GAME_ID     = 'math-writing-board-001';
-const TOTAL       = 10;
+const TOTAL       = 3;
 const LEFT_ITEMS  = [0,1,2,3,4,'+','−'];
 const RIGHT_ITEMS = [5,6,7,8,9,'×','÷','='];
 const COLORS: Record<string|number, string> = {
