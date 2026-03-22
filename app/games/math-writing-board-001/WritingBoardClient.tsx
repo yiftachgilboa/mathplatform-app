@@ -272,7 +272,7 @@ export default function WritingBoardClient() {
               <button style={S.doneBtn} onClick={() => { setScore(0); setEquation([]); setDone(false); (window as any).MathPlatformSDK?.emit('GAME_STARTED', { gameId: GAME_ID }); }}>
                 שחק שוב
               </button>
-              <button style={S.continueBtn} onClick={() => { window.location.href = document.referrer || '/'; }}>
+              <button style={S.continueBtn} onClick={() => { window.history.back(); }}>
                 המשך
               </button>
             </div>
