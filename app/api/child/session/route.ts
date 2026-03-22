@@ -10,10 +10,18 @@ export async function POST(req: NextRequest) {
   const { childId } = await req.json()
   if (!childId) return NextResponse.json({ error: 'missing childId' }, { status: 400 })
 
-  const { error } = await supabase
-    .from('sessions')
-    .insert({ child_id: childId, started_at: new Date().toISOString() })
+  try {
+    const { error } = await supabase
+      .from('sessions')
+      .insert({ child_id: childId, started_at: new Date().toISOString() })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ ok: true })
+    if (error) {
+      console.error('[child/session] supabase error:', JSON.stringify(error))
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    console.error('[child/session] unexpected error:', err)
+    return NextResponse.json({ error: String(err) }, { status: 500 })
+  }
 }
