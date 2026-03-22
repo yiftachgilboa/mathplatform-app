@@ -8,6 +8,7 @@ const supabase = createClient(
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
+  console.log('[SDK event] body:', JSON.stringify(body))
   const { event, childId, gameId, data, timestamp } = body
 
   if (!event || !childId) {
