@@ -339,7 +339,7 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
               {/* Overlay */}
               <div style={{
                 position: 'absolute', inset: 0, borderRadius: 38,
-                background: 'linear-gradient(135deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.2) 100%)',
+                background: 'linear-gradient(135deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 100%)',
                 zIndex: 0, pointerEvents: 'none',
               }} />
 
@@ -357,50 +357,34 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
                 overflow: 'hidden', position: 'relative', zIndex: 1,
               }}>
 
-                {/* col-text (right in RTL) */}
+                {/* col-text */}
                 <div style={{
                   flex: 1, display: 'flex', flexDirection: 'column',
-                  justifyContent: 'center', alignItems: 'flex-end', minWidth: 0,
-                  position: 'relative',
+                  justifyContent: 'center', alignItems: 'center', minWidth: 0,
+                  textAlign: 'center', position: 'relative',
                 }}>
                   {/* Sparkle decos */}
                   <span aria-hidden style={{ position: 'absolute', top: '-8px', left: '60px', color: '#FFCC00', fontSize: '14px', animation: 'spkDeco 1.5s ease-in-out infinite', filter: 'drop-shadow(0 0 4px rgba(255,204,0,0.8))', zIndex: 3, pointerEvents: 'none', animationDelay: '0s' }}>✦</span>
                   <span aria-hidden style={{ position: 'absolute', top: '20px',  left: '20px', color: '#FFCC00', fontSize: '10px', animation: 'spkDeco 1.5s ease-in-out infinite', filter: 'drop-shadow(0 0 4px rgba(255,204,0,0.8))', zIndex: 3, pointerEvents: 'none', animationDelay: '0.7s' }}>✦</span>
                   <span aria-hidden style={{ position: 'absolute', bottom: '20px', left: '50px', color: '#FFCC00', fontSize: '11px', animation: 'spkDeco 1.5s ease-in-out infinite', filter: 'drop-shadow(0 0 4px rgba(255,204,0,0.8))', zIndex: 3, pointerEvents: 'none', animationDelay: '1.3s' }}>✦</span>
 
-                  {/* Title row (LTR: pill-vert on left, title on right) */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', direction: 'ltr' }}>
-                    {/* Vertical pill column */}
-                    <div style={{
-                      display: 'flex', flexDirection: 'column', alignItems: 'center',
-                      gap: '3px', flexShrink: 0, alignSelf: 'stretch', justifyContent: 'center',
-                    }}>
-                      <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', alignSelf: 'flex-start', marginBottom: '2px' }}>
-                        {GRADE_LABELS[child.grade] ?? `כיתה ${child.grade}`}
-                      </span>
-                      <span style={{ fontSize: '12px', color: '#B6D49E', lineHeight: 1, animation: 'spk 1.8s ease-in-out infinite' }}>✦</span>
-                      <div style={{
-                        width: '14px', flex: 1, maxHeight: '110px',
-                        background: 'linear-gradient(180deg, #A0E6FF 0%, #7CFF9F 100%)',
-                        borderRadius: '10px', opacity: 0.88,
-                      }} />
-                      <span style={{ fontSize: '12px', color: '#B6D49E', lineHeight: 1, animation: 'spk 1.8s ease-in-out infinite', animationDelay: '0.9s' }}>✦</span>
-                    </div>
-
-                    {/* Title text */}
-                    <div style={{
-                      fontSize: '72px', color: 'white', lineHeight: 1.05,
-                      textShadow: '0 2px 20px rgba(0,0,0,0.25)',
-                      textAlign: 'right', position: 'relative', zIndex: 2,
-                      transition: 'all 0.3s ease',
-                    }}>
-                      {titleLine1}<br />{titleLine2}
-                    </div>
+                  {/* Label */}
+                  <div style={{
+                    fontSize: 13, color: 'rgba(124,255,159,0.85)',
+                    letterSpacing: 2, marginBottom: 8,
+                    textShadow: '0 1px 6px rgba(0,0,0,0.5)',
+                  }}>
+                    המשימה היומית
                   </div>
 
-                  {/* Subtitle */}
-                  <div style={{ fontSize: '15px', color: 'rgba(124,255,159,0.85)', marginTop: '6px', textAlign: 'right' }}>
-                    המשימה היומית
+                  {/* Title text */}
+                  <div style={{
+                    fontSize: '72px', color: 'white', lineHeight: 1.05,
+                    textShadow: '0 2px 20px rgba(0,0,0,0.25)',
+                    textAlign: 'center', position: 'relative', zIndex: 2,
+                    transition: 'all 0.3s ease',
+                  }}>
+                    {titleLine1}<br />{titleLine2}
                   </div>
                 </div>
 
