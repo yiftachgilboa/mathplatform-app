@@ -363,7 +363,7 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
                   <div style={{
                     fontSize: 13, color: 'rgba(124,255,159,0.85)',
                     letterSpacing: 2, marginBottom: 8,
-                    textShadow: '0 1px 6px rgba(0,0,0,0.5)',
+                    textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 30px rgba(0,0,0,0.6)',
                   }}>
                     המשימה היומית
                   </div>
@@ -371,7 +371,7 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
                   {/* Title text */}
                   <div style={{
                     fontSize: '72px', color: 'white', lineHeight: 1.05,
-                    textShadow: '0 2px 20px rgba(0,0,0,0.25)',
+                    textShadow: '0 2px 12px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.6)',
                     textAlign: 'center', position: 'relative', zIndex: 2,
                     transition: 'all 0.3s ease',
                   }}>
