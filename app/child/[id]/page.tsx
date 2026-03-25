@@ -55,7 +55,7 @@ export default async function ChildDashboardPage({
     const gameIds = childLessons.map(l => l.game_id)
     const { data: fetchedGames } = await supabase
       .from('games')
-      .select('id, title, topic, thumbnail')
+      .select('id, title, topic, thumbnail, bg_image')
       .in('id', gameIds)
       .eq('is_visible', true)
     // Re-order to match the parent's track order
@@ -65,7 +65,7 @@ export default async function ChildDashboardPage({
     // Fallback: all games for this grade, ordered by difficulty
     const { data: gradeGames } = await supabase
       .from('games')
-      .select('id, title, topic, thumbnail')
+      .select('id, title, topic, thumbnail, bg_image')
       .eq('grade', child.grade)
       .eq('is_visible', true)
       .order('difficulty', { ascending: true })

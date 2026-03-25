@@ -18,6 +18,7 @@ type Game = {
   title: string
   topic: string
   thumbnail: string
+  bg_image: string | null
 }
 
 type StationState = 'done' | 'active' | 'future'
@@ -28,6 +29,7 @@ type Station = {
   topic: string
   icon: string
   state: StationState
+  bg: string | null
 }
 
 function buildStations(games: Game[]): Station[] {
@@ -37,18 +39,10 @@ function buildStations(games: Game[]): Station[] {
     topic: g.topic,
     icon: g.thumbnail,
     state: i === 0 ? 'active' : 'future',
+    bg: g.bg_image ? `/art/games/${g.bg_image}` : `/art/games/bg-default.jpg`,
   }))
 }
 
-const CARD_COLORS = [
-  'rgba(42,90,74,0.92)',
-  'rgba(35,80,90,0.92)',
-  'rgba(50,80,65,0.92)',
-  'rgba(40,70,85,0.92)',
-  'rgba(55,75,60,0.92)',
-  'rgba(38,85,70,0.92)',
-  'rgba(45,72,80,0.92)',
-]
 
 function getBgForTheme(theme: string | null): string {
   switch (theme) {
@@ -109,6 +103,7 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
   const [selectedIdx, setSelectedIdx] = useState(initialActive)
   const [isDone, setIsDone] = useState(false)
   const [todayIdx, setTodayIdx] = useState<number | null>(null)
+  const [cardBg, setCardBg] = useState<string | null>(stations[initialActive]?.bg || null)
 
   useEffect(() => {
     setTodayIdx(new Date().getDay())
@@ -129,6 +124,10 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
     if (stations[idx].state === 'future') return
     setSelectedIdx(idx)
     setIsDone(false)
+    setCardBg(null)
+    setTimeout(() => {
+      setCardBg(stations[idx]?.bg || null)
+    }, 100)
   }
 
   function nodeState(idx: number): StationState {
@@ -144,7 +143,6 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
     : {}
   const mascotSrc = getMascot(selectedIdx)
   const [titleLine1, titleLine2] = selected ? splitTitle(selected.title) : ['', '']
-  const cardBg = CARD_COLORS[selectedIdx % CARD_COLORS.length]
 
   return (
     <>
@@ -329,10 +327,27 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
               transition: 'background 0.6s ease',
             }}>
 
+              {/* Background image */}
+              <div style={{
+                position: 'absolute', inset: 0, borderRadius: 38,
+                backgroundImage: cardBg ? `url(${cardBg})` : 'none',
+                backgroundSize: 'cover', backgroundPosition: 'center',
+                opacity: cardBg ? 1 : 0,
+                transition: 'opacity 0.5s ease',
+                zIndex: 0,
+              }} />
+              {/* Overlay */}
+              <div style={{
+                position: 'absolute', inset: 0, borderRadius: 38,
+                background: 'linear-gradient(135deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.2) 100%)',
+                zIndex: 0, pointerEvents: 'none',
+              }} />
+
               {/* Shimmer line */}
               <div aria-hidden style={{
                 position: 'absolute', top: 0, left: '12%', right: '12%', height: '1.5px',
                 background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
+                zIndex: 1,
               }} />
 
               {/* ── Card top ── */}
