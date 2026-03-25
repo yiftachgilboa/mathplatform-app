@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
 
 type Child = {
   id: string
@@ -50,11 +49,6 @@ function getBgForTheme(theme: string | null): string {
     case 'monsters': return '/art/backgrounds/bg_monsters.jpg';
     default: return '';
   }
-}
-
-// Station 0 uses the croc mascot, rest use default
-function getMascot(idx: number) {
-  return idx === 0 ? '/mascot-croc.png' : '/mascot-default.png'
 }
 
 // Deterministic spark data for a connector at index ci
@@ -141,7 +135,6 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
   const screenStyle = bgUrl
     ? { backgroundImage: `url(${bgUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
     : {}
-  const mascotSrc = getMascot(selectedIdx)
   const [titleLine1, titleLine2] = selected ? splitTitle(selected.title) : ['', '']
 
   return (
@@ -153,12 +146,10 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
           0%,100%{box-shadow:0 0 14px rgba(255,237,221,0.3)}
           50%    {box-shadow:0 0 28px rgba(255,237,221,0.6), 0 0 50px rgba(190,166,148,0.35)}
         }
-        @keyframes flt    { 0%,100%{transform:translateY(0) rotate(-1deg)} 50%{transform:translateY(-10px) rotate(1deg)} }
         @keyframes spk    { 0%,100%{opacity:0.4;transform:scale(0.88)} 50%{opacity:1;transform:scale(1.2)} }
         @keyframes spkDeco{ 0%,100%{opacity:0.4;transform:scale(0.8) rotate(-10deg)} 50%{opacity:1;transform:scale(1.2) rotate(10deg)} }
         .sdot       { position:absolute; background:white; border-radius:50%; opacity:0; animation:tw ease-in-out infinite; pointer-events:none; }
         .sc         { opacity:0; color:rgba(182,212,158,0.75); animation:scTw ease-in-out infinite; }
-        .mascot-flt { animation:flt 3.6s ease-in-out infinite; }
         .snode-done   { background:rgba(99,177,133,0.22);  border:2px solid #63B185;                color:#B6D49E; }
         .snode-active { background:rgba(255,237,221,0.18); border:2px solid #FFEDDD;                color:white;  animation:pulse 2.5s ease-in-out infinite; }
         .snode-future { background:rgba(255,255,255,0.05); border:2px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.3); cursor:default; }
@@ -388,19 +379,7 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
                   </div>
                 </div>
 
-                {/* col-mascot (left in RTL) */}
-                <div style={{ flexShrink: 0, position: 'relative', width: '220px', height: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Image
-                    key={mascotSrc}
-                    src={mascotSrc}
-                    alt="mascot"
-                    width={220}
-                    height={220}
-                    className="mascot-flt"
-                    style={{ objectFit: 'contain' }}
-                    priority
-                  />
-                </div>
+
               </div>
 
               {/* ── Slider row ── */}
