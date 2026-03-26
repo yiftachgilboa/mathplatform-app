@@ -97,6 +97,7 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
   const [selectedIdx, setSelectedIdx] = useState(initialActive)
   const [isDone, setIsDone] = useState(false)
   const [todayIdx, setTodayIdx] = useState<number | null>(null)
+  const [completedToday, setCompletedToday] = useState(0)
   const [cardBg, setCardBg] = useState<string | null>(stations[initialActive]?.bg || null)
 
   useEffect(() => {
@@ -445,7 +446,7 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
                     transition: 'transform 0.2s',
                   }}
                 >
-                  התחל
+                  {completedToday === 0 ? 'התחל' : 'ממשיכים'}
                 </button>
               )}
 
