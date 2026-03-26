@@ -149,6 +149,8 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
         }
         @keyframes spk    { 0%,100%{opacity:0.4;transform:scale(0.88)} 50%{opacity:1;transform:scale(1.2)} }
         @keyframes spkDeco{ 0%,100%{opacity:0.4;transform:scale(0.8) rotate(-10deg)} 50%{opacity:1;transform:scale(1.2) rotate(10deg)} }
+        @keyframes liquidFlow { 0%,100%{background-position:0% 0%} 50%{background-position:0% 100%} }
+        @keyframes sparkle { 0%,100%{opacity:0;transform:scale(0.5)} 50%{opacity:1;transform:scale(1.2)} }
         .sdot       { position:absolute; background:white; border-radius:50%; opacity:0; animation:tw ease-in-out infinite; pointer-events:none; }
         .sc         { opacity:0; color:rgba(182,212,158,0.75); animation:scTw ease-in-out infinite; }
         .snode-done   { background:rgba(99,177,133,0.22);  border:2px solid #63B185;                color:#B6D49E; }
@@ -304,7 +306,52 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
           </div>
 
           {/* ── Card wrap ── */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, position: 'relative' }}>
+
+            {/* Energy Bar */}
+            <div style={{
+              position: 'absolute',
+              left: -28,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: 18,
+              height: 160,
+              borderRadius: 20,
+              border: '2px solid rgba(255,215,0,0.7)',
+              boxShadow: '0 0 12px rgba(255,215,0,0.4), inset 0 0 8px rgba(0,0,0,0.3)',
+              background: 'rgba(0,0,0,0.35)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'flex-end',
+            }}>
+              {/* מילוי נוזלי */}
+              <div style={{
+                width: '100%',
+                height: `${(completedToday / 3) * 100}%`,
+                background: 'linear-gradient(180deg, #7FFFD4 0%, #00CED1 30%, #9B59B6 70%, #6A0DAD 100%)',
+                backgroundSize: '100% 200%',
+                borderRadius: '0 0 18px 18px',
+                transition: 'height 0.8s cubic-bezier(0.34,1.56,0.64,1)',
+                animation: 'liquidFlow 3s ease-in-out infinite',
+                position: 'relative',
+                overflow: 'hidden',
+              }}>
+                {/* ניצוצות */}
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} style={{
+                    position: 'absolute',
+                    width: 3, height: 3,
+                    borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.8)',
+                    left: `${20 + i * 15}%`,
+                    top: `${10 + i * 18}%`,
+                    animation: `sparkle ${1 + i * 0.4}s ease-in-out infinite`,
+                  }} />
+                ))}
+              </div>
+            </div>
+
             <div style={{
               width: '64%', margin: '0 auto', flex: 1, minHeight: 0,
               background: 'rgba(0,0,0,0.75)',
@@ -381,30 +428,6 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
                 </div>
 
 
-              </div>
-
-              {/* ── Slider row ── */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: '12px', position: 'relative', flexShrink: 0, zIndex: 1 }}>
-                {/* Track */}
-                <div style={{ flex: 1, height: 12, position: 'relative', margin: '0 6px', background: 'rgba(0,0,0,0.22)', borderRadius: 6, overflow: 'hidden' }}>
-                  {/* פס מילוי */}
-                  <div style={{
-                    height: '100%',
-                    width: `${(completedToday / 3) * 100}%`,
-                    background: 'linear-gradient(90deg, #7CFF9F, #00FF9F)',
-                    borderRadius: 6,
-                    transition: 'width 0.8s cubic-bezier(0.34,1.56,0.64,1)'
-                  }} />
-                  {/* 2 מחיצות ב-33% ו-66% */}
-                  {[1, 2].map(i => (
-                    <div key={i} style={{
-                      position: 'absolute', top: 0, bottom: 0,
-                      left: `${(i / 3) * 100}%`,
-                      width: 2,
-                      background: 'rgba(0,0,0,0.25)',
-                    }} />
-                  ))}
-                </div>
               </div>
 
               {/* ── Play button ── */}
