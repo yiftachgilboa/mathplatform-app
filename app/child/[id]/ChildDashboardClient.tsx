@@ -386,38 +386,24 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
               {/* ── Slider row ── */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: '12px', position: 'relative', flexShrink: 0, zIndex: 1 }}>
                 {/* Track */}
-                <div style={{ flex: 1, height: '10px', position: 'relative', margin: '0 -2px' }}>
-                  <div style={{ width: '100%', height: '10px', background: 'rgba(0,0,0,0.22)', overflow: 'hidden' }}>
-                    <div style={{
-                      height: '100%', width: `${fillPct}%`,
-                      background: 'linear-gradient(90deg, #7CFF9F, #00FF9F)',
-                      transition: 'width 0.8s cubic-bezier(0.34,1.56,0.64,1)',
-                    }} />
-                  </div>
-                  {/* Thumb */}
+                <div style={{ flex: 1, height: 12, position: 'relative', margin: '0 6px', background: 'rgba(0,0,0,0.22)', borderRadius: 6, overflow: 'hidden' }}>
+                  {/* פס מילוי */}
                   <div style={{
-                    position: 'absolute', top: '50%', left: `${fillPct}%`,
-                    transform: 'translate(-50%,-50%)',
-                    width: '36px', height: '36px',
-                    background: 'rgba(255,255,255,0.15)',
-                    border: '2px solid rgba(255,255,255,0.45)', borderRadius: '10px',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3,
-                    transition: 'left 0.8s cubic-bezier(0.34,1.56,0.64,1)',
-                  }}>
-                    <div style={{ width: '10px', height: '10px', background: 'white', borderRadius: '3px', opacity: 0.72 }} />
-                  </div>
-                </div>
-                {/* Icon (bars) */}
-                <div style={{
-                  width: '36px', height: '36px', background: 'rgba(255,255,255,0.9)',
-                  border: '1.5px solid rgba(255,255,255,0.95)', borderRadius: '10px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, zIndex: 2,
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '16px' }}>
-                    <span style={{ display: 'block', width: '4px', height: '8px',  background: '#63B185', borderRadius: '2px 2px 0 0' }} />
-                    <span style={{ display: 'block', width: '4px', height: '12px', background: '#63B185', borderRadius: '2px 2px 0 0' }} />
-                    <span style={{ display: 'block', width: '4px', height: '16px', background: '#63B185', borderRadius: '2px 2px 0 0' }} />
-                  </div>
+                    height: '100%',
+                    width: `${(completedToday / 3) * 100}%`,
+                    background: 'linear-gradient(90deg, #7CFF9F, #00FF9F)',
+                    borderRadius: 6,
+                    transition: 'width 0.8s cubic-bezier(0.34,1.56,0.64,1)'
+                  }} />
+                  {/* 2 מחיצות ב-33% ו-66% */}
+                  {[1, 2].map(i => (
+                    <div key={i} style={{
+                      position: 'absolute', top: 0, bottom: 0,
+                      left: `${(i / 3) * 100}%`,
+                      width: 2,
+                      background: 'rgba(0,0,0,0.25)',
+                    }} />
+                  ))}
                 </div>
               </div>
 
