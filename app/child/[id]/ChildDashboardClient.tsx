@@ -417,7 +417,6 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
                     alignItems: 'center', justifyContent: 'center',
                     position: 'relative', zIndex: 2, gap: '12px',
                   }}>
-                    <div style={{ fontSize: '80px', animation: 'giftBounce 1.2s ease-in-out infinite' }}>🎁</div>
                     <div style={{
                       fontSize: '48px', color: 'white', lineHeight: 1.1,
                       textShadow: '0 2px 12px rgba(0,0,0,0.6)',
