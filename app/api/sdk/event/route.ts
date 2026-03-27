@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
     const coinsToAdd = gameId === 'surprise-coins-001'
       ? (data.correctAnswers ?? 0)
       : data.stars === 3 ? 10 : data.stars === 2 ? 7 : data.stars === 1 ? 3 : 0
+    console.log('[SDK] correctAnswers:', data.correctAnswers, '| coinsToAdd:', coinsToAdd)
     if (coinsToAdd > 0) {
       const { data: child } = await supabase
         .from('children')
@@ -47,10 +48,14 @@ export async function POST(req: NextRequest) {
         .eq('id', childId)
         .single()
 
-      await supabase
+      console.log('[SDK] coins before:', child?.coins)
+      const { error: coinErr } = await supabase
         .from('children')
         .update({ coins: (child?.coins ?? 0) + coinsToAdd })
         .eq('id', childId)
+      console.log('[SDK] coins update error:', coinErr, '| coins after:', (child?.coins ?? 0) + coinsToAdd)
+    } else {
+      console.log('[SDK] coinsToAdd=0, skipping update')
     }
 
     return NextResponse.json({ ok: true })
