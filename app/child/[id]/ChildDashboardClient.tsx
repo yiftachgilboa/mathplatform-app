@@ -402,10 +402,12 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
               {completedToday >= 3 ? (
                 /* ── Surprise card ── */
                 <>
-                  {/* Purple-gold gradient overlay */}
+                  {/* Treasure background */}
                   <div style={{
                     position: 'absolute', inset: 0, borderRadius: 38,
-                    background: 'linear-gradient(135deg, #2C1A4D 0%, #6B2FA0 55%, #D4A017 100%)',
+                    backgroundImage: 'url(/art/backgrounds/treasure1.jpg)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
                     zIndex: 1,
                   }} />
 
