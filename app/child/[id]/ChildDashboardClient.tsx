@@ -311,7 +311,7 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
             {/* Energy Bar */}
             <div style={{
               position: 'absolute',
-              left: -28,
+              left: 10,
               top: '50%',
               transform: 'translateY(-50%)',
               width: 18,
