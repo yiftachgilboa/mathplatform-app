@@ -253,10 +253,10 @@ export default function GameClient() {
     })
   }, [])
 
-  const emitGameOver = useCallback((score: number) => {
+  const emitGameOver = useCallback((coinsCollected: number) => {
     ;(window as any).MathPlatformSDK?.emit('GAME_OVER', {
-      score, maxScore: score, stars: 3,
-      correctAnswers: score, totalQuestions: score,
+      score: 100, maxScore: 100, stars: 3,
+      correctAnswers: coinsCollected, totalQuestions: coinsCollected,
     })
   }, [])
 
