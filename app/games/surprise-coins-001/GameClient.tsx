@@ -501,7 +501,10 @@ export default function GameClient() {
   return (
     <div style={{
       width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative',
-      background: 'linear-gradient(180deg,#2C1A4D 0%,#1a2060 50%,#0f2a18 100%)',
+      backgroundImage: 'url(/art/backgrounds/bg_treasure.jpg)',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
       fontFamily: "var(--font-secular,'Secular One',sans-serif)",
       cursor: (phase === 'playing' || phase === 'tutorial') ? 'none' : 'default',
     }}>
