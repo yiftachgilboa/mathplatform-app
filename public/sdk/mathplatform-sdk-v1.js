@@ -20,8 +20,12 @@
 
       if (event === 'GAME_OVER') {
         const dateKey = 'mp_completed_' + this.childId + '_' + new Date().toDateString();
-        const current = parseInt(localStorage.getItem(dateKey) || '0');
-        localStorage.setItem(dateKey, Math.min(current + 1, 3).toString());
+        if (this.gameId === 'surprise-coins-001') {
+          localStorage.setItem(dateKey, '0');
+        } else {
+          const current = parseInt(localStorage.getItem(dateKey) || '0');
+          localStorage.setItem(dateKey, Math.min(current + 1, 3).toString());
+        }
       }
 
       fetch('/api/sdk/event', {
