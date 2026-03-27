@@ -411,19 +411,8 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
                     zIndex: 1,
                   }} />
 
-                  {/* Content */}
-                  <div style={{
-                    flex: 1, display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center',
-                    position: 'relative', zIndex: 2, gap: '12px',
-                  }}>
-                    <div style={{
-                      fontSize: '48px', color: 'white', lineHeight: 1.1,
-                      textShadow: '0 2px 12px rgba(0,0,0,0.6)',
-                    }}>
-                      הפתעות
-                    </div>
-                  </div>
+                  {/* Content — background image only, no overlay text */}
+                  <div style={{ flex: 1, position: 'relative', zIndex: 2 }} />
 
                   {/* Start button */}
                   <button
