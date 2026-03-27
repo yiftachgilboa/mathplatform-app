@@ -18,6 +18,12 @@
 
       if (!this.childId) return;
 
+      if (event === 'GAME_OVER') {
+        const dateKey = 'mp_completed_' + this.childId + '_' + new Date().toDateString();
+        const current = parseInt(localStorage.getItem(dateKey) || '0');
+        localStorage.setItem(dateKey, Math.min(current + 1, 3).toString());
+      }
+
       fetch('/api/sdk/event', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

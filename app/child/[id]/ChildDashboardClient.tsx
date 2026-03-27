@@ -105,6 +105,15 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
   }, [])
 
   useEffect(() => {
+    const dateKey = `mp_completed_${child.id}_${new Date().toDateString()}`
+    const readCount = () => setCompletedToday(Math.min(parseInt(localStorage.getItem(dateKey) || '0'), 3))
+    readCount()
+    const onVisible = () => { if (document.visibilityState === 'visible') readCount() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [child.id])
+
+  useEffect(() => {
     const themes = [
       '/art/backgrounds/bg-magical-forest.jpg',
       '/art/backgrounds/bg_monsters.jpg',
