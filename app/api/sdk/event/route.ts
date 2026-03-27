@@ -36,8 +36,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    // Increment coins based on stars earned
-    const coinsToAdd = data.stars === 3 ? 10 : data.stars === 2 ? 7 : data.stars === 1 ? 3 : 0
+    // Increment coins — surprise game pays actual coins collected, others pay by stars
+    const coinsToAdd = gameId === 'surprise-coins-001'
+      ? (data.correctAnswers ?? 0)
+      : data.stars === 3 ? 10 : data.stars === 2 ? 7 : data.stars === 1 ? 3 : 0
     if (coinsToAdd > 0) {
       const { data: child } = await supabase
         .from('children')
