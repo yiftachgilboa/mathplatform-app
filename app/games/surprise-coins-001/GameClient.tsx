@@ -6,22 +6,6 @@ import { useRouter } from 'next/navigation'
 const GAME_ID = 'surprise-coins-001'
 const GAME_DURATION = 60
 
-// ─── Deterministic background ─────────────────────────────────────────────────
-const STARS = Array.from({ length: 26 }, (_, i) => ({
-  left: `${(i * 61 + 7) % 100}%`,
-  top:  `${(i * 37 + 11) % 85}%`,
-  sz:   i % 3 === 0 ? 3 : 2,
-  delay:`${((i * 0.37) % 4).toFixed(2)}s`,
-  dur:  `${(2 + (i % 8) * 0.4).toFixed(2)}s`,
-}))
-
-const MUSHROOMS = [
-  { left: '8%',  color: '#FF6B9E' },
-  { left: '22%', color: '#A78BFA' },
-  { left: '72%', color: '#FFAA5E' },
-  { left: '88%', color: '#1ED4D9' },
-]
-
 const COMBO_COLORS = ['#1ED4D9','#FF6B9E','#FFAA5E','#A78BFA','#5ED17E','#4ECDC4','#FFEEAA']
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -509,7 +493,6 @@ export default function GameClient() {
       cursor: (phase === 'playing' || phase === 'tutorial') ? 'none' : 'default',
     }}>
       <style>{`
-        @keyframes twinkle   { 0%,100%{opacity:.15} 50%{opacity:.85} }
         @keyframes btnPulse  {
           0%,100%{box-shadow:0 0 20px 6px rgba(212,160,23,.4),0 0 40px 12px rgba(212,160,23,.15)}
           50%    {box-shadow:0 0 32px 14px rgba(212,160,23,.75),0 0 64px 28px rgba(212,160,23,.3)} }
@@ -517,31 +500,6 @@ export default function GameClient() {
         @keyframes spring    { 0%{transform:scale(0)} 60%{transform:scale(1.25)} 80%{transform:scale(.92)} 100%{transform:scale(1)} }
         @keyframes tPulse    { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
       `}</style>
-
-      {/* Stars */}
-      {STARS.map((s, i) => (
-        <div key={i} aria-hidden style={{
-          position: 'absolute', left: s.left, top: s.top,
-          width: s.sz, height: s.sz, borderRadius: '50%', background: 'white',
-          animation: `twinkle ${s.dur} ${s.delay} ease-in-out infinite`,
-          pointerEvents: 'none',
-        }} />
-      ))}
-
-      {/* Meadow */}
-      <div aria-hidden style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0, height: '26%',
-        background: 'linear-gradient(180deg,#1a4a1a 0%,#0f2a18 100%)',
-        borderRadius: '60% 60% 0 0 / 30% 30% 0 0', pointerEvents: 'none',
-      }}>
-        {MUSHROOMS.map((m, i) => (
-          <div key={i} style={{
-            position: 'absolute', bottom: '35%', left: m.left,
-            width: 16, height: 10, background: m.color,
-            borderRadius: '50% 50% 0 0', boxShadow: `0 0 8px ${m.color}88`,
-          }} />
-        ))}
-      </div>
 
       {/* Game canvas */}
       <canvas
