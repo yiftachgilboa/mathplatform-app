@@ -160,6 +160,7 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
         @keyframes spkDeco{ 0%,100%{opacity:0.4;transform:scale(0.8) rotate(-10deg)} 50%{opacity:1;transform:scale(1.2) rotate(10deg)} }
         @keyframes liquidFlow { 0%,100%{background-position:0% 0%} 50%{background-position:0% 100%} }
         @keyframes sparkle { 0%,100%{opacity:0;transform:scale(0.5)} 50%{opacity:1;transform:scale(1.2)} }
+        @keyframes giftBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
         .sdot       { position:absolute; background:white; border-radius:50%; opacity:0; animation:tw ease-in-out infinite; pointer-events:none; }
         .sc         { opacity:0; color:rgba(182,212,158,0.75); animation:scTw ease-in-out infinite; }
         .snode-done   { background:rgba(99,177,133,0.22);  border:2px solid #63B185;                color:#B6D49E; }
@@ -398,101 +399,148 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
                 zIndex: 1,
               }} />
 
-              {/* ── Card top ── */}
-              <div style={{
-                display: 'flex', alignItems: 'center',
-                flex: 1, minHeight: 0, gap: '16px', marginBottom: '12px',
-                overflow: 'hidden', position: 'relative', zIndex: 1,
-              }}>
-
-                {/* col-text */}
-                <div style={{
-                  flex: 1, display: 'flex', flexDirection: 'column',
-                  justifyContent: 'center', alignItems: 'center', minWidth: 0,
-                  textAlign: 'center', position: 'relative',
-                }}>
-                  {/* Sparkle decos */}
-                  <span aria-hidden style={{ position: 'absolute', top: '-8px', left: '60px', color: '#FFCC00', fontSize: '14px', animation: 'spkDeco 1.5s ease-in-out infinite', filter: 'drop-shadow(0 0 4px rgba(255,204,0,0.8))', zIndex: 3, pointerEvents: 'none', animationDelay: '0s' }}>✦</span>
-                  <span aria-hidden style={{ position: 'absolute', top: '20px',  left: '20px', color: '#FFCC00', fontSize: '10px', animation: 'spkDeco 1.5s ease-in-out infinite', filter: 'drop-shadow(0 0 4px rgba(255,204,0,0.8))', zIndex: 3, pointerEvents: 'none', animationDelay: '0.7s' }}>✦</span>
-                  <span aria-hidden style={{ position: 'absolute', bottom: '20px', left: '50px', color: '#FFCC00', fontSize: '11px', animation: 'spkDeco 1.5s ease-in-out infinite', filter: 'drop-shadow(0 0 4px rgba(255,204,0,0.8))', zIndex: 3, pointerEvents: 'none', animationDelay: '1.3s' }}>✦</span>
-
-                  {/* Label */}
+              {completedToday >= 3 ? (
+                /* ── Surprise card ── */
+                <>
+                  {/* Purple-gold gradient overlay */}
                   <div style={{
-                    fontSize: 13, color: 'rgba(124,255,159,0.85)',
-                    letterSpacing: 2, marginBottom: 8,
-                    textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 30px rgba(0,0,0,0.6)',
+                    position: 'absolute', inset: 0, borderRadius: 38,
+                    background: 'linear-gradient(135deg, #2C1A4D 0%, #6B2FA0 55%, #D4A017 100%)',
+                    zIndex: 1,
+                  }} />
+
+                  {/* Content */}
+                  <div style={{
+                    flex: 1, display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center',
+                    position: 'relative', zIndex: 2, gap: '12px',
                   }}>
-                    המשימה היומית
+                    <div style={{ fontSize: '80px', animation: 'giftBounce 1.2s ease-in-out infinite' }}>🎁</div>
+                    <div style={{
+                      fontSize: '48px', color: 'white', lineHeight: 1.1,
+                      textShadow: '0 2px 12px rgba(0,0,0,0.6)',
+                    }}>
+                      הפתעות
+                    </div>
                   </div>
 
-                  {/* Title text */}
-                  <div style={{
-                    fontSize: '72px', color: 'white', lineHeight: 1.05,
-                    textShadow: '0 2px 12px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.6)',
-                    textAlign: 'center', position: 'relative', zIndex: 2,
-                    transition: 'all 0.3s ease',
-                  }}>
-                    {titleLine1}<br />{titleLine2}
-                  </div>
-                </div>
-
-
-              </div>
-
-              {/* ── Play button ── */}
-              {!isDone && (
-                <button
-                  className="play-btn"
-                  onClick={() => {
-                    // fire and forget
-                    fetch('/api/child/session', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ childId: child.id }),
-                    }).catch(() => {})
-                    router.push(`/games/${selected.id}?childId=${child.id}`)
-                  }}
-                  style={{
-                    position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1,
-                    width: '58%', margin: '0 auto', height: '72px',
-                    borderRadius: '39px', border: 'none', cursor: 'pointer', overflow: 'hidden',
-                    background: 'linear-gradient(135deg, #7CFF9F 0%, #40c080 40%, #FF9F7C 100%)',
-                    boxShadow: '0 4px 18px rgba(124,255,159,0.35), 0 8px 24px rgba(0,0,0,0.2)',
-                    fontFamily: "var(--font-secular, 'Secular One', sans-serif)",
-                    fontSize: '30px', color: 'white', flexShrink: 0,
-                    textShadow: '0 1px 8px rgba(0,0,0,0.3)', letterSpacing: '0.5px',
-                    transition: 'transform 0.2s',
-                  }}
-                >
-                  {completedToday === 0 ? 'התחל' : 'ממשיכים'}
-                </button>
-              )}
-
-              {/* ── Done state ── */}
-              {isDone && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flexShrink: 0, position: 'relative', zIndex: 1 }}>
-                  <div style={{
-                    textAlign: 'center', padding: '10px', borderRadius: '14px',
-                    background: 'rgba(99,177,133,0.12)', border: '1px solid rgba(99,177,133,0.35)',
-                    fontSize: '14px', color: '#B6D49E',
-                  }}>
-                    🎉 כל הכבוד! סיימת את המשימה להיום
-                  </div>
+                  {/* Start button */}
                   <button
-                    className="replay-btn"
-                    onClick={() => setIsDone(false)}
+                    className="play-btn"
+                    onClick={() => router.push(`/games/surprise-coins-001?childId=${child.id}`)}
                     style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      width: '58%', margin: '0 auto', padding: '16px', borderRadius: '50px',
-                      border: '1.5px solid rgba(255,255,255,0.18)', background: 'rgba(255,255,255,0.08)',
-                      color: 'rgba(255,255,255,0.65)',
+                      position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2,
+                      width: '58%', margin: '0 auto', height: '72px',
+                      borderRadius: '39px', border: 'none', cursor: 'pointer', overflow: 'hidden',
+                      background: 'linear-gradient(135deg, #A78BFA 0%, #D4A017 100%)',
+                      boxShadow: '0 4px 18px rgba(167,139,250,0.45), 0 8px 24px rgba(0,0,0,0.2)',
                       fontFamily: "var(--font-secular, 'Secular One', sans-serif)",
-                      fontSize: '18px', cursor: 'pointer', transition: 'all 0.2s',
+                      fontSize: '30px', color: 'white', flexShrink: 0,
+                      textShadow: '0 1px 8px rgba(0,0,0,0.3)',
+                      transition: 'transform 0.2s',
                     }}
                   >
-                    שחק שוב
+                    התחל
                   </button>
-                </div>
+                </>
+              ) : (
+                /* ── Regular task card ── */
+                <>
+                  {/* ── Card top ── */}
+                  <div style={{
+                    display: 'flex', alignItems: 'center',
+                    flex: 1, minHeight: 0, gap: '16px', marginBottom: '12px',
+                    overflow: 'hidden', position: 'relative', zIndex: 1,
+                  }}>
+
+                    {/* col-text */}
+                    <div style={{
+                      flex: 1, display: 'flex', flexDirection: 'column',
+                      justifyContent: 'center', alignItems: 'center', minWidth: 0,
+                      textAlign: 'center', position: 'relative',
+                    }}>
+                      {/* Sparkle decos */}
+                      <span aria-hidden style={{ position: 'absolute', top: '-8px', left: '60px', color: '#FFCC00', fontSize: '14px', animation: 'spkDeco 1.5s ease-in-out infinite', filter: 'drop-shadow(0 0 4px rgba(255,204,0,0.8))', zIndex: 3, pointerEvents: 'none', animationDelay: '0s' }}>✦</span>
+                      <span aria-hidden style={{ position: 'absolute', top: '20px',  left: '20px', color: '#FFCC00', fontSize: '10px', animation: 'spkDeco 1.5s ease-in-out infinite', filter: 'drop-shadow(0 0 4px rgba(255,204,0,0.8))', zIndex: 3, pointerEvents: 'none', animationDelay: '0.7s' }}>✦</span>
+                      <span aria-hidden style={{ position: 'absolute', bottom: '20px', left: '50px', color: '#FFCC00', fontSize: '11px', animation: 'spkDeco 1.5s ease-in-out infinite', filter: 'drop-shadow(0 0 4px rgba(255,204,0,0.8))', zIndex: 3, pointerEvents: 'none', animationDelay: '1.3s' }}>✦</span>
+
+                      {/* Label */}
+                      <div style={{
+                        fontSize: 13, color: 'rgba(124,255,159,0.85)',
+                        letterSpacing: 2, marginBottom: 8,
+                        textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 30px rgba(0,0,0,0.6)',
+                      }}>
+                        המשימה היומית
+                      </div>
+
+                      {/* Title text */}
+                      <div style={{
+                        fontSize: '72px', color: 'white', lineHeight: 1.05,
+                        textShadow: '0 2px 12px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.6)',
+                        textAlign: 'center', position: 'relative', zIndex: 2,
+                        transition: 'all 0.3s ease',
+                      }}>
+                        {titleLine1}<br />{titleLine2}
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* ── Play button ── */}
+                  {!isDone && (
+                    <button
+                      className="play-btn"
+                      onClick={() => {
+                        fetch('/api/child/session', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ childId: child.id }),
+                        }).catch(() => {})
+                        router.push(`/games/${selected.id}?childId=${child.id}`)
+                      }}
+                      style={{
+                        position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1,
+                        width: '58%', margin: '0 auto', height: '72px',
+                        borderRadius: '39px', border: 'none', cursor: 'pointer', overflow: 'hidden',
+                        background: 'linear-gradient(135deg, #7CFF9F 0%, #40c080 40%, #FF9F7C 100%)',
+                        boxShadow: '0 4px 18px rgba(124,255,159,0.35), 0 8px 24px rgba(0,0,0,0.2)',
+                        fontFamily: "var(--font-secular, 'Secular One', sans-serif)",
+                        fontSize: '30px', color: 'white', flexShrink: 0,
+                        textShadow: '0 1px 8px rgba(0,0,0,0.3)', letterSpacing: '0.5px',
+                        transition: 'transform 0.2s',
+                      }}
+                    >
+                      {completedToday === 0 ? 'התחל' : 'ממשיכים'}
+                    </button>
+                  )}
+
+                  {/* ── Done state ── */}
+                  {isDone && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flexShrink: 0, position: 'relative', zIndex: 1 }}>
+                      <div style={{
+                        textAlign: 'center', padding: '10px', borderRadius: '14px',
+                        background: 'rgba(99,177,133,0.12)', border: '1px solid rgba(99,177,133,0.35)',
+                        fontSize: '14px', color: '#B6D49E',
+                      }}>
+                        🎉 כל הכבוד! סיימת את המשימה להיום
+                      </div>
+                      <button
+                        className="replay-btn"
+                        onClick={() => setIsDone(false)}
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          width: '58%', margin: '0 auto', padding: '16px', borderRadius: '50px',
+                          border: '1.5px solid rgba(255,255,255,0.18)', background: 'rgba(255,255,255,0.08)',
+                          color: 'rgba(255,255,255,0.65)',
+                          fontFamily: "var(--font-secular, 'Secular One', sans-serif)",
+                          fontSize: '18px', cursor: 'pointer', transition: 'all 0.2s',
+                        }}
+                      >
+                        שחק שוב
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
 
             </div>
