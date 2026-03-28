@@ -12,10 +12,10 @@ export async function DELETE(
   console.log('[DELETE child] env check', {
     url: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
     secretKey: !!process.env.SUPABASE_SECRET_KEY,
-    anonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    anonKey: !!process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
   })
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
     return NextResponse.json({ error: 'Missing anon key' }, { status: 500 })
   }
   if (!process.env.SUPABASE_SECRET_KEY) {
@@ -27,7 +27,7 @@ export async function DELETE(
     const cookieStore = await cookies()
     const anonClient = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
       { cookies: { getAll: () => cookieStore.getAll() } }
     )
     const { data: { user } } = await anonClient.auth.getUser()
