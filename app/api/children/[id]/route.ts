@@ -15,6 +15,13 @@ export async function DELETE(
     anonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   })
 
+  if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return NextResponse.json({ error: 'Missing anon key' }, { status: 500 })
+  }
+  if (!process.env.SUPABASE_SECRET_KEY) {
+    return NextResponse.json({ error: 'Missing secret key' }, { status: 500 })
+  }
+
   try {
     // Verify ownership — the requesting user must be the child's parent
     const cookieStore = await cookies()
