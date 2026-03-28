@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 
 interface Child { id: string; name: string; grade: string; avatar: string; coins: number; theme?: string | null }
 interface Lesson { id: string; name: string; grade: string }
-interface Props { children: Child[]; lessons: Lesson[]; childLessonsMap: Record<string, string[]>; initialChildId?: string; userEmail?: string | null; accessCode?: string | null }
+interface Props { children: Child[]; lessons: Lesson[]; childLessonsMap: Record<string, string[]>; initialChildId?: string }
 
 const THEME_LABELS: Record<string, string> = {
   'default': 'ברירת מחדל',
@@ -13,8 +13,7 @@ const THEME_LABELS: Record<string, string> = {
   'monsters': 'מפלצות',
 }
 
-export default function ParentDashboardClient({ children, lessons, childLessonsMap, initialChildId, userEmail, accessCode }: Props) {
-  console.log('[ParentDashboard] props:', { userEmail, accessCode })
+export default function ParentDashboardClient({ children, lessons, childLessonsMap, initialChildId }: Props) {
   const router = useRouter()
   const [selectedChildId, setSelectedChildId] = useState(initialChildId ?? children[0]?.id ?? '')
   const [currentGrade, setCurrentGrade] = useState(
@@ -276,17 +275,10 @@ export default function ParentDashboardClient({ children, lessons, childLessonsM
         <div style={{ position:'absolute', width:260, height:260, borderRadius:'50%', background:'radial-gradient(circle,rgba(255,150,200,.09) 0%,transparent 65%)', top:'50%', left:'50%', transform:'translate(-50%,-50%)', pointerEvents:'none', animation:'orbP 7s ease-in-out infinite' }} />
 
         {/* Sign-out bar — upper left corner */}
-        <div style={{ position:'absolute', top:14, left:14, zIndex:10, display:'flex', alignItems:'center', gap:10, direction:'ltr' }}>
+        <div style={{ position:'absolute', top:14, left:14, zIndex:10 }}>
           <button onClick={handleSignOut} style={{ height:30, padding:'0 14px', borderRadius:20, border:'1px solid rgba(255,150,200,.3)', background:'rgba(255,255,255,.07)', color:'rgba(255,200,230,.8)', cursor:'pointer', fontSize:13, fontFamily:"'Varela Round',sans-serif", whiteSpace:'nowrap' }}>
             התנתק
           </button>
-          {(userEmail || accessCode) && (
-            <span style={{ fontSize:12, color:'rgba(255,180,210,.5)', whiteSpace:'nowrap' }}>
-              {userEmail && <>📧 {userEmail}</>}
-              {userEmail && accessCode && <span style={{ margin:'0 6px', opacity:.4 }}>|</span>}
-              {accessCode && <>🔑 קוד משפחתי: {accessCode}</>}
-            </span>
-          )}
         </div>
 
         <div style={{ position:'relative', zIndex:2, flexShrink:0, marginTop:20, fontSize:18, color:'rgba(255,180,210,.45)', letterSpacing:'1.8px' }}>מסלול הלימוד של {activeChild?.name}</div>
