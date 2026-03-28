@@ -16,8 +16,11 @@ const secularOne = Secular_One({
 });
 
 export const metadata: Metadata = {
-  title: "MathPlatform",
-  description: "פלטפורמת לימוד מתמטיקה לכיתות א׳–ו׳",
+  title: "MathPlatform — לימוד מתמטיקה לכיתות א-ו",
+  description: "צנצנת חזירים חשבון — פלטפורמת לימוד מתמטיקה אינטראקטיבית לילדים. תרגול יומי, משחקים, ומעקב התקדמות.",
+  verification: {
+    google: 'sodMM0Pk-LMKuvMIE7U0tFn_TuH516PH9FeS0OsrBd0',
+  },
 };
 
 export default function RootLayout({
