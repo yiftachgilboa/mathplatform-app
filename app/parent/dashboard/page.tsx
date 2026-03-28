@@ -69,12 +69,20 @@ export default async function ParentDashboardPage({ searchParams }: { searchPara
     }
   }
 
+  const { data: profile } = await db
+    .from('profiles')
+    .select('access_code')
+    .eq('id', userId)
+    .single()
+
   return (
     <ParentDashboardClient
       children={childList}
       lessons={lessons ?? []}
       childLessonsMap={childLessonsMap}
       initialChildId={childId}
+      userEmail={user?.email ?? null}
+      accessCode={profile?.access_code ?? null}
     />
   )
 }
