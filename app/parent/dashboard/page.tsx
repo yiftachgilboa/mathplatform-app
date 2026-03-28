@@ -75,6 +75,8 @@ export default async function ParentDashboardPage({ searchParams }: { searchPara
     .eq('id', userId)
     .single()
 
+  console.log('[ParentDashboard page] userEmail:', user?.email, 'accessCode:', profile?.access_code)
+
   return (
     <ParentDashboardClient
       children={childList}
