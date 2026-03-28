@@ -1,10 +1,11 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 
 interface Child { id: string; name: string; grade: string; avatar: string; coins: number; theme?: string | null }
 interface Lesson { id: string; name: string; grade: string }
-interface Props { children: Child[]; lessons: Lesson[]; childLessonsMap: Record<string, string[]>; initialChildId?: string }
+interface Props { children: Child[]; lessons: Lesson[]; childLessonsMap: Record<string, string[]>; initialChildId?: string; userEmail?: string | null; accessCode?: string | null }
 
 const THEME_LABELS: Record<string, string> = {
   'default': 'ברירת מחדל',
@@ -12,7 +13,8 @@ const THEME_LABELS: Record<string, string> = {
   'monsters': 'מפלצות',
 }
 
-export default function ParentDashboardClient({ children, lessons, childLessonsMap, initialChildId }: Props) {
+export default function ParentDashboardClient({ children, lessons, childLessonsMap, initialChildId, userEmail, accessCode }: Props) {
+  console.log('[ParentDashboard] props:', { userEmail, accessCode })
   const router = useRouter()
   const [selectedChildId, setSelectedChildId] = useState(initialChildId ?? children[0]?.id ?? '')
   const [currentGrade, setCurrentGrade] = useState(
@@ -109,6 +111,12 @@ export default function ParentDashboardClient({ children, lessons, childLessonsM
       setChildThemeMap(prev => ({ ...prev, [activeChild.id]: prevTheme }))
       alert('שגיאה בשמירה, נסה שוב')
     }
+  }
+
+  async function handleSignOut() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/login')
   }
 
   const isDirty = selected.size !== initialSelected.size || [...selected].some(id => !initialSelected.has(id))
@@ -266,6 +274,21 @@ export default function ParentDashboardClient({ children, lessons, childLessonsM
       {/* LEFT PANEL — Track SVG */}
       <div style={{ flex:1, background:'linear-gradient(160deg,#3d1a2e 0%,#2a0f1e 45%,#1a0912 100%)', position:'relative', overflow:'hidden', display:'flex', flexDirection:'column', alignItems:'center' }}>
         <div style={{ position:'absolute', width:260, height:260, borderRadius:'50%', background:'radial-gradient(circle,rgba(255,150,200,.09) 0%,transparent 65%)', top:'50%', left:'50%', transform:'translate(-50%,-50%)', pointerEvents:'none', animation:'orbP 7s ease-in-out infinite' }} />
+
+        {/* Sign-out bar — upper left corner */}
+        <div style={{ position:'absolute', top:14, left:14, zIndex:10, display:'flex', alignItems:'center', gap:10, direction:'ltr' }}>
+          <button onClick={handleSignOut} style={{ height:30, padding:'0 14px', borderRadius:20, border:'1px solid rgba(255,150,200,.3)', background:'rgba(255,255,255,.07)', color:'rgba(255,200,230,.8)', cursor:'pointer', fontSize:13, fontFamily:"'Varela Round',sans-serif", whiteSpace:'nowrap' }}>
+            התנתק
+          </button>
+          {(userEmail || accessCode) && (
+            <span style={{ fontSize:12, color:'rgba(255,180,210,.5)', whiteSpace:'nowrap' }}>
+              {userEmail && <>📧 {userEmail}</>}
+              {userEmail && accessCode && <span style={{ margin:'0 6px', opacity:.4 }}>|</span>}
+              {accessCode && <>🔑 קוד משפחתי: {accessCode}</>}
+            </span>
+          )}
+        </div>
+
         <div style={{ position:'relative', zIndex:2, flexShrink:0, marginTop:20, fontSize:18, color:'rgba(255,180,210,.45)', letterSpacing:'1.8px' }}>מסלול הלימוד של {activeChild?.name}</div>
         <div ref={trackWrapRef} style={{ position:'relative', zIndex:2, flex:1, width:'100%', overflowY:'auto', overflowX:'hidden', padding:'12px 0 20px' }}>
           {trackOrder.filter(id => selected.has(id)).length === 0
