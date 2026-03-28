@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 
 const GRADES = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳']
 const AVATARS = ['🦁', '🐯', '🦊', '🐻', '🐼', '🦄', '🐸', '🐧']
@@ -45,37 +44,20 @@ export default function OnboardingPage() {
     setError('')
     setLoading(true)
 
-    const supabase = createClient()
-
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    console.log('user:', user)
-    console.log('userError:', userError)
-
-    if (!user) {
-      setError('לא מחובר — אנא התחבר מחדש')
-      setLoading(false)
-      return
-    }
-
-    const insertData = {
-      parent_id: user.id,
-      name: childName,
-      grade: Number(selectedGrade),
-      avatar: selectedAvatar,
-      theme: 'default'
-    }
-    console.log('inserting:', insertData)
-
-    const { data, error } = await supabase
-      .from('children')
-      .insert(insertData)
-      .select()
-
-    console.log('result:', data, error)
-
-    if (error) {
-      console.error('insert error:', error)
-      setError(`שגיאה: ${error.message} | ${error.code}`)
+    try {
+      const res = await fetch('/api/children', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: childName, grade: Number(selectedGrade), avatar: selectedAvatar }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        setError(json.error ?? 'שגיאה ביצירת הילד')
+        setLoading(false)
+        return
+      }
+    } catch {
+      setError('שגיאה ביצירת הילד')
       setLoading(false)
       return
     }
