@@ -148,6 +148,7 @@ export default function NikudGameClient(){
   const [showInstruction, setShowInstruction] = useState(false)
   const [computerGoesFirst, setComputerGoesFirst] = useState(()=>Math.random()<0.5)
   const [winningCells, setWinningCells] = useState<number[]>([])
+  const [winnerSide, setWinnerSide] = useState<'player'|'computer'|null>(null)
   const [score, setScore] = useState({player: 0, computer: 0})
   const [approveAnim, setApproveAnim] = useState(false)
   const [computerThinking, setComputerThinking] = useState(false)
@@ -240,7 +241,7 @@ export default function NikudGameClient(){
 
   // ── Do computer turn ─────────────────────────────────────────────────────────
   const doComputerTurn=useCallback((currentBoard:CellState[],answered:number)=>{
-    const thinkTime=500+Math.random()*1000
+    const thinkTime=3000+Math.random()*2000
     setComputerThinking(true)
     setTimeout(()=>{
       setComputerThinking(false)
@@ -254,7 +255,14 @@ export default function NikudGameClient(){
       const boardFull=next.every(c=>c!==null)
       const compWon=checkWinner(next)==='computer'
       if(boardFull||compWon){
-        finishRound(roundResultsRef.current)
+        if(compWon){
+          const winLine=WINS.find(([a,b,c])=>next[a]==='computer'&&next[b]==='computer'&&next[c]==='computer')
+          if(winLine){setWinningCells(winLine);setWinnerSide('computer')}
+        }
+        setTimeout(()=>{
+          setWinningCells([]);setWinnerSide(null)
+          finishRound(roundResultsRef.current)
+        },3000)
         return
       }
 
@@ -304,7 +312,7 @@ export default function NikudGameClient(){
     const playerWon=checkWinner(newBoard)==='player'
     if(playerWon){
       const winLine=WINS.find(([a,b,c])=>newBoard[a]==='player'&&newBoard[b]==='player'&&newBoard[c]==='player')
-      if(winLine)setWinningCells(winLine)
+      if(winLine){setWinningCells(winLine);setWinnerSide('player')}
     }
 
     setTimeout(()=>{
@@ -314,7 +322,7 @@ export default function NikudGameClient(){
 
       const boardFull=newBoard.every(c=>c!==null)
       if(newAnswered>=ROUND_SIZE||playerWon||boardFull){
-        setWinningCells([])
+        setWinningCells([]);setWinnerSide(null)
         finishRound(newResults)
         return
       }
@@ -530,6 +538,8 @@ export default function NikudGameClient(){
         .emoji-bounce{animation:compBounce .8s ease}
         @keyframes winGlow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.8) drop-shadow(0 0 18px #FFD700)}}
         .cell-win{animation:winGlow 0.6s ease-in-out infinite;}
+        @keyframes winGlowRed{0%,100%{filter:brightness(1)}50%{filter:brightness(1.8) drop-shadow(0 0 18px #ef4444)}}
+        .cell-win-computer{animation:winGlowRed 0.6s ease-in-out infinite;}
         @keyframes approvePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
         .approve-pulse{animation:approvePulse 0.6s ease-in-out infinite;}
 
@@ -597,6 +607,12 @@ export default function NikudGameClient(){
       <div className="root" style={{backgroundImage:`url(${bgImage.src})`,backgroundSize:'cover',backgroundPosition:'center'}}>
         <GameBackButton />
 
+        {/* ── Score ── */}
+        <div style={{position:'fixed',top:170,left:'50%',transform:'translateX(-50%)',
+          fontSize:28,fontFamily:'Secular One',color:'#f0f4ff',letterSpacing:4,zIndex:30}}>
+          {score.player} — {score.computer}
+        </div>
+
         {/* ── Overlay ── */}
         {waitingForAnswer&&(
           <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.45)',zIndex:5,pointerEvents:'none',transition:'opacity 0.3s'}}/>
@@ -606,7 +622,7 @@ export default function NikudGameClient(){
         {phase==='playing'&&(
           <>
             {/* Player — top right (RTL) */}
-            <div className={`fighter-corner top-right ${playerTurn&&!waitingForAnswer?'active-fighter':'inactive-fighter'}`}>
+            <div className={`fighter-corner top-right ${!playerTurn||waitingForAnswer?'active-fighter':'inactive-fighter'}`}>
               <div className="fighter-avatar">{PLAYER_EMOJI}</div>
               <div className="power-bar-wrap" style={{direction:'ltr'}}>
                 <div className="power-bar-fill" style={{
@@ -617,7 +633,7 @@ export default function NikudGameClient(){
               </div>
             </div>
             {/* Computer — top left */}
-            <div className={`fighter-corner top-left ${!playerTurn||waitingForAnswer?'active-fighter':'inactive-fighter'}`}>
+            <div className={`fighter-corner top-left ${playerTurn&&!waitingForAnswer?'active-fighter':'inactive-fighter'}`}>
               <div className="fighter-avatar">{COMPUTER_EMOJI}</div>
               {computerThinking&&(
                 <div style={{fontSize:18,color:'#f0f4ff',letterSpacing:2}}>...</div>
@@ -638,11 +654,6 @@ export default function NikudGameClient(){
           <div className="game-wrap fade-in">
 
 
-            {/* Score */}
-            <div style={{fontSize:28,fontFamily:'Secular One',color:'#f0f4ff',letterSpacing:4,textAlign:'center'}}>
-              {score.player} — {score.computer}
-            </div>
-
             {/* Board */}
             <div className="ttt-board">
               {board.map((cell,idx)=>{
@@ -653,7 +664,7 @@ export default function NikudGameClient(){
                 else if(cell==='player')cls+='cell-player'
                 else if(cell==='computer')cls+='cell-computer'
                 else{cls+='cell-empty';if(canClick)cls+=' can-click'}
-                if(winningCells.includes(idx))cls+=' cell-win'
+                if(winningCells.includes(idx))cls+=winnerSide==='computer'?' cell-win-computer':' cell-win'
 
                 return(
                   <div
@@ -740,10 +751,12 @@ export default function NikudGameClient(){
 
         {/* ── Round end ── */}
         {phase==='roundEnd'&&(
-          <div className="result-card fade-in">
-            <div style={{fontSize:64}}>🎉</div>
-            <StarDisplay stars={roundStars}/>
-            <button className="btn-primary" onClick={startNextRound}>⚔️</button>
+          <div style={{position:'fixed',inset:0,zIndex:20,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,0.5)'}}>
+            <div className="result-card fade-in">
+              <div style={{fontSize:64}}>🎉</div>
+              <StarDisplay stars={roundStars}/>
+              <button className="btn-primary" onClick={startNextRound}>⚔️</button>
+            </div>
           </div>
         )}
 
