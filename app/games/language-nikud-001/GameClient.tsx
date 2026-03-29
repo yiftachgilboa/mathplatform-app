@@ -415,8 +415,8 @@ export default function NikudGameClient(){
           direction:rtl;font-family:'Secular One',sans-serif;
           min-height:100vh;
 
-          display:flex;flex-direction:column;align-items:center;justify-content:center;
-          padding:12px;color:#f0f4ff;position:relative;overflow:hidden;
+          display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+          padding:12px;padding-top:120px;color:#f0f4ff;position:relative;overflow:hidden;
         }
         .root::before{
           content:'';position:absolute;inset:0;pointer-events:none;
@@ -432,7 +432,7 @@ export default function NikudGameClient(){
         }
         .fighter-corner.top-right{top:16px;right:16px;align-items:flex-end}
         .fighter-corner.top-left{top:16px;left:16px;align-items:flex-start}
-        .fighter-avatar{font-size:144px;line-height:1;transition:filter 0.4s,transform 0.4s;}
+        .fighter-avatar{font-size:72px;line-height:1;transition:filter 0.4s,transform 0.4s;}
         .power-bar-wrap{width:280px;height:32px;background:rgba(0,0,0,0.5);border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);}
         .power-bar-fill{height:100%;border-radius:8px;transition:width 0.5s ease;}
         .active-fighter .fighter-avatar{filter:drop-shadow(0 0 18px currentColor) brightness(1.3);}
@@ -441,9 +441,9 @@ export default function NikudGameClient(){
 
         /* ── Layout ── */
         .game-wrap{
-          display:flex;flex-direction:column;align-items:center;gap:10px;
+          display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
           width:100%;max-width:520px;position:relative;z-index:1;
-          padding-top:20px;
+          padding-top:20px;overflow:hidden;
         }
 
         /* ── Board ── */
@@ -452,7 +452,7 @@ export default function NikudGameClient(){
           gap:8px;padding:10px;
           background:rgba(255,255,255,0.04);
           border:1px solid rgba(255,255,255,0.1);
-          border-radius:20px;width:100%;
+          border-radius:20px;width:100%;flex-shrink:0;
         }
         .ttt-cell{
           aspect-ratio:1;border-radius:14px;
