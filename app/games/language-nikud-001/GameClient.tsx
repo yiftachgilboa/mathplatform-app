@@ -106,12 +106,37 @@ function speakLetter(base:string){
   window.speechSynthesis.speak(u)
 }
 function normalize(s:string):string{return s.replace(/[\u0591-\u05C7]/g,'').trim()}
+const LETTER_SOUNDS: Record<string, string[]> = {
+  'א': ['א','אא','אב','אמא','אבא'],
+  'ב': ['ב','בא','בבא','באבא','בה','בב'],
+  'ג': ['ג','גא','גה','גגא'],
+  'ה': ['ה','הא','הה','האה'],
+  'ו': ['ו','וא','וה','וו'],
+  'ז': ['ז','זא','זה','זז'],
+  'ח': ['ח','חא','חה','חח'],
+  'ט': ['ט','טא','טה','טט'],
+  'י': ['י','יא','יה','יי'],
+  'כ': ['כ','כא','כה','ככ','כן'],
+  'ל': ['ל','לא','לה','לל','לב'],
+  'מ': ['מ','מא','מה','ממ','מב'],
+  'פ': ['פ','פא','פה','פפ','פב'],
+  'צ': ['צ','צא','צה','צצ'],
+  'ק': ['ק','קא','קה','קק'],
+  'ר': ['ר','רא','רה','רר'],
+  'ש': ['ש','שא','שה','שש','שב'],
+  'ס': ['ס','סא','סה','סס'],
+  'ע': ['ע','עא','עה','עע'],
+  'ת': ['ת','תא','תה','תת','תן'],
+}
+
 function letterMatches(spoken:string,letter:Letter):boolean{
   const c=normalize(spoken).toLowerCase().trim()
   const base=letter.base
+  const known=LETTER_SOUNDS[base]||[]
+  if(known.some(w=>c.includes(w)||c.startsWith(w)))return true
   let count=0
-  for(let i=0;i<c.length;i++){if(c[i]===base)count++}
-  return count>=2||c.startsWith(base)||c.charAt(0)===base
+  for(let i=0;i<c.length;i++)if(c[i]===base)count++
+  return count>=2
 }
 
 // ── Particles ─────────────────────────────────────────────────────────────────
