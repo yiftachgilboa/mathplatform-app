@@ -250,13 +250,21 @@ export default function NikudGameClient(){
       const next=[...currentBoard];next[idx]='computer'
       setBoard(next)
       boardRef2.current=next
+
+      const boardFull=next.every(c=>c!==null)
+      const compWon=checkWinner(next)==='computer'
+      if(boardFull||compWon){
+        finishRound(roundResultsRef.current)
+        return
+      }
+
       setComputerJumpCell(idx)
       setTimeout(()=>setComputerJumpCell(null),1000)
       setPlayerTurn(true)
       setSelectedCell(null)
       pausedRef.current=false
     },thinkTime)
-  },[])
+  },[finishRound])
 
   // ── Handle correct ──────────────────────────────────────────────────────────
   const handleCorrect=useCallback(()=>{
