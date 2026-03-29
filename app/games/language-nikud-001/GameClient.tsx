@@ -432,8 +432,8 @@ export default function NikudGameClient(){
         }
         .fighter-corner.top-right{top:16px;right:16px;align-items:flex-end}
         .fighter-corner.top-left{top:16px;left:16px;align-items:flex-start}
-        .fighter-avatar{font-size:72px;line-height:1;transition:filter 0.4s,transform 0.4s;}
-        .power-bar-wrap{width:280px;height:32px;background:rgba(0,0,0,0.5);border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);}
+        .fighter-avatar{font-size:52px;line-height:1;transition:filter 0.4s,transform 0.4s;}
+        .power-bar-wrap{width:min(280px,35vw);height:24px;background:rgba(0,0,0,0.5);border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);}
         .power-bar-fill{height:100%;border-radius:8px;transition:width 0.5s ease;}
         .active-fighter .fighter-avatar{filter:drop-shadow(0 0 18px currentColor) brightness(1.3);}
         .inactive-fighter .fighter-avatar{filter:brightness(0.4) saturate(0.3);}
