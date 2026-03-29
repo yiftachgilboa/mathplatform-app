@@ -149,6 +149,7 @@ export default function NikudGameClient(){
   const [computerGoesFirst, setComputerGoesFirst] = useState(()=>Math.random()<0.5)
   const [winningCells, setWinningCells] = useState<number[]>([])
   const [score, setScore] = useState({player: 0, computer: 0})
+  const [approveAnim, setApproveAnim] = useState(false)
   const [level2Count,setLevel2Count]=useState(1)
   const [letterQueue,setLetterQueue]=useState<Letter[]>(()=>buildLetterQueue(1))
   const [queueIdx,setQueueIdx]=useState(-1) // -1 = no letter active yet
@@ -299,7 +300,8 @@ export default function NikudGameClient(){
       setLetterVisible(true)
       setWaitingForAnswer(false)
 
-      if(newAnswered>=ROUND_SIZE||playerWon){
+      const boardFull=newBoard.every(c=>c!==null)
+      if(newAnswered>=ROUND_SIZE||playerWon||boardFull){
         setWinningCells([])
         finishRound(newResults)
         return
@@ -375,6 +377,12 @@ export default function NikudGameClient(){
       setTimeout(()=>startListeningRef.current(),300)
     }else if(!waitingForAnswer){stopListening()}
   },[waitingForAnswer,phase,stopListening])
+
+  useEffect(()=>{
+    if(!waitingForAnswer){setApproveAnim(false);return}
+    const t=setTimeout(()=>setApproveAnim(true),5000)
+    return ()=>clearTimeout(t)
+  },[waitingForAnswer])
 
   // ── Cell click ───────────────────────────────────────────────────────────────
   const onCellClick=useCallback((idx:number)=>{
@@ -510,6 +518,8 @@ export default function NikudGameClient(){
         .emoji-bounce{animation:compBounce .8s ease}
         @keyframes winGlow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.8) drop-shadow(0 0 18px #FFD700)}}
         .cell-win{animation:winGlow 0.6s ease-in-out infinite;}
+        @keyframes approvePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
+        .approve-pulse{animation:approvePulse 0.6s ease-in-out infinite;}
 
         /* particles */
         @keyframes ptcl{0%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(0.2);opacity:0}}
@@ -676,7 +686,7 @@ export default function NikudGameClient(){
                 >🔊</button>
 
                 {/* Always show approve button */}
-                <button className="btn-approve" onClick={()=>handleCorrectRef.current()}>✓</button>
+                <button className={`btn-approve ${approveAnim?'approve-pulse':''}`} onClick={()=>handleCorrectRef.current()}>✓</button>
 
                 {/* Mic indicator */}
                 <div className={`mic-ind ${micStatus==='listening'?'mic-on':'mic-off'}`}>🎤</div>
