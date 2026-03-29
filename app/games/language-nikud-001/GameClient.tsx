@@ -25,7 +25,7 @@ const LEVEL2: LetterBase[] = [
 ]
 const WITH_DAGESH = new Set(['כ','ת','ב','פ','ג'])
 const ROUND_SIZE = 5
-const PLAYER_EMOJI = '🐸'
+const PLAYER_EMOJI = '🐱'
 const COMPUTER_EMOJI = '👹'
 const WINS = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]]
 
@@ -147,6 +147,7 @@ export default function NikudGameClient(){
   const [letterVisible, setLetterVisible] = useState(true)
   const [showInstruction, setShowInstruction] = useState(false)
   const [winningCells, setWinningCells] = useState<number[]>([])
+  const [score, setScore] = useState({player: 0, computer: 0})
   const [level2Count,setLevel2Count]=useState(1)
   const [letterQueue,setLetterQueue]=useState<Letter[]>(()=>buildLetterQueue(1))
   const [queueIdx,setQueueIdx]=useState(-1) // -1 = no letter active yet
@@ -221,6 +222,9 @@ export default function NikudGameClient(){
     const next=allLv2?Math.min(level2Ref.current+1,5):level2Ref.current
     setLevel2Count(next)
     setSuccessAnim(false)
+    const boardWinner=checkWinner(boardRef2.current)
+    if(boardWinner==='player')setScore(s=>({...s,player:s.player+1}))
+    else if(boardWinner==='computer')setScore(s=>({...s,computer:s.computer+1}))
     setPhase(allLv2&&next>=5?'gameOver':'roundEnd')
   },[])
 
@@ -428,8 +432,8 @@ export default function NikudGameClient(){
         }
         .fighter-corner.top-right{top:16px;right:16px;align-items:flex-end}
         .fighter-corner.top-left{top:16px;left:16px;align-items:flex-start}
-        .fighter-avatar{font-size:72px;line-height:1;transition:filter 0.4s,transform 0.4s;}
-        .power-bar-wrap{width:140px;height:16px;background:rgba(0,0,0,0.5);border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);}
+        .fighter-avatar{font-size:144px;line-height:1;transition:filter 0.4s,transform 0.4s;}
+        .power-bar-wrap{width:280px;height:32px;background:rgba(0,0,0,0.5);border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);}
         .power-bar-fill{height:100%;border-radius:8px;transition:width 0.5s ease;}
         .active-fighter .fighter-avatar{filter:drop-shadow(0 0 18px currentColor) brightness(1.3);}
         .inactive-fighter .fighter-avatar{filter:brightness(0.4) saturate(0.3);}
@@ -599,6 +603,11 @@ export default function NikudGameClient(){
               </div>
             )}
 
+            {/* Score */}
+            <div style={{fontSize:28,fontFamily:'Secular One',color:'#f0f4ff',letterSpacing:4,textAlign:'center'}}>
+              {score.player} — {score.computer}
+            </div>
+
             {/* Board */}
             <div className="ttt-board">
               {board.map((cell,idx)=>{
@@ -703,7 +712,7 @@ export default function NikudGameClient(){
           <div className="result-card fade-in">
             <div style={{fontSize:64}}>🏆</div>
             <StarDisplay stars={roundStars}/>
-            <button onClick={()=>router.back()} className="btn-continue">⚔️</button>
+            <button onClick={()=>router.back()} className="btn-primary">▶</button>
           </div>
         )}
 
