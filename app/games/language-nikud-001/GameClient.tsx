@@ -151,7 +151,6 @@ export default function NikudGameClient(){
   const [winnerSide, setWinnerSide] = useState<'player'|'computer'|null>(null)
   const [score, setScore] = useState({player: 0, computer: 0})
   const [approveAnim, setApproveAnim] = useState(false)
-  const [computerThinking, setComputerThinking] = useState(false)
   const [level2Count,setLevel2Count]=useState(1)
   const [letterQueue,setLetterQueue]=useState<Letter[]>(()=>buildLetterQueue(1))
   const [queueIdx,setQueueIdx]=useState(-1) // -1 = no letter active yet
@@ -241,10 +240,8 @@ export default function NikudGameClient(){
 
   // ── Do computer turn ─────────────────────────────────────────────────────────
   const doComputerTurn=useCallback((currentBoard:CellState[],answered:number)=>{
-    const thinkTime=3000+Math.random()*2000
-    setComputerThinking(true)
+    const thinkTime=500+Math.random()*1000
     setTimeout(()=>{
-      setComputerThinking(false)
       const isLast=answered>=ROUND_SIZE-1
       const idx=computerMove(currentBoard,isLast)
       if(idx<0){setPlayerTurn(true);setSelectedCell(null);pausedRef.current=false;return}
@@ -607,11 +604,6 @@ export default function NikudGameClient(){
       <div className="root" style={{backgroundImage:`url(${bgImage.src})`,backgroundSize:'cover',backgroundPosition:'center'}}>
         <GameBackButton />
 
-        {/* ── Score ── */}
-        <div style={{position:'fixed',top:170,left:'50%',transform:'translateX(-50%)',
-          fontSize:28,fontFamily:'Secular One',color:'#f0f4ff',letterSpacing:4,zIndex:30}}>
-          {score.player} — {score.computer}
-        </div>
 
         {/* ── Overlay ── */}
         {waitingForAnswer&&(
@@ -635,9 +627,6 @@ export default function NikudGameClient(){
             {/* Computer — top left */}
             <div className={`fighter-corner top-left ${playerTurn&&!waitingForAnswer?'active-fighter':'inactive-fighter'}`}>
               <div className="fighter-avatar">{COMPUTER_EMOJI}</div>
-              {computerThinking&&(
-                <div style={{fontSize:18,color:'#f0f4ff',letterSpacing:2}}>...</div>
-              )}
               <div className="power-bar-wrap">
                 <div className="power-bar-fill" style={{
                   width:`${computerPower}%`,
@@ -653,6 +642,11 @@ export default function NikudGameClient(){
         {phase==='playing'&&(
           <div className="game-wrap fade-in">
 
+
+            {/* Score */}
+            <div style={{fontSize:28,fontFamily:'Secular One',color:'#f0f4ff',letterSpacing:4,textAlign:'center'}}>
+              {score.player} — {score.computer}
+            </div>
 
             {/* Board */}
             <div className="ttt-board">
@@ -751,7 +745,7 @@ export default function NikudGameClient(){
 
         {/* ── Round end ── */}
         {phase==='roundEnd'&&(
-          <div style={{position:'fixed',inset:0,zIndex:20,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,0.5)'}}>
+          <div style={{position:'fixed',inset:0,zIndex:20,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,0.55)'}}>
             <div className="result-card fade-in">
               <div style={{fontSize:64}}>🎉</div>
               <StarDisplay stars={roundStars}/>
