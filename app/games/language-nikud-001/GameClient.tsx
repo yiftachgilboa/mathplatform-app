@@ -146,7 +146,7 @@ export default function NikudGameClient(){
   const [hintCell] = useState(()=>Math.floor(Math.random()*9))
   const [letterVisible, setLetterVisible] = useState(true)
   const [showInstruction, setShowInstruction] = useState(false)
-  const [computerGoesFirst, setComputerGoesFirst] = useState(()=>Math.random()<0.5)
+  const [roundNumber, setRoundNumber] = useState(1)
   const [winningCells, setWinningCells] = useState<number[]>([])
   const [winnerSide, setWinnerSide] = useState<'player'|'computer'|null>(null)
   const [score, setScore] = useState({player: 0, computer: 0})
@@ -214,7 +214,8 @@ export default function NikudGameClient(){
   },[])
 
   useEffect(()=>{
-    if(computerGoesFirst){
+    const computerStartsThisRound=roundNumber%2===0
+    if(computerStartsThisRound){
       setPlayerTurn(false)
       setTimeout(()=>doComputerTurn(Array(9).fill(null),0),600)
     }
@@ -235,8 +236,8 @@ export default function NikudGameClient(){
     const boardWinner=checkWinner(boardRef2.current)
     if(boardWinner==='player')setScore(s=>({...s,player:s.player+1}))
     else if(boardWinner==='computer')setScore(s=>({...s,computer:s.computer+1}))
-    setPhase(allLv2&&next>=5?'gameOver':'roundEnd')
-  },[])
+    setPhase(roundNumber>=5?'gameOver':'roundEnd')
+  },[roundNumber])
 
   // ── Do computer turn ─────────────────────────────────────────────────────────
   const doComputerTurn=useCallback((currentBoard:CellState[],answered:number)=>{
@@ -430,16 +431,17 @@ export default function NikudGameClient(){
     setBoard(Array(9).fill(null))
     boardRef2.current=Array(9).fill(null)
     setSelectedCell(null)
-    const nextFirst=Math.random()<0.5
-    setComputerGoesFirst(nextFirst)
-    setPlayerTurn(!nextFirst)
-    if(nextFirst)setTimeout(()=>doComputerTurn(Array(9).fill(null),0),600)
+    const nextRound=roundNumber+1
+    setRoundNumber(nextRound)
+    const compFirst=nextRound%2===0
+    setPlayerTurn(!compFirst)
+    if(compFirst)setTimeout(()=>doComputerTurn(Array(9).fill(null),0),600)
     setWaitingForAnswer(false)
     setAnsweredCells(0)
     setPlayerJumpCell(null)
     setComputerJumpCell(null)
     setPhase('playing')
-  },[doComputerTurn])
+  },[doComputerTurn,roundNumber])
 
   // ─── Render ──────────────────────────────────────────────────────────────────
   return(
