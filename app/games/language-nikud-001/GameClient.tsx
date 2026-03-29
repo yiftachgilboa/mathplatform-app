@@ -107,8 +107,11 @@ function speakLetter(base:string){
 }
 function normalize(s:string):string{return s.replace(/[\u0591-\u05C7]/g,'').trim()}
 function letterMatches(spoken:string,letter:Letter):boolean{
-  const c=normalize(spoken).toLowerCase()
-  return c===letter.base||c.startsWith(letter.base)
+  const c=normalize(spoken).toLowerCase().trim()
+  const base=letter.base
+  let count=0
+  for(let i=0;i<c.length;i++){if(c[i]===base)count++}
+  return count>=2||c.startsWith(base)||c.charAt(0)===base
 }
 
 // ── Particles ─────────────────────────────────────────────────────────────────
@@ -360,7 +363,7 @@ export default function NikudGameClient(){
     const SR=(window as any).SpeechRecognition||(window as any).webkitSpeechRecognition
     if(!SR)return
     const rec=new SR()
-    rec.lang='he-IL';rec.continuous=false;rec.interimResults=false;rec.maxAlternatives=5
+    rec.lang='he-IL';rec.continuous=false;rec.interimResults=false;rec.maxAlternatives=10
     recRef.current=rec
     rec.onstart=()=>{listeningRef.current=true;setMicStatus('listening')}
     rec.onresult=(e:any)=>{
@@ -697,6 +700,9 @@ export default function NikudGameClient(){
                         <span ref={letterBgRef} className={`cell-letter ${shake?'c-shake':''} ${successAnim?'c-pop':''}`}
                           style={{opacity:letterVisible?1:0,transition:'opacity 0.15s'}}>
                           {currentLetter.char}
+                        </span>
+                        <span style={{fontSize:12,color:'rgba(255,255,255,0.6)',marginTop:4,display:'block',textAlign:'center'}}>
+                          אמור 3 פעמים
                         </span>
                       </div>
                     )}
