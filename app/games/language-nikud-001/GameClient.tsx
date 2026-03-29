@@ -150,6 +150,7 @@ export default function NikudGameClient(){
   const [winningCells, setWinningCells] = useState<number[]>([])
   const [score, setScore] = useState({player: 0, computer: 0})
   const [approveAnim, setApproveAnim] = useState(false)
+  const [computerThinking, setComputerThinking] = useState(false)
   const [level2Count,setLevel2Count]=useState(1)
   const [letterQueue,setLetterQueue]=useState<Letter[]>(()=>buildLetterQueue(1))
   const [queueIdx,setQueueIdx]=useState(-1) // -1 = no letter active yet
@@ -239,7 +240,10 @@ export default function NikudGameClient(){
 
   // ── Do computer turn ─────────────────────────────────────────────────────────
   const doComputerTurn=useCallback((currentBoard:CellState[],answered:number)=>{
+    const thinkTime=500+Math.random()*1000
+    setComputerThinking(true)
     setTimeout(()=>{
+      setComputerThinking(false)
       const isLast=answered>=ROUND_SIZE-1
       const idx=computerMove(currentBoard,isLast)
       if(idx<0){setPlayerTurn(true);setSelectedCell(null);pausedRef.current=false;return}
@@ -251,7 +255,7 @@ export default function NikudGameClient(){
       setPlayerTurn(true)
       setSelectedCell(null)
       pausedRef.current=false
-    },700)
+    },thinkTime)
   },[])
 
   // ── Handle correct ──────────────────────────────────────────────────────────
@@ -461,7 +465,7 @@ export default function NikudGameClient(){
         /* ── Layout ── */
         .game-wrap{
           display:flex;flex-direction:column;align-items:center;gap:10px;
-          width:100%;max-width:520px;position:relative;z-index:1;
+          width:100%;max-width:520px;position:relative;z-index:10;
           padding-top:20px;
         }
 
@@ -585,6 +589,11 @@ export default function NikudGameClient(){
       <div className="root" style={{backgroundImage:`url(${bgImage.src})`,backgroundSize:'cover',backgroundPosition:'center'}}>
         <GameBackButton />
 
+        {/* ── Overlay ── */}
+        {waitingForAnswer&&(
+          <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.45)',zIndex:5,pointerEvents:'none',transition:'opacity 0.3s'}}/>
+        )}
+
         {/* ── Fighter corners ── */}
         {phase==='playing'&&(
           <>
@@ -602,6 +611,9 @@ export default function NikudGameClient(){
             {/* Computer — top left */}
             <div className={`fighter-corner top-left ${!playerTurn||waitingForAnswer?'active-fighter':'inactive-fighter'}`}>
               <div className="fighter-avatar">{COMPUTER_EMOJI}</div>
+              {computerThinking&&(
+                <div style={{fontSize:18,color:'#f0f4ff',letterSpacing:2}}>...</div>
+              )}
               <div className="power-bar-wrap">
                 <div className="power-bar-fill" style={{
                   width:`${computerPower}%`,
@@ -650,11 +662,25 @@ export default function NikudGameClient(){
 
                     {/* Selected cell: show letter challenge */}
                     {isSelected&&currentLetter&&(
-                      <div
-                        ref={letterBgRef}
-                        style={{position:'relative',overflow:'visible',display:'flex',alignItems:'center',justifyContent:'center',width:'100%',height:'100%'}}
-                      >
-                        <span className={`cell-letter ${shake?'c-shake':''} ${successAnim?'c-pop':''}`} style={{opacity:letterVisible?1:0,transition:'opacity 0.15s'}}>
+                      <div style={{position:'relative',width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                        {/* כפתור השמעה — פינה שמאלית עליונה */}
+                        <button
+                          onClick={e=>{e.stopPropagation();speakLetter(currentLetter.base)}}
+                          style={{position:'absolute',top:6,left:6,width:32,height:32,borderRadius:'50%',
+                            background:'rgba(96,165,250,0.25)',border:'1.5px solid rgba(96,165,250,0.5)',
+                            color:'#93c5fd',fontSize:14,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}
+                        >🔊</button>
+                        {/* כפתור אישור — פינה ימנית עליונה */}
+                        <button
+                          onClick={e=>{e.stopPropagation();handleCorrectRef.current()}}
+                          className={approveAnim?'approve-pulse':''}
+                          style={{position:'absolute',top:6,right:6,width:32,height:32,borderRadius:'50%',
+                            background:'linear-gradient(135deg,#22c55e,#16a34a)',border:'none',
+                            color:'#fff',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}
+                        >✓</button>
+                        {/* אות */}
+                        <span ref={letterBgRef} className={`cell-letter ${shake?'c-shake':''} ${successAnim?'c-pop':''}`}
+                          style={{opacity:letterVisible?1:0,transition:'opacity 0.15s'}}>
                           {currentLetter.char}
                         </span>
                       </div>
@@ -677,22 +703,13 @@ export default function NikudGameClient(){
               })}
             </div>
 
-            {/* Controls — shown when waiting for answer */}
-            {waitingForAnswer&&currentLetter&&(
-              <div className="controls-bar">
-                <button
-                  className="btn-listen"
-                  onClick={()=>speakLetter(currentLetter.base)}
-                >🔊</button>
-
-                {/* Always show approve button */}
-                <button className={`btn-approve ${approveAnim?'approve-pulse':''}`} onClick={()=>handleCorrectRef.current()}>✓</button>
-
-                {/* Mic indicator */}
-                <div className={`mic-ind ${micStatus==='listening'?'mic-on':'mic-off'}`}>🎤</div>
-              </div>
-            )}
           </div>
+        )}
+
+        {/* ── Mic indicator ── */}
+        {waitingForAnswer&&(
+          <div className={`mic-ind ${micStatus==='listening'?'mic-on':'mic-off'}`}
+            style={{position:'fixed',bottom:20,left:20,zIndex:50}}>🎤</div>
         )}
 
         {/* ── Fighters on result screens ── */}
