@@ -143,6 +143,7 @@ function StarDisplay({stars,total=5}:{stars:number;total?:number}){
 
 export default function NikudGameClient(){
   const router = useRouter()
+  const [hintCell] = useState(()=>Math.floor(Math.random()*9))
   const [level2Count,setLevel2Count]=useState(1)
   const [letterQueue,setLetterQueue]=useState<Letter[]>(()=>buildLetterQueue(1))
   const [queueIdx,setQueueIdx]=useState(-1) // -1 = no letter active yet
@@ -453,7 +454,7 @@ export default function NikudGameClient(){
 
         /* Cell inner letter (challenge) */
         .cell-letter{
-          font-size:clamp(28px,8vw,54px);line-height:1;color:#f0f4ff;
+          font-size:clamp(56px,16vw,108px);line-height:1;color:#f0f4ff;
           text-shadow:0 0 24px rgba(96,165,250,0.7);user-select:none;
           position:relative;overflow:visible;
         }
@@ -596,7 +597,7 @@ export default function NikudGameClient(){
                     style={{position:'relative',overflow:'visible'}}
                   >
                     {/* Empty selectable: hint finger */}
-                    {cell===null&&!isSelected&&canClick&&(
+                    {cell===null&&!isSelected&&canClick&&answeredCells===0&&idx===hintCell&&(
                       <span className="hint-finger">👆</span>
                     )}
 
@@ -635,7 +636,6 @@ export default function NikudGameClient(){
                 <button
                   className="btn-listen"
                   onClick={()=>speakLetter(currentLetter.base)}
-                  disabled={micStatus==='listening'}
                 >🔊</button>
 
                 {/* Always show approve button */}
