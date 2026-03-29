@@ -146,6 +146,7 @@ export default function NikudGameClient(){
   const [hintCell] = useState(()=>Math.floor(Math.random()*9))
   const [letterVisible, setLetterVisible] = useState(true)
   const [showInstruction, setShowInstruction] = useState(false)
+  const [winningCells, setWinningCells] = useState<number[]>([])
   const [level2Count,setLevel2Count]=useState(1)
   const [letterQueue,setLetterQueue]=useState<Letter[]>(()=>buildLetterQueue(1))
   const [queueIdx,setQueueIdx]=useState(-1) // -1 = no letter active yet
@@ -276,6 +277,10 @@ export default function NikudGameClient(){
 
     // Check if player won the board
     const playerWon=checkWinner(newBoard)==='player'
+    if(playerWon){
+      const winLine=WINS.find(([a,b,c])=>newBoard[a]==='player'&&newBoard[b]==='player'&&newBoard[c]==='player')
+      if(winLine)setWinningCells(winLine)
+    }
 
     setTimeout(()=>{
       setSuccessAnim(false)
@@ -283,11 +288,12 @@ export default function NikudGameClient(){
       setWaitingForAnswer(false)
 
       if(newAnswered>=ROUND_SIZE||playerWon){
+        setWinningCells([])
         finishRound(newResults)
         return
       }
       doComputerTurn(newBoard,newAnswered)
-    },950)
+    },playerWon?3950:950)
   },[finishRound,doComputerTurn])
 
   const handleCorrectRef=useRef(handleCorrect)
@@ -365,7 +371,7 @@ export default function NikudGameClient(){
     selectedCellRef.current=idx
     setPlayerTurn(false)
     setWaitingForAnswer(true)
-    if(answeredCells===0){
+    if(answeredCells===0&&computerPower===100){
       setShowInstruction(true)
       window.speechSynthesis?.speak(Object.assign(new SpeechSynthesisUtterance('הקריאו את הצליל'),{lang:'he-IL'}))
       setTimeout(()=>setShowInstruction(false),3000)
@@ -487,6 +493,8 @@ export default function NikudGameClient(){
         /* computer emoji gentle bounce */
         @keyframes compBounce{0%,100%{transform:scale(1)}40%{transform:scale(1.06) translateY(-4px)}70%{transform:scale(0.97)}}
         .emoji-bounce{animation:compBounce .8s ease}
+        @keyframes winGlow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.8) drop-shadow(0 0 18px #FFD700)}}
+        .cell-win{animation:winGlow 0.6s ease-in-out infinite;}
 
         /* particles */
         @keyframes ptcl{0%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(0.2);opacity:0}}
@@ -601,6 +609,7 @@ export default function NikudGameClient(){
                 else if(cell==='player')cls+='cell-player'
                 else if(cell==='computer')cls+='cell-computer'
                 else{cls+='cell-empty';if(canClick)cls+=' can-click'}
+                if(winningCells.includes(idx))cls+=' cell-win'
 
                 return(
                   <div
