@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import bgImage from './assets/bg-nikud-arena.jpg'
+import GameBackButton from '@/components/GameBackButton'
 
 type Nikud = 'kamatz' | 'patach'
 type LetterBase = { base: string; level: 1 | 2 }
@@ -140,6 +142,7 @@ function StarDisplay({stars,total=5}:{stars:number;total?:number}){
 }
 
 export default function NikudGameClient(){
+  const router = useRouter()
   const [level2Count,setLevel2Count]=useState(1)
   const [letterQueue,setLetterQueue]=useState<Letter[]>(()=>buildLetterQueue(1))
   const [queueIdx,setQueueIdx]=useState(-1) // -1 = no letter active yet
@@ -539,6 +542,7 @@ export default function NikudGameClient(){
       `}</style>
 
       <div className="root" style={{backgroundImage:`url(${bgImage.src})`,backgroundSize:'cover',backgroundPosition:'center'}}>
+        <GameBackButton />
 
         {/* ── Fighter corners ── */}
         {phase==='playing'&&(
@@ -658,7 +662,7 @@ export default function NikudGameClient(){
           <div className="result-card fade-in">
             <div style={{fontSize:64}}>🏆</div>
             <StarDisplay stars={roundStars}/>
-            <button onClick={()=>alert('NAVIGATE_BACK')} className="btn-continue">⚔️</button>
+            <button onClick={()=>router.back()} className="btn-continue">⚔️</button>
           </div>
         )}
 
