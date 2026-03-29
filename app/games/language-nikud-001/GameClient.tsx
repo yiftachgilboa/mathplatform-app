@@ -146,6 +146,7 @@ export default function NikudGameClient(){
   const [hintCell] = useState(()=>Math.floor(Math.random()*9))
   const [letterVisible, setLetterVisible] = useState(true)
   const [showInstruction, setShowInstruction] = useState(false)
+  const [computerGoesFirst, setComputerGoesFirst] = useState(()=>Math.random()<0.5)
   const [winningCells, setWinningCells] = useState<number[]>([])
   const [score, setScore] = useState({player: 0, computer: 0})
   const [level2Count,setLevel2Count]=useState(1)
@@ -207,6 +208,13 @@ export default function NikudGameClient(){
     if(!gameStartedRef.current){
       gameStartedRef.current=true
       window.MathPlatformSDK?.emit('GAME_STARTED',{gameId:'language-nikud-001'})
+    }
+  },[])
+
+  useEffect(()=>{
+    if(computerGoesFirst){
+      setPlayerTurn(false)
+      setTimeout(()=>doComputerTurn(Array(9).fill(null),0),600)
     }
   },[])
 
@@ -397,13 +405,16 @@ export default function NikudGameClient(){
     setBoard(Array(9).fill(null))
     boardRef2.current=Array(9).fill(null)
     setSelectedCell(null)
-    setPlayerTurn(true)
+    const nextFirst=Math.random()<0.5
+    setComputerGoesFirst(nextFirst)
+    setPlayerTurn(!nextFirst)
+    if(nextFirst)setTimeout(()=>doComputerTurn(Array(9).fill(null),0),600)
     setWaitingForAnswer(false)
     setAnsweredCells(0)
     setPlayerJumpCell(null)
     setComputerJumpCell(null)
     setPhase('playing')
-  },[])
+  },[doComputerTurn])
 
   // ─── Render ──────────────────────────────────────────────────────────────────
   return(
@@ -596,12 +607,6 @@ export default function NikudGameClient(){
         {phase==='playing'&&(
           <div className="game-wrap fade-in">
 
-            {/* Instruction */}
-            {showInstruction&&(
-              <div style={{fontSize:22,color:'#e2e8f0',textAlign:'center',letterSpacing:1,marginBottom:4}}>
-                הקריאו את הצליל
-              </div>
-            )}
 
             {/* Score */}
             <div style={{fontSize:28,fontFamily:'Secular One',color:'#f0f4ff',letterSpacing:4,textAlign:'center'}}>
