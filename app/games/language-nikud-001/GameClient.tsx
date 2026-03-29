@@ -390,8 +390,6 @@ export default function NikudGameClient(){
     setPlayerTurn(true)
     setWaitingForAnswer(false)
     setAnsweredCells(0)
-    setPlayerPower(100)
-    setComputerPower(100)
     setPlayerJumpCell(null)
     setComputerJumpCell(null)
     setPhase('playing')
@@ -662,6 +660,24 @@ export default function NikudGameClient(){
               </div>
             )}
           </div>
+        )}
+
+        {/* ── Fighters on result screens ── */}
+        {(phase==='roundEnd'||phase==='gameOver')&&(
+          <>
+            <div className="fighter-corner top-right inactive-fighter">
+              <div className="fighter-avatar">{PLAYER_EMOJI}</div>
+              <div className="power-bar-wrap" style={{direction:'ltr'}}>
+                <div className="power-bar-fill" style={{width:`${playerPower}%`,background:'linear-gradient(90deg,#6366f1,#a78bfa)'}}/>
+              </div>
+            </div>
+            <div className="fighter-corner top-left inactive-fighter">
+              <div className="fighter-avatar">{COMPUTER_EMOJI}</div>
+              <div className="power-bar-wrap">
+                <div className="power-bar-fill" style={{width:`${computerPower}%`,background:'linear-gradient(90deg,#ef4444,#f97316)'}}/>
+              </div>
+            </div>
+          </>
         )}
 
         {/* ── Round end ── */}
