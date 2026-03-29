@@ -144,6 +144,8 @@ function StarDisplay({stars,total=5}:{stars:number;total?:number}){
 export default function NikudGameClient(){
   const router = useRouter()
   const [hintCell] = useState(()=>Math.floor(Math.random()*9))
+  const [letterVisible, setLetterVisible] = useState(true)
+  const [showInstruction, setShowInstruction] = useState(false)
   const [level2Count,setLevel2Count]=useState(1)
   const [letterQueue,setLetterQueue]=useState<Letter[]>(()=>buildLetterQueue(1))
   const [queueIdx,setQueueIdx]=useState(-1) // -1 = no letter active yet
@@ -246,6 +248,7 @@ export default function NikudGameClient(){
     setMicStatus('idle')
     playSuccess()
     setSuccessAnim(true)
+    setLetterVisible(false)
     if(letterBgRef.current)burst(letterBgRef.current)
 
     const isFirst=!hadWrongRef.current
@@ -276,6 +279,7 @@ export default function NikudGameClient(){
 
     setTimeout(()=>{
       setSuccessAnim(false)
+      setLetterVisible(true)
       setWaitingForAnswer(false)
 
       if(newAnswered>=ROUND_SIZE||playerWon){
@@ -361,10 +365,15 @@ export default function NikudGameClient(){
     selectedCellRef.current=idx
     setPlayerTurn(false)
     setWaitingForAnswer(true)
+    if(answeredCells===0){
+      setShowInstruction(true)
+      window.speechSynthesis?.speak(Object.assign(new SpeechSynthesisUtterance('הקריאו את הצליל'),{lang:'he-IL'}))
+      setTimeout(()=>setShowInstruction(false),3000)
+    }
     setAttemptNumber(1)
     setHadWrongThisTurn(false)
     setQueueIdx(i=>i+1)
-  },[playerTurn,waitingForAnswer])
+  },[playerTurn,waitingForAnswer,answeredCells])
 
   // ── Next round ───────────────────────────────────────────────────────────────
   const startNextRound=useCallback(()=>{
@@ -577,6 +586,13 @@ export default function NikudGameClient(){
         {phase==='playing'&&(
           <div className="game-wrap fade-in">
 
+            {/* Instruction */}
+            {showInstruction&&(
+              <div style={{fontSize:22,color:'#e2e8f0',textAlign:'center',letterSpacing:1,marginBottom:4}}>
+                הקריאו את הצליל
+              </div>
+            )}
+
             {/* Board */}
             <div className="ttt-board">
               {board.map((cell,idx)=>{
@@ -607,7 +623,7 @@ export default function NikudGameClient(){
                         ref={letterBgRef}
                         style={{position:'relative',overflow:'visible',display:'flex',alignItems:'center',justifyContent:'center',width:'100%',height:'100%'}}
                       >
-                        <span className={`cell-letter ${shake?'c-shake':''} ${successAnim?'c-pop':''}`}>
+                        <span className={`cell-letter ${shake?'c-shake':''} ${successAnim?'c-pop':''}`} style={{opacity:letterVisible?1:0,transition:'opacity 0.15s'}}>
                           {currentLetter.char}
                         </span>
                       </div>
