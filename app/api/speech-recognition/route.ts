@@ -17,7 +17,13 @@ export async function POST(req: NextRequest) {
     }
   )
 
+  if(!response.ok){
+    const errorText = await response.text()
+    console.error('HuggingFace error:', response.status, errorText)
+    return NextResponse.json({ text: '' }, { status: 200 })
+  }
+
   const result = await response.json()
-  console.log('HuggingFace response:', JSON.stringify(result))
+  console.log('HuggingFace result:', result)
   return NextResponse.json({ text: result.text || '' })
 }
