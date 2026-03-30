@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.HUGGINGFACE_TOKEN}`,
-        'Content-Type': 'audio/webm',
+        'Content-Type': 'audio/flac',
       },
       body: arrayBuffer,
     }

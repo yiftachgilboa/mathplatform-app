@@ -387,7 +387,7 @@ export default function NikudGameClient(){
   const startListening=useCallback(()=>{
     if(listeningRef.current||pausedRef.current)return
     navigator.mediaDevices.getUserMedia({audio:true}).then(s=>{
-      const recorder=new MediaRecorder(s)
+      const recorder=new MediaRecorder(s,{mimeType:'audio/webm;codecs=opus'})
       const chunks:BlobPart[]=[]
       recRef.current=recorder
       recorder.ondataavailable=e=>chunks.push(e.data)
@@ -417,7 +417,7 @@ export default function NikudGameClient(){
       recorder.start()
       setTimeout(()=>{
         if(recorder.state==='recording')recorder.stop()
-      },3000)
+      },4000)
     }).catch(()=>setMicStatus('idle'))
   },[])
   startListeningRef.current=startListening
