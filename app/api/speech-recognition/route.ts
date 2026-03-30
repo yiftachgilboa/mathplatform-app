@@ -11,20 +11,12 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.HUGGINGFACE_TOKEN}`,
-        'Content-Type': 'audio/flac',
+        'Content-Type': 'audio/webm',
       },
       body: arrayBuffer,
     }
   )
 
-  if(!response.ok){
-    const errorText = await response.text()
-    console.error('HuggingFace error:', response.status, errorText)
-    return NextResponse.json({ text: '' }, { status: 200 })
-  }
-
   const result = await response.json()
-  console.log('HuggingFace result:', JSON.stringify(result))
-  console.log('text extracted:', result.text)
   return NextResponse.json({ text: result.text || '' })
 }

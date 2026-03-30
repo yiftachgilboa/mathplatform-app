@@ -171,8 +171,7 @@ function StarDisplay({stars,total=5}:{stars:number;total?:number}){
 
 export default function NikudGameClient(){
   const router = useRouter()
-  const [hintCell, setHintCell] = useState(0)
-  useEffect(()=>setHintCell(Math.floor(Math.random()*9)),[])
+  const [hintCell] = useState(()=>Math.floor(Math.random()*9))
   const [letterVisible, setLetterVisible] = useState(true)
   const [showInstruction, setShowInstruction] = useState(false)
   const [roundNumber, setRoundNumber] = useState(1)
@@ -387,7 +386,7 @@ export default function NikudGameClient(){
   const startListening=useCallback(()=>{
     if(listeningRef.current||pausedRef.current)return
     navigator.mediaDevices.getUserMedia({audio:true}).then(s=>{
-      const recorder=new MediaRecorder(s,{mimeType:'audio/webm;codecs=opus'})
+      const recorder=new MediaRecorder(s)
       const chunks:BlobPart[]=[]
       recRef.current=recorder
       recorder.ondataavailable=e=>chunks.push(e.data)
@@ -401,8 +400,6 @@ export default function NikudGameClient(){
         try{
           const res=await fetch('/api/speech-recognition',{method:'POST',body:fd})
           const {text}=await res.json()
-          console.log('recognized text:',text)
-          console.log('current letter:',currentLetterRef.current.base)
           if(letterMatches(text,currentLetterRef.current)){
             handleCorrectRef.current()
           }else{
@@ -417,7 +414,7 @@ export default function NikudGameClient(){
       recorder.start()
       setTimeout(()=>{
         if(recorder.state==='recording')recorder.stop()
-      },4000)
+      },3000)
     }).catch(()=>setMicStatus('idle'))
   },[])
   startListeningRef.current=startListening
