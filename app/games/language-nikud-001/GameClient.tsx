@@ -385,35 +385,44 @@ export default function NikudGameClient(){
   // ── Voice ────────────────────────────────────────────────────────────────────
   const startListening=useCallback(()=>{
     if(listeningRef.current||pausedRef.current)return
-    const SR=(window as any).SpeechRecognition||(window as any).webkitSpeechRecognition
-    if(!SR)return
-    const rec=new SR()
-    rec.lang='he-IL';rec.continuous=false;rec.interimResults=false;rec.maxAlternatives=10
-    recRef.current=rec
-    rec.onstart=()=>{listeningRef.current=true;setMicStatus('listening')}
-    rec.onresult=(e:any)=>{
-      listeningRef.current=false
-      const r=e.results[0];const alts:string[]=[]
-      for(let i=0;i<r.length;i++)alts.push(r[i].transcript)
-      const ok=alts.some(a=>letterMatches(a,currentLetterRef.current))
-      if(ok)handleCorrectRef.current();else handleWrongRef.current(normalize(alts[0]||''))
-    }
-    rec.onerror=(e:any)=>{
-      listeningRef.current=false;setMicStatus('idle')
-      if(e.error==='not-allowed')return
-      if(!pausedRef.current)setTimeout(()=>startListeningRef.current(),400)
-    }
-    rec.onend=()=>{
-      listeningRef.current=false;setMicStatus('idle')
-      if(!pausedRef.current)setTimeout(()=>startListeningRef.current(),200)
-    }
-    try{rec.start()}catch{}
+    navigator.mediaDevices.getUserMedia({audio:true}).then(s=>{
+      const recorder=new MediaRecorder(s)
+      const chunks:BlobPart[]=[]
+      recRef.current=recorder
+      recorder.ondataavailable=e=>chunks.push(e.data)
+      recorder.onstop=async()=>{
+        s.getTracks().forEach(t=>t.stop())
+        listeningRef.current=false
+        setMicStatus('idle')
+        const blob=new Blob(chunks,{type:'audio/webm'})
+        const fd=new FormData()
+        fd.append('audio',blob)
+        try{
+          const res=await fetch('/api/speech-recognition',{method:'POST',body:fd})
+          const {text}=await res.json()
+          if(letterMatches(text,currentLetterRef.current)){
+            handleCorrectRef.current()
+          }else{
+            handleWrongRef.current(normalize(text))
+          }
+        }catch{
+          if(!pausedRef.current)setTimeout(()=>startListeningRef.current(),400)
+        }
+      }
+      listeningRef.current=true
+      setMicStatus('listening')
+      recorder.start()
+      setTimeout(()=>{
+        if(recorder.state==='recording')recorder.stop()
+      },3000)
+    }).catch(()=>setMicStatus('idle'))
   },[])
   startListeningRef.current=startListening
 
   const stopListening=useCallback(()=>{
-    pausedRef.current=true;listeningRef.current=false
-    try{recRef.current?.abort()}catch{}
+    pausedRef.current=true
+    listeningRef.current=false
+    if((recRef.current as any)?.state==='recording')(recRef.current as any).stop()
     setMicStatus('idle')
   },[])
 
