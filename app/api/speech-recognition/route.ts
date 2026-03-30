@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
   }
 
   const result = await response.json()
-  console.log('HuggingFace result:', result)
+  console.log('HuggingFace result:', JSON.stringify(result))
+  console.log('text extracted:', result.text)
   return NextResponse.json({ text: result.text || '' })
 }

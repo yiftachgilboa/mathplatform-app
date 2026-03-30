@@ -401,6 +401,8 @@ export default function NikudGameClient(){
         try{
           const res=await fetch('/api/speech-recognition',{method:'POST',body:fd})
           const {text}=await res.json()
+          console.log('recognized text:',text)
+          console.log('current letter:',currentLetterRef.current.base)
           if(letterMatches(text,currentLetterRef.current)){
             handleCorrectRef.current()
           }else{
