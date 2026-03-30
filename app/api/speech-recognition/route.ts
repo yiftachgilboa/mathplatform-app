@@ -18,5 +18,6 @@ export async function POST(req: NextRequest) {
   )
 
   const result = await response.json()
+  console.log('HuggingFace response:', JSON.stringify(result))
   return NextResponse.json({ text: result.text || '' })
 }

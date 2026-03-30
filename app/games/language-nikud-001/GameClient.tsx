@@ -171,7 +171,8 @@ function StarDisplay({stars,total=5}:{stars:number;total?:number}){
 
 export default function NikudGameClient(){
   const router = useRouter()
-  const [hintCell] = useState(()=>Math.floor(Math.random()*9))
+  const [hintCell, setHintCell] = useState(0)
+  useEffect(()=>setHintCell(Math.floor(Math.random()*9)),[])
   const [letterVisible, setLetterVisible] = useState(true)
   const [showInstruction, setShowInstruction] = useState(false)
   const [roundNumber, setRoundNumber] = useState(1)
