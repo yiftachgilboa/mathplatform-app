@@ -726,8 +726,15 @@ export default function NikudGameClient(){
                         >🔊</button>
                         {/* כפתור אישור — פינה ימנית עליונה */}
                         <button
-                          onClick={e=>{e.stopPropagation();handleCorrectRef.current()}}
-                          className={approveAnim?'approve-pulse':''}
+                          className={`btn-approve ${approveAnim?'approve-pulse':''}`}
+                          onClick={e=>{
+                            e.stopPropagation()
+                            try{recRef.current?.abort()}catch{}
+                            listeningRef.current=false
+                            pausedRef.current=true
+                            setMicStatus('idle')
+                            handleCorrectRef.current()
+                          }}
                           style={{position:'absolute',top:6,right:6,width:32,height:32,borderRadius:'50%',
                             background:'linear-gradient(135deg,#22c55e,#16a34a)',border:'none',
                             color:'#fff',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}
