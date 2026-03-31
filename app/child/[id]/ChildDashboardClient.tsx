@@ -98,10 +98,16 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
   const [isDone, setIsDone] = useState(false)
   const [todayIdx, setTodayIdx] = useState<number | null>(null)
   const [completedToday, setCompletedToday] = useState(0)
-  const [cardBg, setCardBg] = useState<string | null>(stations[initialActive]?.bg || null)
+  const [cardBg, setCardBg] = useState<string | null>(null)
 
   useEffect(() => {
     setTodayIdx(new Date().getDay())
+    const src = stations[initialActive]?.bg || null
+    if (!src) return
+    const img = new window.Image()
+    img.onload = () => setCardBg(src)
+    img.onerror = () => setCardBg('/art/games/bg-default.jpg')
+    img.src = src
   }, [])
 
   useEffect(() => {
@@ -130,7 +136,12 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
     setIsDone(false)
     setCardBg(null)
     setTimeout(() => {
-      setCardBg(stations[idx]?.bg || null)
+      const src = stations[idx]?.bg || null
+      if (!src) return
+      const img = new window.Image()
+      img.onload = () => setCardBg(src)
+      img.onerror = () => setCardBg('/art/games/bg-default.jpg')
+      img.src = src
     }, 100)
   }
 
