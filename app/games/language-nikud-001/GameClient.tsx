@@ -719,7 +719,7 @@ export default function NikudGameClient(){
 
                     {/* Selected cell: show letter challenge */}
                     {isSelected&&currentLetter&&(
-                      <div style={{position:'relative',width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                      <div style={{position:'relative',width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',zIndex:10}}>
                         {/* כפתור השמעה — פינה שמאלית עליונה */}
                         <button
                           onClick={e=>{e.stopPropagation();speakLetter(currentLetter.base)}}
