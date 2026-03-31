@@ -179,6 +179,7 @@ export default function NikudGameClient(){
   const [winningCells, setWinningCells] = useState<number[]>([])
   const [winnerSide, setWinnerSide] = useState<'player'|'computer'|null>(null)
   const [score, setScore] = useState({player: 0, computer: 0})
+  const [matchResults,setMatchResults]=useState<('player'|'computer'|'draw'|null)[]>([null,null,null])
   const [approveAnim, setApproveAnim] = useState(false)
   const [level2Count,setLevel2Count]=useState(1)
   const [letterQueue,setLetterQueue]=useState<Letter[]>(()=>buildLetterQueue(1))
@@ -267,6 +268,8 @@ export default function NikudGameClient(){
     const boardWinner=checkWinner(boardRef2.current)
     if(boardWinner==='player')setScore(s=>({...s,player:s.player+1}))
     else if(boardWinner==='computer')setScore(s=>({...s,computer:s.computer+1}))
+    const roundIdx=roundNumber-1
+    setMatchResults(prev=>{const next=[...prev];next[roundIdx]=boardWinner??'draw';return next})
     setPhase(roundNumber>=3?'gameOver':'roundEnd')
   },[roundNumber])
 
@@ -693,8 +696,17 @@ export default function NikudGameClient(){
 
 
             {/* Score */}
-            <div style={{fontSize:28,fontFamily:'Secular One',color:'#f0f4ff',letterSpacing:4,textAlign:'center'}}>
-              {score.player} — {score.computer}
+            <div style={{display:'flex',gap:14,alignItems:'center',justifyContent:'center'}}>
+              {[0,1,2].map(i=>(
+                <div key={i} style={{
+                  width:26,height:26,borderRadius:'50%',
+                  border:'2px solid rgba(255,255,255,0.6)',
+                  background:matchResults[i]==='player'?'#4ade80'
+                            :matchResults[i]==='computer'?'#f87171'
+                            :matchResults[i]==='draw'?'#9ca3af'
+                            :'transparent'
+                }}/>
+              ))}
             </div>
 
             {/* Board */}

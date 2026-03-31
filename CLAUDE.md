@@ -46,10 +46,10 @@ mathplatform-app/
 │   │   ├── math-addition-001/
 │   │   ├── math-addition-002/
 │   │   ├── math-addition-003/
-│   │   └── math-writing-board-001/       ✅ לוח כתיבה — סשן 12
+│   │   └── math-writing-board-001/       ✅ לוח כתיבה
 │   └── api/
 │       ├── sdk/event/route.ts
-│       ├── child/session/route.ts        ✅ תוקן סשן 12 — service role
+│       ├── child/session/route.ts
 │       ├── child-login/route.ts          ✅ כניסת ילד — שם + קוד → session הורה
 │       ├── children/[id]/route.ts        ✅ DELETE — מחיקת ילד + רשומות תלויות
 │       ├── children/[id]/lessons/route.ts
@@ -94,12 +94,12 @@ mathplatform-app/
 □ GameBackButton מוטמע
 □ כפתור "המשך" עם router.back() במסך סיום
 □ רשומה ב-Supabase games עם is_visible = true
-□ שורה נוספה לטבלת "משחקים קיימים" כאן למטה
+□ שורה נוספה ל-docs/GAMES_CATALOG.md
 ```
 
 ---
 
-## כניסת ילד ✅ הושלם סשן 11
+## כניסת ילד
 
 ### זרימה
 1. ילד מכניס שם + קוד 3 ספרות במסך הכניסה (פאנל שמאל)
@@ -119,17 +119,7 @@ mathplatform-app/
 
 ---
 
-## מסך בחירת ילד ✅ הושלם סשן 10
-
-- כפתור "התנתק" — `position: absolute`, פינה שמאל עליונה
-- מחיקת ילד — ✕ מופיע ב-hover על הכרטיס
-- מודל אישור מחיקה — רקע `#3A1E1E`, border אדום עמום
-- מחיקה דרך `DELETE /api/children/[id]` עם `SUPABASE_SECRET_KEY`
-- סדר מחיקה חובה: `child_lessons` → `progress` → `wrong_answers` → `children`
-
----
-
-## מערכת העורות (Themes) ✅ הושלם סשן 9
+## מערכת העורות (Themes)
 
 - `children.theme`: `'default'` / `'magical-forest'` / `'monsters'`
 - `getBgForTheme(theme)` ב-`ChildDashboardClient.tsx` ממפה theme → נתיב תמונה
@@ -178,7 +168,7 @@ mathplatform-app/
 | game_id | text | FK → games(id) |
 | position | integer | סדר במסלול |
 
-### sessions ✅ נוצרה סשן 11
+### sessions
 | עמודה | סוג | הערות |
 |-------|-----|-------|
 | id | uuid | PK |
@@ -224,18 +214,7 @@ MathPlatformSDK.emit('GAME_OVER', { score, maxScore, stars, correctAnswers, tota
 
 ---
 
-## משחקים קיימים
-
-| id | כותרת | כיתה | קושי |
-|----|-------|------|------|
-| math-addition-001 | חיבור פשוט — 1+1 | 1 | 1 |
-| math-addition-002 | חיבור מספרים עד 20 | 1 | 2 |
-| math-addition-003 | חיבור מספרים עד 50 | 1 | 3 |
-| math-writing-board-001 | לוח כתיבה | 1 | 1 |
-| math-fractions-001 | השוואת שברים | ? | ? |
-| math-vertical-addition-001 | חיבור במאונך | 2 | 2 |
-| surprise-coins-001 | גשם מטבעות | 1 | 1 |
-| language-nikud-001 | ניקוד — קמץ ופתח | 1 | 1 |
+## משחקים — ראה `docs/GAMES_CATALOG.md`
 
 ---
 
@@ -257,32 +236,6 @@ s.from('TABLE_NAME').select('*').limit(3).then(r => console.log(JSON.stringify(r
 
 ---
 
-## מערכת ההפתעות
-
-כשהבר מתמלא (completedToday >= 3) — מופיע כרטיס "הפתעות" במקום המשימה הרגילה.
-
-### זרימה
-1. ילד משלים 3 משחקים → בר מתמלא → כרטיס 🎁 מופיע
-2. לוחץ "התחל" → נכנס למשחק הפתעות רנדומלי
-3. GAME_OVER → completedToday מתאפס ל-0 ב-localStorage
-4. חוזר לדשבורד → הבר מתרוקן → משימות רגילות חוזרות
-
-### משחקי הפתעות קיימים
-| id | כותרת |
-|----|-------|
-| surprise-coins-001 | גשם מטבעות |
-
-### הוספת משחק הפתעות חדש
-1. צור משחק עם `topic: 'surprise'`
-2. הוסף את ה-id לרשימה למעלה
-3. בדשבורד — הוסף את ה-id למערך הרנדומלי (עתידי)
-
-### מטבעות
-- משחקי הפתעות: `coinsToAdd = correctAnswers` (מספר המטבעות שנפוצצו)
-- ב-`app/api/sdk/event/route.ts` יש טיפול מיוחד ל-`gameId: 'surprise-coins-001'`
-
----
-
 ## מפת דרכים
 
 | סטטוס | מה |
@@ -299,7 +252,7 @@ s.from('TABLE_NAME').select('*').limit(3).then(r => console.log(JSON.stringify(r
 | ✅ | הצגת מייל + קוד משפחתי במסך בחירת ילד |
 | ✅ | חסימת שמות כפולים ביצירת ילד |
 | ✅ | תיקון מחיקת ילד (sessions FK + SUPABASE_SECRET_KEY) |
-| 🟠 | עיצוב מסך הכניסה המפוצל — לא תואם את הפלטה, להשלים בסשן הבא |
+| 🟠 | עיצוב מסך הכניסה המפוצל — לא תואם את הפלטה |
 | 🟠 | children.theme DEFAULT — `ALTER TABLE children ALTER COLUMN theme SET DEFAULT 'default'` |
 | 🟠 | באג: אחרי הוספת ילד — redirect שגוי לשיעורי הילד הראשון במקום /select-child |
 | 🟠 | באג: בתהליך הוספת ילד אין כפתור חזרה |
