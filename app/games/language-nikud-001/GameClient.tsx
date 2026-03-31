@@ -242,7 +242,7 @@ export default function NikudGameClient(){
   },[])
 
   useEffect(()=>{
-    const computerStartsThisRound=roundNumber%2===0
+    const computerStartsThisRound=roundNumber===2
     if(computerStartsThisRound){
       setPlayerTurn(false)
       setTimeout(()=>doComputerTurn(Array(9).fill(null),0),600)
@@ -264,7 +264,7 @@ export default function NikudGameClient(){
     const boardWinner=checkWinner(boardRef2.current)
     if(boardWinner==='player')setScore(s=>({...s,player:s.player+1}))
     else if(boardWinner==='computer')setScore(s=>({...s,computer:s.computer+1}))
-    setPhase(roundNumber>=5?'gameOver':'roundEnd')
+    setPhase(roundNumber>=3?'gameOver':'roundEnd')
   },[roundNumber])
 
   // ── Do computer turn ─────────────────────────────────────────────────────────
@@ -470,7 +470,7 @@ export default function NikudGameClient(){
     setSelectedCell(null)
     const nextRound=roundNumber+1
     setRoundNumber(nextRound)
-    const compFirst=nextRound%2===0
+    const compFirst=nextRound===2
     setPlayerTurn(!compFirst)
     if(compFirst)setTimeout(()=>doComputerTurn(Array(9).fill(null),0),600)
     setWaitingForAnswer(false)
