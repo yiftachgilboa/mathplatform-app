@@ -385,44 +385,46 @@ export default function NikudGameClient(){
   // ── Voice ────────────────────────────────────────────────────────────────────
   const startListening=useCallback(()=>{
     if(listeningRef.current||pausedRef.current)return
-    navigator.mediaDevices.getUserMedia({audio:true}).then(s=>{
-      const recorder=new MediaRecorder(s)
-      const chunks:BlobPart[]=[]
-      recRef.current=recorder
-      recorder.ondataavailable=e=>chunks.push(e.data)
-      recorder.onstop=async()=>{
-        s.getTracks().forEach(t=>t.stop())
-        listeningRef.current=false
-        setMicStatus('idle')
-        const blob=new Blob(chunks,{type:'audio/webm'})
-        const fd=new FormData()
-        fd.append('audio',blob)
-        try{
-          const res=await fetch('/api/speech-recognition',{method:'POST',body:fd})
-          const {text}=await res.json()
-          if(letterMatches(text,currentLetterRef.current)){
-            handleCorrectRef.current()
-          }else{
-            handleWrongRef.current(normalize(text))
-          }
-        }catch{
-          if(!pausedRef.current)setTimeout(()=>startListeningRef.current(),400)
-        }
+    const SR=(window as any).SpeechRecognition||(window as any).webkitSpeechRecognition
+    if(!SR)return
+    const rec=new SR()
+    rec.lang='he-IL'
+    rec.continuous=false
+    rec.interimResults=true
+    rec.maxAlternatives=10
+    recRef.current=rec
+    rec.onstart=()=>{listeningRef.current=true;setMicStatus('listening')}
+    rec.onresult=(e:any)=>{
+      const alts:string[]=[]
+      for(let i=0;i<e.results.length;i++){
+        const r=e.results[i]
+        for(let j=0;j<r.length;j++)alts.push(r[j].transcript)
       }
-      listeningRef.current=true
-      setMicStatus('listening')
-      recorder.start()
-      setTimeout(()=>{
-        if(recorder.state==='recording')recorder.stop()
-      },3000)
-    }).catch(()=>setMicStatus('idle'))
+      const ok=alts.some(a=>letterMatches(a,currentLetterRef.current))
+      if(ok){
+        listeningRef.current=false
+        handleCorrectRef.current()
+      }else if(e.results[e.results.length-1].isFinal){
+        handleWrongRef.current(normalize(alts[0]||''))
+      }
+    }
+    rec.onerror=(e:any)=>{
+      listeningRef.current=false;setMicStatus('idle')
+      if(e.error==='not-allowed')return
+      if(!pausedRef.current)setTimeout(()=>startListeningRef.current(),400)
+    }
+    rec.onend=()=>{
+      listeningRef.current=false;setMicStatus('idle')
+      if(!pausedRef.current)setTimeout(()=>startListeningRef.current(),200)
+    }
+    try{rec.start()}catch{}
   },[])
   startListeningRef.current=startListening
 
   const stopListening=useCallback(()=>{
     pausedRef.current=true
     listeningRef.current=false
-    if((recRef.current as any)?.state==='recording')(recRef.current as any).stop()
+    try{recRef.current?.abort()}catch{}
     setMicStatus('idle')
   },[])
 
