@@ -171,7 +171,8 @@ function StarDisplay({stars,total=5}:{stars:number;total?:number}){
 
 export default function NikudGameClient(){
   const router = useRouter()
-  const [hintCell] = useState(()=>Math.floor(Math.random()*9))
+  const [hintCell,setHintCell] = useState<number|null>(null)
+  useEffect(()=>{setHintCell(Math.floor(Math.random()*9))},[])
   const [letterVisible, setLetterVisible] = useState(true)
   const [showInstruction, setShowInstruction] = useState(false)
   const [roundNumber, setRoundNumber] = useState(1)
@@ -189,6 +190,7 @@ export default function NikudGameClient(){
   const [micStatus,setMicStatus]=useState<MicStatus>('idle')
   const [shake,setShake]=useState(false)
   const [successAnim,setSuccessAnim]=useState(false) // letter pop
+  const [showSuccessEmoji,setShowSuccessEmoji]=useState(false)
   const [board,setBoard]=useState<CellState[]>(Array(9).fill(null))
   const [selectedCell,setSelectedCell]=useState<number|null>(null)
   const [playerTurn,setPlayerTurn]=useState(true)
@@ -312,6 +314,7 @@ export default function NikudGameClient(){
     setSuccessAnim(true)
     setLetterVisible(false)
     if(letterBgRef.current)burst(letterBgRef.current)
+    setShowSuccessEmoji(true)
 
     const isFirst=!hadWrongRef.current
     const letter=currentLetterRef.current
@@ -346,6 +349,7 @@ export default function NikudGameClient(){
     setTimeout(()=>{
       setSuccessAnim(false)
       setLetterVisible(true)
+      setShowSuccessEmoji(false)
       setWaitingForAnswer(false)
 
       const boardFull=newBoard.every(c=>c!==null)
@@ -572,6 +576,7 @@ export default function NikudGameClient(){
 
         /* player emoji jump on success */
         @keyframes emojiJump{0%,100%{transform:scale(1)}25%{transform:scale(1.22) translateY(-6px)}60%{transform:scale(0.95)}}
+        @keyframes emojiFadeIn{from{opacity:0;transform:translate(-50%,-50%) scale(0.7)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
         .emoji-jump{animation:emojiJump .9s ease}
 
         /* computer emoji gentle bounce */
@@ -719,7 +724,7 @@ export default function NikudGameClient(){
 
                     {/* Selected cell: show letter challenge */}
                     {isSelected&&currentLetter&&(
-                      <div style={{position:'relative',width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',zIndex:10}}>
+                      <div style={{position:'relative',width:'100%',height:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',zIndex:10}}>
                         {/* כפתור השמעה — פינה שמאלית עליונה */}
                         <button
                           onClick={e=>{e.stopPropagation();speakLetter(currentLetter.base)}}
@@ -748,14 +753,17 @@ export default function NikudGameClient(){
                           style={{opacity:letterVisible?1:0,transition:'opacity 0.15s'}}>
                           {currentLetter.char}
                         </span>
-                        <span style={{fontSize:12,color:'rgba(255,255,255,0.6)',marginTop:4,display:'block',textAlign:'center'}}>
-                          אמור 3 פעמים
-                        </span>
+                        {/* אימוג'י הצלחה — מופיע אחרי fade-out של האות */}
+                        {showSuccessEmoji&&(
+                          <span style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-50%)',fontSize:'clamp(32px,9vw,58px)',lineHeight:1,opacity:0,animation:'emojiFadeIn 0.2s ease 0.15s forwards'}}>
+                            {PLAYER_EMOJI}
+                          </span>
+                        )}
                       </div>
                     )}
 
                     {/* Player emoji */}
-                    {cell==='player'&&(
+                    {cell==='player'&&!showSuccessEmoji&&(
                       <span className={`cell-emoji ${playerJumpCell===idx?'emoji-jump':''}`}>
                         {PLAYER_EMOJI}
                       </span>
