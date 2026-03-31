@@ -203,6 +203,7 @@ export default function NikudGameClient(){
   const recRef=useRef<any>(null)
   const listeningRef=useRef(false)
   const pausedRef=useRef(false)
+  const confirmingRef=useRef(false)
   const letterBgRef=useRef<HTMLDivElement>(null)
   const boardRef=useRef<(HTMLDivElement|null)[]>(Array(9).fill(null))
   const gameStartedRef=useRef(false)
@@ -302,6 +303,7 @@ export default function NikudGameClient(){
 
   // ── Handle correct ──────────────────────────────────────────────────────────
   const handleCorrect=useCallback(()=>{
+    confirmingRef.current=true
     pausedRef.current=true
     try{recRef.current?.abort()}catch{}
     listeningRef.current=false
@@ -347,6 +349,7 @@ export default function NikudGameClient(){
       setWaitingForAnswer(false)
 
       const boardFull=newBoard.every(c=>c!==null)
+      confirmingRef.current=false
       if(newAnswered>=ROUND_SIZE||playerWon||boardFull){
         setWinningCells([]);setWinnerSide(null)
         finishRound(newResults)
@@ -411,11 +414,11 @@ export default function NikudGameClient(){
     rec.onerror=(e:any)=>{
       listeningRef.current=false;setMicStatus('idle')
       if(e.error==='not-allowed')return
-      if(!pausedRef.current)setTimeout(()=>startListeningRef.current(),400)
+      if(!pausedRef.current&&!confirmingRef.current)setTimeout(()=>startListeningRef.current(),400)
     }
     rec.onend=()=>{
       listeningRef.current=false;setMicStatus('idle')
-      if(!pausedRef.current)setTimeout(()=>startListeningRef.current(),200)
+      if(!pausedRef.current&&!confirmingRef.current)setTimeout(()=>startListeningRef.current(),200)
     }
     try{rec.start()}catch{}
   },[])
@@ -729,6 +732,7 @@ export default function NikudGameClient(){
                           className={`btn-approve ${approveAnim?'approve-pulse':''}`}
                           onClick={e=>{
                             e.stopPropagation()
+                            confirmingRef.current=true
                             try{recRef.current?.abort()}catch{}
                             listeningRef.current=false
                             pausedRef.current=true
