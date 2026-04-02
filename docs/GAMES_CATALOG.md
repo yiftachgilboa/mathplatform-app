@@ -10,6 +10,7 @@
 | math-vertical-addition-001 | חיבור במאונך | 2 | 2 |
 | surprise-coins-001 | גשם מטבעות | 1 | 1 |
 | language-nikud-001 | ניקוד — קמץ ופתח | 1 | 1 |
+| language-shva-001 | שווא נח — בעט שער! | 1 | 2 |
 
 ---
 
