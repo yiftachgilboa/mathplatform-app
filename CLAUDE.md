@@ -74,8 +74,8 @@ mathplatform-app/
 - בדיקת ownership (parent_id) → redirect ל-`/select-child` אם לא תואם
 - `Math.random()` ב-Server Components גורם ל-hydration error — להעביר ל-`useEffect`
 - Next.js 16: פרמטרי route הם `Promise` — `{ params }: { params: Promise<{ id: string }> }` + `await params`
-- ארט פנימי של משחק (רקע, תמונות) — מיובא עם `import` מ-`assets/` שליד הקוד.
-  לא שומרים ארט של משחקים ב-`public/` ישירות.
+- ארט פנימי של משחק (דמויות, אובייקטים) — שמור ב-`app/games/[game-id]/assets/` ומיובא עם `import`.
+  תמונות רקע של משחקים — שמור ב-`public/art/games/` (לא ב-`public/art/backgrounds/` שמיועד למסכי משתמש).
 - תמונת כרטיסייה של משחק — `thumb-[id].jpg` ב-`public/art/games/`, ערך ב-`bg_image` ב-Supabase. fallback: `bg-default.jpg` דרך `onError` על תגית `<img>`.
 
 ---
@@ -249,6 +249,7 @@ s.from('TABLE_NAME').select('*').limit(3).then(r => console.log(JSON.stringify(r
 | ✅ | כניסת ילד עם שם + קוד משפחה |
 | ✅ | טבלת sessions נוצרה ב-Supabase |
 | ✅ | משחק "לוח כתיבה" — מעגל שלם כניסה→משחק→כוכבים→מטבעות |
+| ✅ | language-shva-001 — משחק שווא נח עם פנדל |
 | ✅ | הצגת מייל + קוד משפחתי במסך בחירת ילד |
 | ✅ | חסימת שמות כפולים ביצירת ילד |
 | ✅ | תיקון מחיקת ילד (sessions FK + SUPABASE_SECRET_KEY) |
