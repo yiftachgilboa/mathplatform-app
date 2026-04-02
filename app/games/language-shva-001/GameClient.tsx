@@ -92,6 +92,11 @@ function playKick() {
   source.start()
 }
 
+function playApplause() {
+  const audio = new Audio('/sounds/applause.mp3')
+  audio.play().catch(() => {})
+}
+
 function speakLetter(char: string) {
   if (!window.speechSynthesis) return
   window.speechSynthesis.cancel()
@@ -314,6 +319,7 @@ export default function GameClient() {
       setBallPos({ x: tx, y: 38.5 })
       launchFireworks()
       setGoalFlash(true)
+      playApplause()
       setTimeout(() => setGoalFlash(false), 3000)
     }, 630)
 
