@@ -12,10 +12,11 @@ export default function GameBackButton() {
         onClick={() => setShowConfirm(true)}
         style={{
           position: 'fixed', top: 16, right: 16, zIndex: 100,
-          width: 44, height: 44, borderRadius: '50%',
-          background: 'white', border: '2px solid #ddd',
-          fontSize: '1.2rem', cursor: 'pointer',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+          width: 36, height: 36, borderRadius: '50%',
+          background: '#111', border: '2px solid #111',
+          color: '#fff', fontSize: 18, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontWeight: 'bold', boxShadow: '2px 2px 0 #555',
         }}
       >
         ✕
@@ -30,9 +31,19 @@ export default function GameBackButton() {
             background: 'white', borderRadius: 16, padding: 32,
             textAlign: 'center', fontFamily: 'Secular One, sans-serif'
           }}>
-            <p style={{ marginBottom: 20, fontSize: '1.1rem' }}>בטוח שרוצה לצאת?</p>
+            <p style={{
+              fontSize: 18, fontWeight: 'bold',
+              color: '#111', marginBottom: 20,
+              textAlign: 'center',
+            }}>
+              בטוח שרוצה לצאת? ההתקדמות לא תישמר
+            </p>
             <button onClick={() => router.back()} style={{ marginLeft: 12, padding: '10px 24px', borderRadius: 8, background: '#e05050', color: 'white', border: 'none', cursor: 'pointer', fontSize: '1rem' }}>יציאה</button>
-            <button onClick={() => setShowConfirm(false)} style={{ padding: '10px 24px', borderRadius: 8, background: '#eee', border: 'none', cursor: 'pointer', fontSize: '1rem' }}>המשך לשחק</button>
+            <button onClick={() => setShowConfirm(false)} style={{
+              padding: '10px 20px', borderRadius: 8,
+              border: '2px solid #111', background: '#fff',
+              color: '#111', fontSize: 16, cursor: 'pointer', fontWeight: 'bold',
+            }}>המשך לשחק</button>
           </div>
         </div>
       )}

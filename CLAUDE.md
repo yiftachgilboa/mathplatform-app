@@ -187,6 +187,28 @@ mathplatform-app/
 תיקיית `/public/art/games/` — תמונות רקע למשחקים
 `bg-default.jpg` — תמונת ברירת מחדל כשאין bg_image למשחק
 
+### story_books
+| עמודה | סוג | הערות |
+|-------|-----|-------|
+| id | text | PK |
+| title | text | |
+| topic | text | |
+| grade | integer | DEFAULT 1 |
+| difficulty | integer | 1-3 |
+| cover_image | text | nullable |
+| is_visible | boolean | DEFAULT true |
+
+### story_pages
+| עמודה | סוג | הערות |
+|-------|-----|-------|
+| id | uuid | PK |
+| book_id | text | FK → story_books |
+| page_number | integer | |
+| text | text | |
+| words | text[] | מילות יעד |
+| image_url | text | nullable |
+| emoji | text | placeholder כשאין תמונה |
+
 ### wrong_answers — קיימת, ריקה
 
 ---
@@ -204,6 +226,21 @@ mathplatform-app/
 
 ---
 
+## SDK — מפתחות localStorage
+
+אלו המפתחות שה-SDK כותב ל-localStorage — חייבים להתאים בדיוק לדשבורד:
+
+| מפתח | פורמט | דוגמה |
+|------|--------|--------|
+| completedToday | `completedToday_${childId}_YYYY-MM-DD` | `completedToday_309c34_2026-04-05` |
+| weekProgress | `weekProgress_${childId}_YYYY-WXX` | `weekProgress_309c34_2026-W14` |
+
+⚠️ אזהרה: אל תשנה פורמטים אלו ב-SDK בלי לעדכן גם את `ChildDashboardClient.tsx`.
+אל תשתמש ב-`new Date().toDateString()` — הפורמט שלו משתנה לפי locale.
+תמיד השתמש ב-`new Date().toISOString().split('T')[0]` לתאריך.
+
+---
+
 ## SDK — סיכום אירועים
 ```js
 MathPlatformSDK.emit('GAME_STARTED', { gameId })
@@ -214,7 +251,18 @@ MathPlatformSDK.emit('GAME_OVER', { score, maxScore, stars, correctAnswers, tota
 
 ---
 
-## משחקים — ראה `docs/GAMES_CATALOG.md`
+## משחקים קיימים
+
+| id | שם | כיתה | קושי |
+|----|-----|------|------|
+| math-addition-001 | חיבור בסיסי | 1 | 1 |
+| math-addition-002 | חיבור עם נשיאה | 1 | 2 |
+| math-addition-003 | חיבור מתקדם | 2 | 3 |
+| math-writing-board-001 | לוח כתיבה | 1 | 1 |
+| language-shva-001 | שווא נח — פנדל | 1 | 1 |
+| language-reading-001 | ספרון — קמץ | 1 | 1 |
+
+ראה גם `docs/GAMES_CATALOG.md`
 
 ---
 
@@ -268,6 +316,7 @@ s.from('TABLE_NAME').select('*').limit(3).then(r => console.log(JSON.stringify(r
 | ✅ | מסלול לימודי — גלילה, בחירת שיעור, הדגשה, כוכבים על עיגולים |
 | ✅ | בר יומי — מתאפס לפי תאריך (`todayKey`), 3 שלבים, כרטיס הפתעה |
 | ✅ | וי ירוק שבועי על ימי השבוע (`weekProgress`) |
+| ✅ | משחק ספרון (language-reading-001) — StorySelector + StoryReader + SDK + Web Speech API |
 | 🛠 | debug shortcut קיים ב-ChildDashboardClient.tsx — פעיל רק ב-development. מפתחות: 1/2/3 = כוכבים, 4 = הפתעה |
 | 🟠 | עיצוב מסך הכניסה המפוצל — לא תואם את הפלטה |
 | 🟠 | children.theme DEFAULT — `ALTER TABLE children ALTER COLUMN theme SET DEFAULT 'default'` |

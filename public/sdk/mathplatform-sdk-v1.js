@@ -19,7 +19,7 @@
       if (!this.childId) return;
 
       if (event === 'GAME_OVER') {
-        const dateKey = 'mp_completed_' + this.childId + '_' + new Date().toDateString();
+        const dateKey = 'completedToday_' + this.childId + '_' + new Date().toISOString().split('T')[0];
         if (this.gameId === 'surprise-coins-001') {
           localStorage.setItem(dateKey, '0');
         } else {
