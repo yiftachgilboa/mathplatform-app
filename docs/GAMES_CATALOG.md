@@ -11,6 +11,7 @@
 | surprise-coins-001 | גשם מטבעות | 1 | 1 |
 | language-nikud-001 | ניקוד — קמץ ופתח | 1 | 1 |
 | language-shva-001 | שווא נח — בעט שער! | 1 | 2 |
+| language-reading-001 | ספרון — קמץ | 1 | 1 |
 
 ---
 

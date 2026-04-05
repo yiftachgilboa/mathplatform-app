@@ -58,9 +58,8 @@ mathplatform-app/
     ├── mascot-croc.png
     ├── mascot-default.png
     ├── sdk/mathplatform-sdk-v1.js
-    └── art/backgrounds/
-        ├── bg-magical-forest.jpg
-        └── bg_monsters.jpg
+    ├── art/backgrounds/               ⚠️ לא בשימוש — קיים כגיבוי בלבד
+    └── art/games/                     ✅ כל תמונות הרקע
 ```
 
 ---
@@ -75,8 +74,8 @@ mathplatform-app/
 - `Math.random()` ב-Server Components גורם ל-hydration error — להעביר ל-`useEffect`
 - Next.js 16: פרמטרי route הם `Promise` — `{ params }: { params: Promise<{ id: string }> }` + `await params`
 - ארט פנימי של משחק (דמויות, אובייקטים) — שמור ב-`app/games/[game-id]/assets/` ומיובא עם `import`.
-  תמונות רקע של משחקים — שמור ב-`public/art/games/` (לא ב-`public/art/backgrounds/` שמיועד למסכי משתמש).
-- רקע מסך משחק — כל משחק מגדיר `bg_image` ב-Supabase שמשמש כרקע למסך המלא בלבד. הכרטיסיות שקופות — אין תמונת thumb לכרטיסייה. fallback: `bg-default.jpg`.
+- כל תמונות הרקע (דשבורד ומשחקים) — שמור ב-`public/art/games/`.
+- רקע מסך דשבורד — נקבע לפי `bg_image` של השיעור הנבחר (`/art/games/[bg_image]`). fallback: `/art/games/bg-magical-forest.jpg`. מעבר: fade 1.2s עם שתי שכבות מונחות. כרטיסיות וכרטיס הפתעה — glassmorphism שקוף.
 
 ---
 
@@ -119,21 +118,6 @@ mathplatform-app/
 
 ---
 
-## מערכת העורות (Themes)
-
-- `children.theme`: `'default'` / `'magical-forest'` / `'monsters'`
-- `getBgForTheme(theme)` ב-`ChildDashboardClient.tsx` ממפה theme → נתיב תמונה
-- glassmorphism: `rgba(0,0,0,0.35)` + `backdrop-filter: blur(0px)`
-- preload כל הרקעים ב-`useEffect` — אין מסך לבן במעבר
-
-### הוספת עור חדש
-1. תמונה ב-`public/art/backgrounds/bg-[name].jpg`
-2. `case '[name]'` ב-`getBgForTheme`
-3. הוסף לmassive preload ב-`useEffect`
-4. הוסף אפשרות ב-`ParentDashboardClient.tsx` (כולל `THEME_LABELS`)
-
----
-
 ## טבלאות Supabase
 
 ### profiles
@@ -149,7 +133,6 @@ mathplatform-app/
 | name | text | |
 | grade | integer | |
 | parent_id | uuid | FK → auth.users |
-| theme | text | DEFAULT 'default' |
 | coins | integer | DEFAULT 0 |
 
 ### progress
@@ -223,6 +206,28 @@ mathplatform-app/
 | child_lessons | ✅ הורה מנהל רק ילדים שלו |
 | wrong_answers | ✅ |
 | sessions | ✅ |
+
+---
+
+## משחקי ספרון — ארכיטקטורה
+
+כל משחק ספרון טוען סיפורים מ-Supabase לפי `topic` (פרמטר ב-`GameClient.tsx`).
+אותו קוד משרת נושאים שונים — רק `TOPIC` משתנה.
+
+### הוספת סיפור חדש
+1. צור תיקייה: `content/stories/[story-id]/`
+2. הוסף `story.json` + תמונות `1.jpg`, `2.jpg`...
+3. הרץ: `npm run sync-stories`
+
+### טבלאות Supabase
+- `story_books` — מטא-דאטה של סיפור
+- `story_pages` — עמודים (text, words[], image_url, emoji)
+- Storage bucket: `stories` (public) — תמונות בנתיב `[book-id]/1.jpg`
+
+### Web Speech API
+- TTS: `speakWord()` — הקראת מילה בעברית (השהייה ראשונה צפויה)
+- STT: `startMic()` — זיהוי קול רציף, מסמן מילים ירוק אוטומטית
+- ⚠️ מפתח localStorage: `completedToday_${childId}_YYYY-MM-DD` — חייב להתאים ל-SDK
 
 ---
 
@@ -319,7 +324,6 @@ s.from('TABLE_NAME').select('*').limit(3).then(r => console.log(JSON.stringify(r
 | ✅ | משחק ספרון (language-reading-001) — StorySelector + StoryReader + SDK + Web Speech API |
 | 🛠 | debug shortcut קיים ב-ChildDashboardClient.tsx — פעיל רק ב-development. מפתחות: 1/2/3 = כוכבים, 4 = הפתעה |
 | 🟠 | עיצוב מסך הכניסה המפוצל — לא תואם את הפלטה |
-| 🟠 | children.theme DEFAULT — `ALTER TABLE children ALTER COLUMN theme SET DEFAULT 'default'` |
 | 🟠 | באג: אחרי הוספת ילד — redirect שגוי לשיעורי הילד הראשון במקום /select-child |
 | 🟠 | באג: בתהליך הוספת ילד אין כפתור חזרה |
 | 🟠 | Google OAuth |

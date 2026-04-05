@@ -38,7 +38,7 @@ function buildStations(games: Game[]): Station[] {
     topic: g.topic,
     icon: g.thumbnail,
     state: 'future' as StationState,
-    bg: g.bg_image ? `/art/games/${g.bg_image}` : `/art/games/bg-default.jpg`,
+    bg: g.bg_image ? `/art/games/${g.bg_image}` : `/art/games/bg-magical-forest.jpg`,
   }))
 }
 
@@ -132,7 +132,9 @@ export default function ChildDashboardClient({ child, games, progress }: { child
   const [isDone, setIsDone] = useState(false)
   const [todayIdx, setTodayIdx] = useState<number | null>(null)
   const [completedToday, setCompletedToday] = useState(0)
-  const [cardBg, setCardBg] = useState<string | null>(null)
+  const [bottomBg, setBottomBg] = useState<string>('/art/games/bg-magical-forest.jpg')
+  const [topBg, setTopBg] = useState<string | null>(null)
+  const [topVisible, setTopVisible] = useState(false)
   const [starsMap, setStarsMap] = useState<Record<string, number>>(starsForGame)
   const [completedDays, setCompletedDays] = useState<number[]>([])
 
@@ -158,11 +160,10 @@ export default function ChildDashboardClient({ child, games, progress }: { child
 
   useEffect(() => {
     setTodayIdx(new Date().getDay())
-    const src = stations[initialActive]?.bg || null
-    if (!src) return
+    const src = stations[initialActive]?.bg || '/art/games/bg-magical-forest.jpg'
     const img = new window.Image()
-    img.onload = () => setCardBg(src)
-    img.onerror = () => setCardBg('/art/games/bg-default.jpg')
+    img.onload = () => setBottomBg(src)
+    img.onerror = () => setBottomBg('/art/games/bg-magical-forest.jpg')
     img.src = src
   }, [])
 
@@ -177,18 +178,24 @@ export default function ChildDashboardClient({ child, games, progress }: { child
   }, [child.id])
 
   useEffect(() => {
-    const themes = [
-      '/art/backgrounds/bg-magical-forest.jpg',
-      '/art/backgrounds/bg_monsters.jpg',
-    ]
-    themes.forEach(src => {
-      const img = new window.Image()
-      img.src = src
-    })
-  }, [])
+    if (completedToday < 3) return
+    const src = '/art/games/treasure1.jpg'
+    const img = new window.Image()
+    const onReady = () => {
+      setTopBg(src)
+      setTopVisible(true)
+      setTimeout(() => {
+        setBottomBg(src)
+        setTopVisible(false)
+      }, 1200)
+    }
+    img.onload = onReady
+    img.onerror = onReady
+    img.src = src
+  }, [completedToday])
 
   useEffect(() => {
-    stations.slice(selectedIdx + 1, selectedIdx + 3).forEach(s => {
+    stations.slice(selectedIdx, selectedIdx + 3).forEach(s => {
       if (s.bg) {
         const img = new window.Image()
         img.src = s.bg
@@ -273,15 +280,19 @@ export default function ChildDashboardClient({ child, games, progress }: { child
   function selectStation(idx: number) {
     setSelectedIdx(idx)
     setIsDone(false)
-    setCardBg(null)
-    setTimeout(() => {
-      const src = stations[idx]?.bg || null
-      if (!src) return
-      const img = new window.Image()
-      img.onload = () => setCardBg(src)
-      img.onerror = () => setCardBg('/art/games/bg-default.jpg')
-      img.src = src
-    }, 100)
+    const src = stations[idx]?.bg || '/art/games/bg-magical-forest.jpg'
+    const img = new window.Image()
+    const onReady = (finalSrc: string) => {
+      setTopBg(finalSrc)
+      setTopVisible(true)
+      setTimeout(() => {
+        setBottomBg(finalSrc)
+        setTopVisible(false)
+      }, 1200)
+    }
+    img.onload = () => onReady(src)
+    img.onerror = () => onReady('/art/games/bg-magical-forest.jpg')
+    img.src = src
   }
 
   function nodeState(idx: number): StationState {
@@ -292,10 +303,6 @@ export default function ChildDashboardClient({ child, games, progress }: { child
   const selected = stations[selectedIdx]
   const activeGradient = GRADIENTS[selectedIdx % GRADIENTS.length]
   const fillPct   = isDone ? 100 : 62
-  const bgUrl = getBgForTheme(child.theme)
-  const screenStyle = bgUrl
-    ? { background: `url(${bgUrl}) center/cover no-repeat` }
-    : {}
   const [titleLine1, titleLine2] = selected ? splitTitle(selected.title) : ['', '']
 
   return (
@@ -332,8 +339,6 @@ export default function ChildDashboardClient({ child, games, progress }: { child
           fontFamily: "var(--font-secular, 'Secular One', sans-serif)",
           width: '100%',
           height: '100vh',
-          background: 'linear-gradient(180deg, #1F4A38 0%, #1A3C2F 100%)',
-          ...screenStyle,
           display: 'flex',
           flexDirection: 'column',
           position: 'relative',
@@ -342,6 +347,21 @@ export default function ChildDashboardClient({ child, games, progress }: { child
           gap: '0',
         }}
       >
+        {/* BG layer — bottom (current) */}
+        <div aria-hidden style={{
+          position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none',
+          backgroundImage: `url(${bottomBg})`,
+          backgroundSize: 'cover', backgroundPosition: 'center',
+        }} />
+        {/* BG layer — top (incoming, fades in) */}
+        <div aria-hidden style={{
+          position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none',
+          backgroundImage: topBg ? `url(${topBg})` : 'none',
+          backgroundSize: 'cover', backgroundPosition: 'center',
+          opacity: topVisible ? 1 : 0,
+          transition: 'opacity 1.2s ease',
+        }} />
+
         {/* Dot-grid overlay */}
         <div aria-hidden style={{
           position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0,
@@ -596,22 +616,22 @@ export default function ChildDashboardClient({ child, games, progress }: { child
 
             <div style={{
               width: '64%', margin: '0 auto', flex: 1, minHeight: 0,
-              background: 'rgba(0,0,0,0)',
-              border: 'none',
-              boxShadow: 'none',
+              background: completedToday >= 3 ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0)',
+              border: completedToday >= 3 ? '1.5px solid rgba(255,255,255,0.2)' : 'none',
+              boxShadow: completedToday >= 3 ? '0 8px 32px rgba(0,0,0,0.3)' : 'none',
               borderRadius: '40px',
               padding: '20px 24px',
               position: 'relative', overflow: 'hidden',
-              backdropFilter: 'none',
-              WebkitBackdropFilter: 'none',
+              backdropFilter: completedToday >= 3 ? 'blur(12px)' : 'none',
+              WebkitBackdropFilter: completedToday >= 3 ? 'blur(12px)' : 'none',
               display: 'flex', flexDirection: 'column',
-              transition: 'background 0.6s ease',
+              transition: 'background 0.6s ease, backdrop-filter 0.6s ease',
             }}>
 
               {/* Background image */}
               <div style={{
                 position: 'absolute', inset: 0, borderRadius: 38,
-                backgroundImage: cardBg ? `url(${cardBg})` : 'none',
+                backgroundImage: bottomBg ? `url(${bottomBg})` : 'none',
                 backgroundSize: 'cover', backgroundPosition: 'center',
                 opacity: 0,
                 transition: 'opacity 0.5s ease',
@@ -634,16 +654,7 @@ export default function ChildDashboardClient({ child, games, progress }: { child
               {completedToday >= 3 ? (
                 /* ── Surprise card ── */
                 <>
-                  {/* Treasure background */}
-                  <div style={{
-                    position: 'absolute', inset: 0, borderRadius: 38,
-                    backgroundImage: 'url(/art/backgrounds/treasure1.jpg)',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    zIndex: 1,
-                  }} />
-
-                  {/* Content — background image only, no overlay text */}
+                  {/* Content — screen background handles the image */}
                   <div style={{ flex: 1, position: 'relative', zIndex: 2 }} />
 
                   {/* Start button */}
