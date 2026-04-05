@@ -51,14 +51,24 @@ function getBgForTheme(theme: string | null): string {
   }
 }
 
-// Deterministic spark data for a connector at index ci
-function sparksFor(ci: number) {
-  return Array.from({ length: 3 }, (_, si) => ({
-    delay: `${((ci * 3 + si) * 0.47) % 2.5}s`,
-    dur:   `${1.5 + ((ci * 3 + si) * 0.23) % 1.5}s`,
-    size:  `${8 + ((ci * 3 + si) * 7) % 5}px`,
-  }))
-}
+const GRADIENTS = [
+  'linear-gradient(135deg, #43e97b, #38f9d7)',
+  'linear-gradient(135deg, #f7971e, #ffd200)',
+  'linear-gradient(135deg, #f093fb, #f5576c)',
+  'linear-gradient(135deg, #4facfe, #00f2fe)',
+  'linear-gradient(135deg, #a18cd1, #fbc2eb)',
+  'linear-gradient(135deg, #fd7043, #ff8a65)',
+]
+
+const GLOW_COLORS = [
+  'rgba(67,233,123,0.6)',
+  'rgba(247,151,30,0.6)',
+  'rgba(240,147,251,0.6)',
+  'rgba(79,172,254,0.6)',
+  'rgba(67,233,123,0.6)',
+  'rgba(247,151,30,0.6)',
+]
+
 
 // Deterministic star data
 const STARS = Array.from({ length: 40 }, (_, i) => ({
@@ -226,6 +236,11 @@ export default function ChildDashboardClient({ child, games, progress }: { child
         setCompletedToday(0)
         return
       }
+      if (e.key === '0') {
+        const station = stations[selectedIdx]
+        if (station) setStarsMap(prev => ({ ...prev, [station.id]: 0 }))
+        return
+      }
       const stars = e.key === '1' ? 1 : e.key === '2' ? 2 : e.key === '3' ? 3 : null
       if (stars === null) return
       const gameId = stations[selectedIdx]?.id
@@ -255,6 +270,7 @@ export default function ChildDashboardClient({ child, games, progress }: { child
   }
 
   const selected = stations[selectedIdx]
+  const activeGradient = GRADIENTS[selectedIdx % GRADIENTS.length]
   const fillPct   = isDone ? 100 : 62
   const bgUrl = getBgForTheme(child.theme)
   const screenStyle = bgUrl
@@ -268,8 +284,8 @@ export default function ChildDashboardClient({ child, games, progress }: { child
         @keyframes tw     { 0%,100%{opacity:0}        50%{opacity:0.5} }
         @keyframes scTw   { 0%,100%{opacity:0;transform:scale(0.7)} 50%{opacity:0.85;transform:scale(1.2)} }
         @keyframes pulse  {
-          0%,100%{box-shadow:0 0 14px rgba(255,237,221,0.3)}
-          50%    {box-shadow:0 0 28px rgba(255,237,221,0.6), 0 0 50px rgba(190,166,148,0.35)}
+          0%,100%{box-shadow:0 0 16px 4px var(--glow-color, rgba(255,255,255,0.4))}
+          50%    {box-shadow:0 0 32px 10px var(--glow-color, rgba(255,255,255,0.6))}
         }
         @keyframes spk    { 0%,100%{opacity:0.4;transform:scale(0.88)} 50%{opacity:1;transform:scale(1.2)} }
         @keyframes spkDeco{ 0%,100%{opacity:0.4;transform:scale(0.8) rotate(-10deg)} 50%{opacity:1;transform:scale(1.2) rotate(10deg)} }
@@ -277,15 +293,13 @@ export default function ChildDashboardClient({ child, games, progress }: { child
         @keyframes sparkle { 0%,100%{opacity:0;transform:scale(0.5)} 50%{opacity:1;transform:scale(1.2)} }
         @keyframes giftBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
         .sdot       { position:absolute; background:white; border-radius:50%; opacity:0; animation:tw ease-in-out infinite; pointer-events:none; }
-        .sc         { opacity:0; color:rgba(182,212,158,0.75); animation:scTw ease-in-out infinite; }
+
         .track-scroll { -webkit-overflow-scrolling:touch; }
         .track-scroll::-webkit-scrollbar { width:4px; }
         .track-scroll::-webkit-scrollbar-track { background:transparent; }
         .track-scroll::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.18); border-radius:4px; }
         .track-scroll::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,0.32); }
-        .snode-done   { background:rgba(99,177,133,0.22);  border:2px solid #63B185;                color:#B6D49E; }
-        .snode-active { background:rgba(255,237,221,0.18); border:2px solid #FFEDDD;                color:white;  animation:pulse 2.5s ease-in-out infinite; }
-        .snode-future { background:rgba(255,255,255,0.05); border:2px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.3); cursor:default; }
+        .snode-active { }
         .play-btn:hover  { transform:translateY(-2px); }
         .play-btn:active { transform:scale(0.97); }
         .replay-btn:hover { background:rgba(255,255,255,0.14) !important; color:white !important; }
@@ -352,39 +366,49 @@ export default function ChildDashboardClient({ child, games, progress }: { child
               {child.coins.toLocaleString('he-IL')}
             </span>
           </div>
+
+          <button
+            onClick={() => router.push(`/parent/dashboard?childId=${child.id}`)}
+            style={{
+              background: 'rgba(255,255,255,0.15)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255,255,255,0.25)',
+              borderRadius: '12px',
+              padding: '8px 14px',
+              color: 'white',
+              fontWeight: 700,
+              fontSize: '13px',
+              fontFamily: "var(--font-secular, 'Secular One', sans-serif)",
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              flexShrink: 0,
+              height: '48px',
+            }}
+          >⚙️ בחירת נושאים</button>
         </div>
 
         {/* ── Main area ── */}
         <div style={{
           flex: 1, display: 'flex', gap: '12px',
-          overflow: 'hidden', position: 'relative', zIndex: 2, minHeight: 0,
+          overflow: 'visible', position: 'relative', zIndex: 2, minHeight: 0,
         }}>
 
           {/* ── Track panel ── */}
           <div style={{
-            width: '110px', flexShrink: 0,
+            width: '185px', flexShrink: 0,
             display: 'flex', flexDirection: 'column', gap: '8px',
-            background: 'rgba(0,0,0,0.75)',
-            backdropFilter: 'blur(0px)',
-            WebkitBackdropFilter: 'blur(0px)',
-            border: '1px solid rgba(255,255,255,0.15)',
-            borderRadius: '20px',
-            padding: '8px',
+            background: 'rgba(255,255,255,0.12)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            borderRadius: '24px',
+            border: '2px solid rgba(255,255,255,0.25)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+            padding: '12px 15px',
+            overflow: 'hidden',
           }}>
-            <button style={{
-              width: '100%', padding: '12px 8px', borderRadius: '16px',
-              background: 'linear-gradient(135deg, #283E30 0%, #5F8367 100%)',
-              border: '1.5px solid rgba(255,255,255,0.22)',
-              color: 'white', fontSize: '14px',
-              fontFamily: "var(--font-secular, 'Secular One', sans-serif)",
-              cursor: 'pointer', textAlign: 'center',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2)',
-              lineHeight: 1.5, flexShrink: 0,
-            }}
-            onClick={() => router.push(`/parent/dashboard?childId=${child.id}`)}>
-              בחירת נושאי לימוד
-            </button>
-
             <div
               className="track-scroll"
               style={{
@@ -392,58 +416,79 @@ export default function ChildDashboardClient({ child, games, progress }: { child
                 scrollbarWidth: 'thin',
                 scrollbarColor: 'rgba(255,255,255,0.18) transparent',
                 touchAction: 'pan-y',
-                padding: '10px 0 16px',
+                padding: '10px 12px 16px',
                 position: 'relative', minHeight: 0,
                 display: 'flex', flexDirection: 'column', alignItems: 'center',
               }}
             >
               {stations.map((station, i) => {
                 const state = nodeState(i)
+                const hasDone = (starsMap[station.id] ?? 0) >= 1
+                const visualState: StationState = state === 'active' ? 'active' : hasDone ? 'done' : 'future'
                 return (
-                  <div key={station.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div key={station.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '28px' }}>
                     <div
-                      className={`snode-${state}`}
+                      className={state === 'active' ? 'snode-active' : undefined}
                       onClick={() => selectStation(i)}
                       style={{
-                        width: '64px', height: '64px', borderRadius: '50%',
+                        width: '100%', maxWidth: state === 'active' ? '175px' : '155px',
+                        minHeight: state === 'active' ? '80px' : '68px',
+                        borderRadius: '18px',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        flexDirection: 'column', gap: '2px',
-                        fontSize: '22px', cursor: 'pointer',
-                        transition: 'all 0.2s', position: 'relative',
-                      }}
+                        cursor: visualState === 'future' ? 'default' : 'pointer',
+                        transition: 'all 0.3s ease', position: 'relative',
+                        overflow: 'visible',
+                        opacity: visualState === 'future' ? 0.5 : visualState === 'done' ? 0.7 : 1,
+                        background: visualState === 'future'
+                          ? 'rgba(255,255,255,0.08)'
+                          : GRADIENTS[i % GRADIENTS.length],
+                        border: 'none',
+                        color: visualState === 'future' ? 'rgba(255,255,255,0.5)' : 'white',
+                        boxShadow: visualState === 'done' ? '0 4px 14px rgba(0,0,0,0.2)' : 'none',
+                        animation: state === 'active' ? 'pulse 2.5s ease-in-out infinite' : 'none',
+                        '--glow-color': GLOW_COLORS[i % GLOW_COLORS.length],
+                      } as React.CSSProperties}
                     >
-                      <span style={{ fontSize: '9px', color: 'inherit', textAlign: 'center', lineHeight: 1.2, padding: '0 4px', wordBreak: 'break-word' }}>
-                        {station.title}
-                      </span>
-                      {station.state === 'done' && (
+                      {state === 'active' && (
+                        <div style={{
+                          position: 'absolute',
+                          left: '-16px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          fontSize: '14px',
+                          filter: 'drop-shadow(0 0 4px rgba(255,210,0,0.8))',
+                        }}>▶</div>
+                      )}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                         <span style={{
-                          position: 'absolute', top: '-3px', right: '-3px',
-                          width: '18px', height: '18px', background: '#63B185',
-                          borderRadius: '50%', fontSize: '10px',
+                          fontSize: state === 'active' ? '46px' : '42px', lineHeight: 1,
+                          position: 'relative', top: '-22px', marginBottom: '-14px',
+                          filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))',
+                          display: 'block',
+                        }}>{station.icon || (station.id.startsWith('math') ? '🔢' : station.id.startsWith('language') ? '📖' : '🎮')}</span>
+                        <span style={{ fontSize: state === 'active' ? '14px' : '12px', fontWeight: 800, textAlign: 'center', lineHeight: 1.2, padding: '0 6px', textShadow: '0 1px 3px rgba(0,0,0,0.3)' }}>
+                          {station.title}
+                        </span>
+                      </div>
+                      {(starsMap[station.id] ?? 0) >= 3 && (
+                        <span style={{
+                          position: 'absolute', top: '-6px', right: '-6px',
+                          width: '22px', height: '22px',
+                          background: 'linear-gradient(135deg,#f6d365,#fda085)',
+                          borderRadius: '50%', fontSize: '12px',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: 'white', pointerEvents: 'none',
+                          color: 'white', fontWeight: 'bold', pointerEvents: 'none',
+                          boxShadow: '0 2px 6px rgba(246,211,101,0.6)',
                         }}>✓</span>
                       )}
                     </div>
-                    {/* Stars row */}
-                    <div style={{ display: 'flex', gap: '1px', marginTop: '3px', height: '14px', alignItems: 'center' }}>
-                      {[1, 2, 3].map(n => {
-                        const filled = (starsMap[station.id] ?? 0) >= n
-                        return (
-                          <span key={n} style={{ fontSize: '10px', color: filled ? '#FFD700' : 'rgba(255,255,255,0.2)', lineHeight: 1 }}>
-                            {filled ? '⭐' : '☆'}
-                          </span>
-                        )
-                      })}
-                    </div>
-                    {i < stations.length - 1 && (
-                      <div style={{
-                        display: 'flex', flexDirection: 'column',
-                        alignItems: 'center', height: '44px', justifyContent: 'space-evenly',
-                      }}>
-                        {sparksFor(i).map((spark, j) => (
-                          <span key={j} className="sc" style={{ animationDelay: spark.delay, animationDuration: spark.dur, fontSize: spark.size }}>✦</span>
-                        ))}
+                    {/* Stars row — only when earned */}
+                    {(starsMap[station.id] ?? 0) > 0 && (
+                      <div style={{ display: 'flex', gap: '3px', marginTop: '6px' }}>
+                        {[1, 2, 3].map(n => (starsMap[station.id] ?? 0) >= n
+                          ? <span key={n} style={{ fontSize: '14px', color: '#FFD700', lineHeight: 1 }}>⭐</span>
+                          : null
+                        )}
                       </div>
                     )}
                   </div>
@@ -629,12 +674,12 @@ export default function ChildDashboardClient({ child, games, progress }: { child
                         position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1,
                         width: '58%', margin: '0 auto', height: '72px',
                         borderRadius: '39px', border: 'none', cursor: 'pointer', overflow: 'hidden',
-                        background: 'linear-gradient(135deg, #7CFF9F 0%, #40c080 40%, #FF9F7C 100%)',
-                        boxShadow: '0 4px 18px rgba(124,255,159,0.35), 0 8px 24px rgba(0,0,0,0.2)',
+                        background: activeGradient,
+                        boxShadow: `0 4px 18px ${GLOW_COLORS[selectedIdx % GLOW_COLORS.length]}, 0 8px 24px rgba(0,0,0,0.2)`,
                         fontFamily: "var(--font-secular, 'Secular One', sans-serif)",
                         fontSize: '30px', color: 'white', flexShrink: 0,
                         textShadow: '0 1px 8px rgba(0,0,0,0.3)', letterSpacing: '0.5px',
-                        transition: 'transform 0.2s',
+                        transition: 'transform 0.2s, background 0.4s ease, box-shadow 0.4s ease',
                       }}
                     >
                       {completedToday === 0 ? 'התחל' : 'ממשיכים'}
