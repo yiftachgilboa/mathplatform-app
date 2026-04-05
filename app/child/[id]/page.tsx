@@ -72,5 +72,15 @@ export default async function ChildDashboardPage({
     games = gradeGames ?? []
   }
 
-  return <ChildDashboardClient child={child} games={games} />
+  // Fetch progress using service role (works for both parent and child sessions)
+  const serviceClient = createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SECRET_KEY!
+  )
+  const { data: progressData } = await serviceClient
+    .from('progress')
+    .select('game_id, stars')
+    .eq('child_id', id)
+
+  return <ChildDashboardClient child={child} games={games} progress={progressData ?? []} />
 }

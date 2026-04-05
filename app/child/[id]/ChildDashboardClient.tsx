@@ -32,12 +32,12 @@ type Station = {
 }
 
 function buildStations(games: Game[]): Station[] {
-  return games.map((g, i) => ({
+  return games.map((g) => ({
     id: g.id,
     title: g.title,
     topic: g.topic,
     icon: g.thumbnail,
-    state: i === 0 ? 'active' : 'future',
+    state: 'future' as StationState,
     bg: g.bg_image ? `/art/games/${g.bg_image}` : `/art/games/bg-default.jpg`,
   }))
 }
@@ -90,15 +90,41 @@ const GRADE_LABELS: Record<number, string> = {
   4: 'כיתה ד׳', 5: 'כיתה ה׳', 6: 'כיתה ו׳',
 }
 
-export default function ChildDashboardClient({ child, games }: { child: Child; games: Game[] }) {
+type ProgressEntry = { game_id: string; stars: number }
+
+function todayKey(childId: string) {
+  const d = new Date()
+  const yyyy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `completedToday_${childId}_${yyyy}-${mm}-${dd}`
+}
+
+function weekKey(childId: string) {
+  const d = new Date()
+  // ISO week number
+  const jan1 = new Date(d.getFullYear(), 0, 1)
+  const week = Math.ceil(((d.getTime() - jan1.getTime()) / 86400000 + jan1.getDay() + 1) / 7)
+  return `weekProgress_${childId}_${d.getFullYear()}-W${String(week).padStart(2, '0')}`
+}
+
+function readWeekDays(childId: string): number[] {
+  try { return JSON.parse(localStorage.getItem(weekKey(childId)) || '[]') } catch { return [] }
+}
+
+export default function ChildDashboardClient({ child, games, progress }: { child: Child; games: Game[]; progress: ProgressEntry[] }) {
   const router = useRouter()
   const stations = buildStations(games)
-  const initialActive = Math.max(stations.findIndex(s => s.state === 'active'), 0)
+  const starsForGame = Object.fromEntries(progress.map(p => [p.game_id, p.stars]))
+  const firstIncomplete = stations.findIndex(s => (starsForGame[s.id] ?? 0) < 3)
+  const initialActive = firstIncomplete === -1 ? Math.max(stations.length - 1, 0) : firstIncomplete
   const [selectedIdx, setSelectedIdx] = useState(initialActive)
   const [isDone, setIsDone] = useState(false)
   const [todayIdx, setTodayIdx] = useState<number | null>(null)
   const [completedToday, setCompletedToday] = useState(0)
   const [cardBg, setCardBg] = useState<string | null>(null)
+  const [starsMap, setStarsMap] = useState<Record<string, number>>(starsForGame)
+  const [completedDays, setCompletedDays] = useState<number[]>([])
 
   useEffect(() => {
     setTodayIdx(new Date().getDay())
@@ -111,9 +137,10 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
   }, [])
 
   useEffect(() => {
-    const dateKey = `mp_completed_${child.id}_${new Date().toDateString()}`
+    const dateKey = todayKey(child.id)
     const readCount = () => setCompletedToday(Math.min(parseInt(localStorage.getItem(dateKey) || '0'), 3))
     readCount()
+    setCompletedDays(readWeekDays(child.id))
     const onVisible = () => { if (document.visibilityState === 'visible') readCount() }
     document.addEventListener('visibilitychange', onVisible)
     return () => document.removeEventListener('visibilitychange', onVisible)
@@ -130,8 +157,85 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
     })
   }, [])
 
+  useEffect(() => {
+    stations.slice(selectedIdx + 1, selectedIdx + 3).forEach(s => {
+      if (s.bg) {
+        const img = new window.Image()
+        img.src = s.bg
+      }
+    })
+  }, [selectedIdx])
+
+  function handleGameOver(gameId: string, stars: number) {
+    // Update Supabase progress + coins
+    fetch('/api/sdk/event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event: 'GAME_OVER',
+        childId: child.id,
+        gameId,
+        data: { stars, score: stars * 10, correctAnswers: stars * 3, totalQuestions: 9 },
+        timestamp: new Date().toISOString(),
+      }),
+    }).catch(() => {})
+    // Update local stars state (always)
+    setStarsMap(prev => ({ ...prev, [gameId]: stars }))
+    // Auto-advance only on 3 stars
+    if (stars === 3) {
+      const updated = { ...starsMap, [gameId]: stars }
+      const nextIdx = stations.findIndex(s => (updated[s.id] ?? 0) < 3)
+      const target = nextIdx === -1 ? stations.length - 1 : nextIdx
+      selectStation(target)
+    }
+    // Update daily progress bar
+    const dateKey = todayKey(child.id)
+    const newCount = Math.min((parseInt(localStorage.getItem(dateKey) || '0')) + 1, 3)
+    localStorage.setItem(dateKey, String(newCount))
+    setCompletedToday(newCount)
+    if (newCount >= 3) {
+      const day = new Date().getDay()
+      const days = readWeekDays(child.id)
+      if (!days.includes(day)) {
+        const updated = [...days, day]
+        localStorage.setItem(weekKey(child.id), JSON.stringify(updated))
+        setCompletedDays(updated)
+      }
+    }
+  }
+
+  // Debug shortcut — development only
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === '4') {
+        // Simulate surprise game GAME_OVER + reset daily bar
+        fetch('/api/sdk/event', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: 'GAME_OVER',
+            childId: child.id,
+            gameId: 'surprise-coins-001',
+            data: { stars: 3, score: 50, correctAnswers: 5, totalQuestions: 5 },
+            timestamp: new Date().toISOString(),
+          }),
+        }).catch(() => {})
+        const dateKey = todayKey(child.id)
+        localStorage.setItem(dateKey, '0')
+        setCompletedToday(0)
+        return
+      }
+      const stars = e.key === '1' ? 1 : e.key === '2' ? 2 : e.key === '3' ? 3 : null
+      if (stars === null) return
+      const gameId = stations[selectedIdx]?.id
+      if (gameId) handleGameOver(gameId, stars)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [selectedIdx, child.id, completedToday])
+
   function selectStation(idx: number) {
-    if (stations[idx].state === 'future') return
     setSelectedIdx(idx)
     setIsDone(false)
     setCardBg(null)
@@ -174,6 +278,11 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
         @keyframes giftBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
         .sdot       { position:absolute; background:white; border-radius:50%; opacity:0; animation:tw ease-in-out infinite; pointer-events:none; }
         .sc         { opacity:0; color:rgba(182,212,158,0.75); animation:scTw ease-in-out infinite; }
+        .track-scroll { -webkit-overflow-scrolling:touch; }
+        .track-scroll::-webkit-scrollbar { width:4px; }
+        .track-scroll::-webkit-scrollbar-track { background:transparent; }
+        .track-scroll::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.18); border-radius:4px; }
+        .track-scroll::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,0.32); }
         .snode-done   { background:rgba(99,177,133,0.22);  border:2px solid #63B185;                color:#B6D49E; }
         .snode-active { background:rgba(255,237,221,0.18); border:2px solid #FFEDDD;                color:white;  animation:pulse 2.5s ease-in-out infinite; }
         .snode-future { background:rgba(255,255,255,0.05); border:2px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.3); cursor:default; }
@@ -276,12 +385,18 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
               בחירת נושאי לימוד
             </button>
 
-            <div style={{
-              flex: 1, overflowY: 'auto', overflowX: 'hidden',
-              scrollbarWidth: 'none', padding: '10px 0 16px',
-              position: 'relative', minHeight: 0,
-              display: 'flex', flexDirection: 'column', alignItems: 'center',
-            }}>
+            <div
+              className="track-scroll"
+              style={{
+                flex: 1, overflowY: 'auto', overflowX: 'hidden',
+                scrollbarWidth: 'thin',
+                scrollbarColor: 'rgba(255,255,255,0.18) transparent',
+                touchAction: 'pan-y',
+                padding: '10px 0 16px',
+                position: 'relative', minHeight: 0,
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+              }}
+            >
               {stations.map((station, i) => {
                 const state = nodeState(i)
                 return (
@@ -293,7 +408,7 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
                         width: '64px', height: '64px', borderRadius: '50%',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         flexDirection: 'column', gap: '2px',
-                        fontSize: '22px', cursor: state === 'future' ? 'default' : 'pointer',
+                        fontSize: '22px', cursor: 'pointer',
                         transition: 'all 0.2s', position: 'relative',
                       }}
                     >
@@ -309,6 +424,17 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
                           color: 'white', pointerEvents: 'none',
                         }}>✓</span>
                       )}
+                    </div>
+                    {/* Stars row */}
+                    <div style={{ display: 'flex', gap: '1px', marginTop: '3px', height: '14px', alignItems: 'center' }}>
+                      {[1, 2, 3].map(n => {
+                        const filled = (starsMap[station.id] ?? 0) >= n
+                        return (
+                          <span key={n} style={{ fontSize: '10px', color: filled ? '#FFD700' : 'rgba(255,255,255,0.2)', lineHeight: 1 }}>
+                            {filled ? '⭐' : '☆'}
+                          </span>
+                        )
+                      })}
                     </div>
                     {i < stations.length - 1 && (
                       <div style={{
@@ -560,14 +686,16 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
           }}>
             {["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"].map((label, i) => {
               const isToday = todayIdx === i
+              const isDone = completedDays.includes(i)
               return (
                 <div
                   key={i}
                   style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    padding: '8px 4px', cursor: 'pointer', borderRadius: '26px', flex: 1,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    padding: '6px 4px', cursor: 'pointer', borderRadius: '26px', flex: 1,
                     background: isToday ? 'rgba(60,120,90,0.85)' : 'transparent',
                     border: isToday ? '1.5px solid rgba(124,255,159,0.5)' : '1.5px solid transparent',
+                    gap: '2px',
                   }}
                 >
                   <span style={{
@@ -575,15 +703,26 @@ export default function ChildDashboardClient({ child, games }: { child: Child; g
                     color: isToday ? '#7CFF9F' : 'rgba(255,255,255,0.75)',
                     fontWeight: 700,
                     whiteSpace: 'nowrap',
+                    lineHeight: 1,
                   }}>
                     {label}
                   </span>
+                  {isDone && (
+                    <span style={{ fontSize: '12px', color: '#7CFF9F', lineHeight: 1 }}>✓</span>
+                  )}
                 </div>
               )
             })}
           </div>
         </div>
 
+        {process.env.NODE_ENV === 'development' && (
+          <div style={{
+            position: 'absolute', bottom: 6, left: 10, zIndex: 999,
+            fontSize: '10px', color: 'rgba(255,255,255,0.25)',
+            pointerEvents: 'none', userSelect: 'none',
+          }}>🛠 1/2/3/4</div>
+        )}
       </div>
     </>
   )

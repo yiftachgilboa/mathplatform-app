@@ -236,6 +236,18 @@ s.from('TABLE_NAME').select('*').limit(3).then(r => console.log(JSON.stringify(r
 
 ---
 
+## מסלול לימודי — התנהגות
+
+- **בטעינה** — נבחר אוטומטית השיעור הראשון שאין לו 3 כוכבים ב-`progress`. אם הכל הושלם — האחרון ברשימה.
+- **אחרי 3 כוכבים** — מעבר אוטומטי לשיעור הבא (אותה לוגיקת `firstIncomplete`).
+- **ציון** — תמיד מוחלף בציון האחרון, גם אם נמוך יותר (אין `Math.max`).
+- **Preload** — בכל שינוי `selectedIdx`, נטענות מראש תמונות הרקע של 2 השיעורים הבאים.
+- **`completedToday`** — מפתח localStorage: `completedToday_${childId}_YYYY-MM-DD`. מתאפס אוטומטית כל יום. cap=3.
+- **`weekProgress`** — מפתח localStorage: `weekProgress_${childId}_YYYY-WXX`. מערך ימים שהושלמו (0=ראשון). מתאפס כל שבוע.
+- **`progress` prop** — נשלף ב-`page.tsx` עם service role ומועבר ל-`ChildDashboardClient`. מאתחל גם את `starsMap`.
+
+---
+
 ## מפת דרכים
 
 | סטטוס | מה |
@@ -253,6 +265,10 @@ s.from('TABLE_NAME').select('*').limit(3).then(r => console.log(JSON.stringify(r
 | ✅ | הצגת מייל + קוד משפחתי במסך בחירת ילד |
 | ✅ | חסימת שמות כפולים ביצירת ילד |
 | ✅ | תיקון מחיקת ילד (sessions FK + SUPABASE_SECRET_KEY) |
+| ✅ | מסלול לימודי — גלילה, בחירת שיעור, הדגשה, כוכבים על עיגולים |
+| ✅ | בר יומי — מתאפס לפי תאריך (`todayKey`), 3 שלבים, כרטיס הפתעה |
+| ✅ | וי ירוק שבועי על ימי השבוע (`weekProgress`) |
+| 🛠 | debug shortcut קיים ב-ChildDashboardClient.tsx — פעיל רק ב-development. מפתחות: 1/2/3 = כוכבים, 4 = הפתעה |
 | 🟠 | עיצוב מסך הכניסה המפוצל — לא תואם את הפלטה |
 | 🟠 | children.theme DEFAULT — `ALTER TABLE children ALTER COLUMN theme SET DEFAULT 'default'` |
 | 🟠 | באג: אחרי הוספת ילד — redirect שגוי לשיעורי הילד הראשון במקום /select-child |
