@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -135,6 +135,26 @@ export default function ChildDashboardClient({ child, games, progress }: { child
   const [cardBg, setCardBg] = useState<string | null>(null)
   const [starsMap, setStarsMap] = useState<Record<string, number>>(starsForGame)
   const [completedDays, setCompletedDays] = useState<number[]>([])
+
+  const trackPanelRef = useRef<HTMLDivElement>(null)
+  const energyBarRef  = useRef<HTMLDivElement>(null)
+  const weekBarRef    = useRef<HTMLDivElement>(null)
+
+  // Dev-only layout debugger — logs pixel positions after first paint
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return
+    const log = () => {
+      ;[
+        ['trackPanel', trackPanelRef],
+        ['energyBar',  energyBarRef],
+        ['weekBar',    weekBarRef],
+      ].forEach(([name, ref]) => {
+        const r = (ref as React.RefObject<HTMLDivElement>).current?.getBoundingClientRect()
+        if (r) console.log(`[layout] ${name}  top:${r.top.toFixed(1)}  height:${r.height.toFixed(1)}  bottom:${r.bottom.toFixed(1)}  (from-screen-bottom:${(window.innerHeight - r.bottom).toFixed(1)})`)
+      })
+    }
+    requestAnimationFrame(log)
+  }, [])
 
   useEffect(() => {
     setTodayIdx(new Date().getDay())
@@ -274,7 +294,7 @@ export default function ChildDashboardClient({ child, games, progress }: { child
   const fillPct   = isDone ? 100 : 62
   const bgUrl = getBgForTheme(child.theme)
   const screenStyle = bgUrl
-    ? { backgroundImage: `url(${bgUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    ? { background: `url(${bgUrl}) center/cover no-repeat` }
     : {}
   const [titleLine1, titleLine2] = selected ? splitTitle(selected.title) : ['', '']
 
@@ -318,8 +338,8 @@ export default function ChildDashboardClient({ child, games, progress }: { child
           flexDirection: 'column',
           position: 'relative',
           overflow: 'hidden',
-          padding: '16px 16px 0',
-          gap: '12px',
+          padding: '16px',
+          gap: '0',
         }}
       >
         {/* Dot-grid overlay */}
@@ -350,12 +370,8 @@ export default function ChildDashboardClient({ child, games, progress }: { child
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           position: 'relative', zIndex: 10, flexShrink: 0, gap: '10px',
+          marginRight: '266px', marginBottom: '12px',
         }}>
-          <Link href="/select-child" style={{
-            ...PILL, width: '48px', height: '48px',
-            color: 'white', fontSize: '20px', flexShrink: 0, textDecoration: 'none',
-          }}>→</Link>
-
           <div style={{ ...PILL, flex: 1, height: '48px', padding: '0 20px', fontSize: '16px', color: 'rgba(255,255,255,0.9)' }}>
             <span>שלום, <span style={{ color: '#7CFF9F' }}>{child.name}</span> 👋</span>
           </div>
@@ -367,28 +383,34 @@ export default function ChildDashboardClient({ child, games, progress }: { child
             </span>
           </div>
 
-          <button
-            onClick={() => router.push(`/parent/dashboard?childId=${child.id}`)}
-            style={{
-              background: 'rgba(255,255,255,0.15)',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255,255,255,0.25)',
-              borderRadius: '12px',
-              padding: '8px 14px',
-              color: 'white',
-              fontWeight: 700,
-              fontSize: '13px',
-              fontFamily: "var(--font-secular, 'Secular One', sans-serif)",
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              flexShrink: 0,
-              height: '48px',
-            }}
-          >⚙️ בחירת נושאים</button>
+          <Link href="/select-child" style={{
+            ...PILL, width: '48px', height: '48px',
+            color: 'white', fontSize: '20px', flexShrink: 0, textDecoration: 'none',
+            transform: 'rotate(180deg)',
+          }}>→</Link>
+
         </div>
+
+        <button
+          onClick={() => router.push(`/parent/dashboard?childId=${child.id}`)}
+          style={{
+            ...PILL,
+            position: 'fixed',
+            top: '16px',
+            right: '16px',
+            left: 'auto',
+            zIndex: 100,
+            height: '48px',
+            padding: '0 18px',
+            gap: '10px',
+            color: 'white',
+            fontSize: '16px',
+            fontFamily: "var(--font-secular, 'Secular One', sans-serif)",
+            cursor: 'pointer',
+            WebkitBackdropFilter: 'blur(10px)',
+            width: '240px',
+          }}
+        >⚙️ בחירת נושאים</button>
 
         {/* ── Main area ── */}
         <div style={{
@@ -396,9 +418,12 @@ export default function ChildDashboardClient({ child, games, progress }: { child
           overflow: 'visible', position: 'relative', zIndex: 2, minHeight: 0,
         }}>
 
+          {/* ── Track panel + button ── */}
+          <div style={{ position: 'fixed', top: '136px', bottom: '0', right: '16px', width: '240px', display: 'flex', flexDirection: 'column', gap: '8px', paddingBottom: '8px', zIndex: 20 }}>
+
           {/* ── Track panel ── */}
-          <div style={{
-            width: '185px', flexShrink: 0,
+          <div ref={trackPanelRef} style={{
+            flex: 1, minHeight: 0,
             display: 'flex', flexDirection: 'column', gap: '8px',
             background: 'rgba(255,255,255,0.12)',
             backdropFilter: 'blur(16px)',
@@ -416,11 +441,15 @@ export default function ChildDashboardClient({ child, games, progress }: { child
                 scrollbarWidth: 'thin',
                 scrollbarColor: 'rgba(255,255,255,0.18) transparent',
                 touchAction: 'pan-y',
-                padding: '10px 12px 16px',
                 position: 'relative', minHeight: 0,
-                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                direction: 'ltr',
               }}
             >
+              <div style={{
+                direction: 'rtl',
+                padding: '10px 12px 16px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+              }}>
               {stations.map((station, i) => {
                 const state = nodeState(i)
                 const hasDone = (starsMap[station.id] ?? 0) >= 1
@@ -435,7 +464,7 @@ export default function ChildDashboardClient({ child, games, progress }: { child
                         minHeight: state === 'active' ? '80px' : '68px',
                         borderRadius: '18px',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: visualState === 'future' ? 'default' : 'pointer',
+                        cursor: 'pointer',
                         transition: 'all 0.3s ease', position: 'relative',
                         overflow: 'visible',
                         opacity: visualState === 'future' ? 0.5 : visualState === 'done' ? 0.7 : 1,
@@ -466,7 +495,7 @@ export default function ChildDashboardClient({ child, games, progress }: { child
                           filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))',
                           display: 'block',
                         }}>{station.icon || (station.id.startsWith('math') ? '🔢' : station.id.startsWith('language') ? '📖' : '🎮')}</span>
-                        <span style={{ fontSize: state === 'active' ? '14px' : '12px', fontWeight: 800, textAlign: 'center', lineHeight: 1.2, padding: '0 6px', textShadow: '0 1px 3px rgba(0,0,0,0.3)' }}>
+                        <span style={{ fontSize: '16px', fontWeight: 400, fontFamily: "var(--font-secular, 'Secular One', sans-serif)", textAlign: 'center', lineHeight: 1.2, padding: '0 6px', textShadow: '0 1px 3px rgba(0,0,0,0.3)' }}>
                           {station.title}
                         </span>
                       </div>
@@ -494,29 +523,49 @@ export default function ChildDashboardClient({ child, games, progress }: { child
                   </div>
                 )
               })}
+              </div>
             </div>
+          </div>
           </div>
 
           {/* ── Card wrap ── */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0, position: 'relative' }}>
 
-            {/* Energy Bar */}
-            <div style={{
+            {/* Treasure + Energy Bar wrapper — flex column, icon centered above bar */}
+            <div ref={energyBarRef} style={{
               position: 'absolute',
-              left: 10,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              width: 18,
-              height: 160,
-              borderRadius: 20,
-              border: '2px solid rgba(255,215,0,0.7)',
-              boxShadow: '0 0 12px rgba(255,215,0,0.4), inset 0 0 8px rgba(0,0,0,0.3)',
-              background: 'rgba(0,0,0,0.35)',
-              overflow: 'hidden',
+              left: 24,
+              top: 68,
+              bottom: '88px',
               display: 'flex',
               flexDirection: 'column',
-              justifyContent: 'flex-end',
+              alignItems: 'center',
+              gap: 12,
+              zIndex: 10,
             }}>
+              {/* Treasure chest icon */}
+              <div style={{
+                fontSize: '52px',
+                lineHeight: 1,
+                filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.5))',
+                pointerEvents: 'none',
+                flexShrink: 0,
+              }}>🎁</div>
+
+              {/* Energy Bar */}
+              <div style={{
+                flex: 1,
+                minHeight: 0,
+                width: 36,
+                borderRadius: 20,
+                border: '2px solid rgba(255,215,0,0.7)',
+                boxShadow: '0 0 12px rgba(255,215,0,0.4), inset 0 0 8px rgba(0,0,0,0.3)',
+                background: 'rgba(0,0,0,0.35)',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'flex-end',
+              }}>
               {/* מילוי נוזלי */}
               <div style={{
                 width: '100%',
@@ -542,18 +591,19 @@ export default function ChildDashboardClient({ child, games, progress }: { child
                   }} />
                 ))}
               </div>
-            </div>
+              </div>{/* end Energy Bar */}
+            </div>{/* end Treasure + Bar wrapper */}
 
             <div style={{
               width: '64%', margin: '0 auto', flex: 1, minHeight: 0,
-              background: 'rgba(0,0,0,0.75)',
-              border: '1px solid rgba(255,255,255,0.15)',
-              boxShadow: '0 0 24px rgba(255,255,255,0.15), 0 0 48px rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.3)',
+              background: 'rgba(0,0,0,0)',
+              border: 'none',
+              boxShadow: 'none',
               borderRadius: '40px',
               padding: '20px 24px',
               position: 'relative', overflow: 'hidden',
-              backdropFilter: 'blur(0px)',
-              WebkitBackdropFilter: 'blur(0px)',
+              backdropFilter: 'none',
+              WebkitBackdropFilter: 'none',
               display: 'flex', flexDirection: 'column',
               transition: 'background 0.6s ease',
             }}>
@@ -563,7 +613,7 @@ export default function ChildDashboardClient({ child, games, progress }: { child
                 position: 'absolute', inset: 0, borderRadius: 38,
                 backgroundImage: cardBg ? `url(${cardBg})` : 'none',
                 backgroundSize: 'cover', backgroundPosition: 'center',
-                opacity: cardBg ? 1 : 0,
+                opacity: 0,
                 transition: 'opacity 0.5s ease',
                 zIndex: 0,
               }} />
@@ -721,13 +771,21 @@ export default function ChildDashboardClient({ child, games, progress }: { child
         </div>
 
         {/* ── Week bar ── */}
-        <div style={{
+        <div ref={weekBarRef} style={{
           flexShrink: 0, display: 'flex', justifyContent: 'center',
           padding: '8px 0 14px', position: 'relative', zIndex: 2,
+          marginRight: '252px',
         }}>
           <div style={{
             width: '64%', display: 'flex', alignItems: 'center',
             justifyContent: 'space-between', gap: 0,
+            background: 'rgba(255,255,255,0.1)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            borderRadius: '50px',
+            border: '1.5px solid rgba(255,255,255,0.2)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18), 0 2px 8px rgba(0,0,0,0.12)',
+            padding: '4px 8px',
           }}>
             {["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"].map((label, i) => {
               const isToday = todayIdx === i

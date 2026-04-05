@@ -76,7 +76,7 @@ mathplatform-app/
 - Next.js 16: פרמטרי route הם `Promise` — `{ params }: { params: Promise<{ id: string }> }` + `await params`
 - ארט פנימי של משחק (דמויות, אובייקטים) — שמור ב-`app/games/[game-id]/assets/` ומיובא עם `import`.
   תמונות רקע של משחקים — שמור ב-`public/art/games/` (לא ב-`public/art/backgrounds/` שמיועד למסכי משתמש).
-- תמונת כרטיסייה של משחק — `thumb-[id].jpg` ב-`public/art/games/`, ערך ב-`bg_image` ב-Supabase. fallback: `bg-default.jpg` דרך `onError` על תגית `<img>`.
+- רקע מסך משחק — כל משחק מגדיר `bg_image` ב-Supabase שמשמש כרקע למסך המלא בלבד. הכרטיסיות שקופות — אין תמונת thumb לכרטיסייה. fallback: `bg-default.jpg`.
 
 ---
 
@@ -182,7 +182,7 @@ mathplatform-app/
 
 | עמודה | סוג | הערות |
 |-------|-----|-------|
-| bg_image | text | שם קובץ תמונת רקע — מתיקיית /public/art/games/ |
+| bg_image | text | רקע למסך המלא בלבד — לא לכרטיסייה |
 
 תיקיית `/public/art/games/` — תמונות רקע למשחקים
 `bg-default.jpg` — תמונת ברירת מחדל כשאין bg_image למשחק
