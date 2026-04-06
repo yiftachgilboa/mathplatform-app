@@ -15,10 +15,19 @@ export default function StorySelector({ topic, onSelect }: Props) {
 
   useEffect(() => {
     fetchStoriesByTopic(topic)
-      .then(setStories)
+      .then((data) => {
+        console.log('[StorySelector] data:', data)
+        if (!data || data.length === 0) {
+          setError('לא נמצאו סיפורים לנושא: ' + topic)
+        } else {
+          setStories(data)
+        }
+      })
       .catch((err) => {
-        console.error('[StorySelector] error:', err)
-        setError('לא הצלחנו לטעון את הסיפורים: ' + err.message)
+        console.error('[StorySelector] error full:', err)
+        console.error('[StorySelector] error message:', err?.message)
+        console.error('[StorySelector] error code:', err?.code)
+        setError('שגיאה: ' + JSON.stringify(err))
       })
       .finally(() => setLoading(false))
   }, [topic])
