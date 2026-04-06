@@ -16,7 +16,10 @@ export default function StorySelector({ topic, onSelect }: Props) {
   useEffect(() => {
     fetchStoriesByTopic(topic)
       .then(setStories)
-      .catch(() => setError('לא הצלחנו לטעון את הסיפורים'))
+      .catch((err) => {
+        console.error('[StorySelector] error:', err)
+        setError('לא הצלחנו לטעון את הסיפורים: ' + err.message)
+      })
       .finally(() => setLoading(false))
   }, [topic])
 
