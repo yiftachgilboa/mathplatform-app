@@ -62,7 +62,7 @@ export default function OnboardingPage() {
       return
     }
 
-    router.push('/parent/dashboard')
+    router.push('/select-child')
   }
 
   return (
