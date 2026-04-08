@@ -209,6 +209,37 @@ mathplatform-app/
 
 ---
 
+## הערות טכניות — Supabase
+
+### Google OAuth
+- Redirect URLs מוגדרים ב-Supabase Dashboard → Authentication → URL Configuration:
+  - `http://localhost:3000/auth/callback`
+  - `https://mathplatform-app.vercel.app/auth/callback`
+- `app/auth/callback/route.ts` — מחליף code לסשן ומפנה ל-`/select-child`
+
+### Triggers על auth.users
+שני triggers רצים אחרי כל INSERT ל-`auth.users`:
+1. `on_auth_user_created` → `handle_new_user()` — יוצר רשומה ב-`public.profiles` עם `access_code` ייחודי
+2. `on_parent_created` → `grant_free_access()` — יוצר רשומה ב-`public.parent_access` עם `access_key = 'tier:free'`
+
+שתי הפונקציות מוגדרות עם `security definer set search_path = public` — חובה כדי שיעבדו בהקשר OAuth.
+`supabase_auth_admin` חייב להיות עם הרשאות EXECUTE על שתיהן + ALL על `profiles` ו-`parent_access`.
+
+### handle_new_user — לולאה למניעת unique conflict
+הפונקציה מייצרת `access_code` בלולאה עד שמוצאת ערך שלא קיים ב-`profiles`:
+```sql
+loop
+  new_code := lpad(floor(random()*1000)::text, 3, '0');
+  exit when not exists (select 1 from public.profiles where access_code = new_code);
+end loop;
+```
+
+### children.parent_id FK
+`children.parent_id` מצביע על `auth.users(id) ON DELETE CASCADE` — **לא** על טבלת `parents` (ישנה).
+טבלת `parents` עדיין קיימת ב-DB אך אינה בשימוש.
+
+---
+
 ## משחקי ספרון — ארכיטקטורה
 
 כל משחק ספרון טוען סיפורים מ-Supabase לפי `topic` (פרמטר ב-`GameClient.tsx`).
@@ -322,10 +353,10 @@ s.from('TABLE_NAME').select('*').limit(3).then(r => console.log(JSON.stringify(r
 | ✅ | בר יומי — מתאפס לפי תאריך (`todayKey`), 3 שלבים, כרטיס הפתעה |
 | ✅ | וי ירוק שבועי על ימי השבוע (`weekProgress`) |
 | ✅ | משחק ספרון (language-reading-001) — StorySelector + StoryReader + SDK + Web Speech API |
+| ✅ | Google OAuth — כניסה עם Google עובדת |
+| ✅ | באג: אחרי הוספת ילד — redirect תוקן ל-`/select-child` |
 | 🛠 | debug shortcut קיים ב-ChildDashboardClient.tsx — פעיל רק ב-development. מפתחות: 1/2/3 = כוכבים, 4 = הפתעה |
 | 🟠 | עיצוב מסך הכניסה המפוצל — לא תואם את הפלטה |
-| 🟠 | באג: אחרי הוספת ילד — redirect שגוי לשיעורי הילד הראשון במקום /select-child |
 | 🟠 | באג: בתהליך הוספת ילד אין כפתור חזרה |
-| 🟠 | Google OAuth |
 | 🔵 | AI ניתוח טעויות |
 | 🟣 | עורות נוספים |
