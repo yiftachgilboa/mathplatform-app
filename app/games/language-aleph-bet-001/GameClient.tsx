@@ -7,6 +7,7 @@ import zombieImg from './assets/zombie-walk.png'
 import hintAlef from './assets/hints/א.png'
 import hintBet from './assets/hints/ב.png'
 import hintGimel from './assets/hints/ג.png'
+import hintDalet from './assets/hints/ד.png'
 
 const GAME_ID = 'language-aleph-bet-001'
 
@@ -39,6 +40,7 @@ const HINT_IMAGES: Record<string, string> = {
   'א': hintAlef.src,
   'ב': hintBet.src,
   'ג': hintGimel.src,
+  'ד': hintDalet.src,
 }
 
 const HINT_COLORS = [
