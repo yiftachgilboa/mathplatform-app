@@ -594,7 +594,7 @@ export default function GameClient() {
       for (const result of results) {
         if (!result.isFinal) continue
 
-        const transcript = result[0].transcript.trim()
+        const transcript = 'האות ' + result[0].transcript.trim()
         setVoiceInput(transcript)
 
         const cur = getCur()
@@ -608,24 +608,9 @@ export default function GameClient() {
           return
         }
 
-        // 2. יותר מדי מילים — הילד מדבר עם מישהו, פשוט אפס וחכה
-        const wordCount = transcript.split(/\s+/).length
-        if (wordCount >= 3) {
-          setVoiceInput('')
-          return
-        }
-
-        // 3. בדוק אם אמר אות אחרת בכוונה
-        const firstChar = transcript.trim()[0] ?? ''
-        const firstEntry = ALEPH_BET.find(a => a.letter === firstChar)
-        const lettersToCheck = firstEntry
-          ? getSoundGroup(firstEntry.letter)
-          : ALEPH_BET.map(a => a.letter)
-
+        // 2. בדוק אם זיהה אות אחרת מתוך 22 האותיות
         let detectedLetter: typeof ALEPH_BET[0] | null = null
-        for (const letter of lettersToCheck) {
-          const entry = ALEPH_BET.find(a => a.letter === letter)
-          if (!entry) continue
+        for (const entry of ALEPH_BET) {
           if (isCorrectAnswer(transcript, entry.name, entry.letter)) {
             detectedLetter = entry
             break
@@ -634,14 +619,17 @@ export default function GameClient() {
 
         if (detectedLetter) {
           const sameGroup = getSoundGroup(cur.letter)
-          if (!sameGroup.includes(detectedLetter.letter) &&
-              detectedLetter.letter !== cur.letter) {
+          const isWrongLetter =
+            detectedLetter.letter !== cur.letter &&
+            !sameGroup.includes(detectedLetter.letter)
+          if (isWrongLetter) {
             if (!audioCtxRef.current)
               audioCtxRef.current = new (window.AudioContext ||
                 (window as any).webkitAudioContext)()
             playErrorTones(audioCtxRef.current)
             setLetterShake(true)
             setTimeout(() => setLetterShake(false), 600)
+            setVoiceInput('')
             setWrongLetters(prev => {
               const updated = prev.includes(cur.letter)
                 ? prev : [...prev, cur.letter]
@@ -653,8 +641,22 @@ export default function GameClient() {
             streaksRef.current = newStreaks
             setStreaks(newStreaks)
             localStorage.setItem('alephbet_streaks', JSON.stringify(newStreaks))
+            // הפעל מחדש מיקרופון אחרי טעות
+            setTimeout(() => {
+              if (phaseRef.current === 'playing') startMic()
+            }, 400)
             return
           }
+        } else {
+          // לא זיהה אף אות — סתם דיבור, נקה וחכה
+          setVoiceInput('')
+        }
+
+        // 3. יותר מדי מילים ולא אות ספציפית — נקה וחכה
+        const wordCount = transcript.split(/\s+/).length
+        if (wordCount >= 3) {
+          setVoiceInput('')
+          return
         }
       }
 
@@ -662,7 +664,7 @@ export default function GameClient() {
       const lastResult = results[results.length - 1]
       if (!lastResult.isFinal) {
         for (let a = 0; a < lastResult.length; a++) {
-          const t = lastResult[a].transcript.trim()
+          const t = 'האות ' + lastResult[a].transcript.trim()
           setVoiceInput(t)
           const cur = getCur()
           if (cur && isCorrectAnswer(t, cur.name, cur.letter)) {
@@ -694,13 +696,21 @@ export default function GameClient() {
       rec.start()
       recognitionRef.current = rec
       setMicActive(true)
+
+      // חימום — utterance שקטה כדי ש-API יהיה מוכן מיידית
+      setTimeout(() => {
+        const warmup = new SpeechSynthesisUtterance(' ')
+        warmup.volume = 0
+        warmup.lang = 'he-IL'
+        window.speechSynthesis.speak(warmup)
+      }, 100)
     } catch {}
   }, [handleAnswer])
 
   // auto-start mic when playing
   useEffect(() => {
     if (phase === 'playing' && round.length > 0) {
-      setTimeout(() => startMic(), 300)
+      setTimeout(() => startMic(), 50)
     } else {
       stopMic()
     }
@@ -932,7 +942,7 @@ export default function GameClient() {
           {/* Mic status */}
           <div style={{ fontSize: 13, color: micActive ? '#4ade80' : 'rgba(255,255,255,0.35)', display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: micActive ? '#4ade80' : 'rgba(255,255,255,0.2)', display: 'inline-block', animation: micActive ? 'pulse 1s infinite' : 'none' }} />
-            {micActive ? 'מקשיב...' : 'ממתין למיקרופון...'}
+            {micActive ? '🎙 אמור: "האות ___"' : 'מכין מיקרופון...'}
           </div>
 
           {/* Voice transcript */}
