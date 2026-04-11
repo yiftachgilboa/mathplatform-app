@@ -43,9 +43,6 @@ mathplatform-app/
 │   │       ├── ParentDashboardClient.tsx
 │   │       └── SignOutButton.tsx
 │   ├── games/
-│   │   ├── math-addition-001/
-│   │   ├── math-addition-002/
-│   │   ├── math-addition-003/
 │   │   └── math-writing-board-001/       ✅ לוח כתיבה
 │   └── api/
 │       ├── sdk/event/route.ts
@@ -291,12 +288,10 @@ MathPlatformSDK.emit('GAME_OVER', { score, maxScore, stars, correctAnswers, tota
 
 | id | שם | כיתה | קושי |
 |----|-----|------|------|
-| math-addition-001 | חיבור בסיסי | 1 | 1 |
-| math-addition-002 | חיבור עם נשיאה | 1 | 2 |
-| math-addition-003 | חיבור מתקדם | 2 | 3 |
 | math-writing-board-001 | לוח כתיבה | 1 | 1 |
 | language-shva-001 | שווא נח — פנדל | 1 | 1 |
 | language-reading-001 | ספרון — קמץ | 1 | 1 |
+| language-aleph-bet-001 | האלף-בית — קרן הקסם 🦄 | 1 | 1 |
 
 ראה גם `docs/GAMES_CATALOG.md`
 
@@ -354,6 +349,7 @@ s.from('TABLE_NAME').select('*').limit(3).then(r => console.log(JSON.stringify(r
 | ✅ | וי ירוק שבועי על ימי השבוע (`weekProgress`) |
 | ✅ | משחק ספרון (language-reading-001) — StorySelector + StoryReader + SDK + Web Speech API |
 | ✅ | Google OAuth — כניסה עם Google עובדת |
+| ✅ | language-aleph-bet-001 — משחק אלף-בית עם חד-קרן, זומבים, זיהוי קולי |
 | ✅ | באג: אחרי הוספת ילד — redirect תוקן ל-`/select-child` |
 | 🛠 | debug shortcut קיים ב-ChildDashboardClient.tsx — פעיל רק ב-development. מפתחות: 1/2/3 = כוכבים, 4 = הפתעה |
 | 🟠 | עיצוב מסך הכניסה המפוצל — לא תואם את הפלטה |

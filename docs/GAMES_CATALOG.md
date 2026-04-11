@@ -2,16 +2,13 @@
 
 | id | כותרת | כיתה | קושי |
 |----|-------|------|------|
-| math-addition-001 | חיבור פשוט — 1+1 | 1 | 1 |
-| math-addition-002 | חיבור מספרים עד 20 | 1 | 2 |
-| math-addition-003 | חיבור מספרים עד 50 | 1 | 3 |
 | math-writing-board-001 | לוח כתיבה | 1 | 1 |
-| math-fractions-001 | השוואת שברים | ? | ? |
 | math-vertical-addition-001 | חיבור במאונך | 2 | 2 |
 | surprise-coins-001 | גשם מטבעות | 1 | 1 |
 | language-nikud-001 | ניקוד — קמץ ופתח | 1 | 1 |
 | language-shva-001 | שווא נח — בעט שער! | 1 | 2 |
 | language-reading-001 | ספרון — קמץ | 1 | 1 |
+| language-aleph-bet-001 | האלף-בית — קרן הקסם 🦄 | 1 | 1 |
 
 ---
 
