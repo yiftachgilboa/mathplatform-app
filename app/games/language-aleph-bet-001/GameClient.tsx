@@ -877,7 +877,6 @@ export default function GameClient() {
               height: 'clamp(220px,45vw,320px)',
               borderRadius: 28,
               background: 'rgba(255,255,255,0.08)',
-              border: '3px solid rgba(255,255,255,0.25)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
