@@ -292,6 +292,7 @@ MathPlatformSDK.emit('GAME_OVER', { score, maxScore, stars, correctAnswers, tota
 | language-shva-001 | שווא נח — פנדל | 1 | 1 |
 | language-reading-001 | ספרון — קמץ | 1 | 1 |
 | language-aleph-bet-001 | האלף-בית — קרן הקסם 🦄 | 1 | 1 |
+| math-fractions-002 | מחילוק לשברים | 4 | 2 |
 
 ראה גם `docs/GAMES_CATALOG.md`
 
@@ -351,8 +352,24 @@ s.from('TABLE_NAME').select('*').limit(3).then(r => console.log(JSON.stringify(r
 | ✅ | Google OAuth — כניסה עם Google עובדת |
 | ✅ | language-aleph-bet-001 — משחק אלף-בית עם חד-קרן, זומבים, זיהוי קולי |
 | ✅ | באג: אחרי הוספת ילד — redirect תוקן ל-`/select-child` |
+| ✅ | SPEECH_RECOGNITION_LESSONS.md — תיעוד ניסיון זיהוי דיבור עברי בילדים |
 | 🛠 | debug shortcut קיים ב-ChildDashboardClient.tsx — פעיל רק ב-development. מפתחות: 1/2/3 = כוכבים, 4 = הפתעה |
 | 🟠 | עיצוב מסך הכניסה המפוצל — לא תואם את הפלטה |
 | 🟠 | באג: בתהליך הוספת ילד אין כפתור חזרה |
 | 🔵 | AI ניתוח טעויות |
 | 🟣 | עורות נוספים |
+
+---
+
+## זיהוי דיבור — Web Speech API
+
+לפני בניית כל משחק עם קלט קולי — קרא:
+`docs/SPEECH_RECOGNITION_LESSONS.md`
+
+המסמך מכיל:
+- הגדרות בסיסיות נכונות ל-he-IL
+- פתרון בעיית החימום
+- סדר בדיקות נכון ב-onresult
+- נרמול גרש עברי
+- זיהוי טעות מכוונת vs סתם דיבור
+- מנגנון streaks להצלחות

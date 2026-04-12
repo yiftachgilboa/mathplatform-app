@@ -9,6 +9,7 @@
 | language-shva-001 | שווא נח — בעט שער! | 1 | 2 |
 | language-reading-001 | ספרון — קמץ | 1 | 1 |
 | language-aleph-bet-001 | האלף-בית — קרן הקסם 🦄 | 1 | 1 |
+| math-fractions-002 | מחילוק לשברים | 4 | 2 |
 
 ---
 
