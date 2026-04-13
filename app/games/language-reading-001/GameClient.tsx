@@ -64,7 +64,7 @@ export default function GameClient() {
       minHeight: '100vh',
       display: 'flex',
       flexDirection: 'column',
-      background: 'linear-gradient(135deg, #1F4A38 0%, #1A3C2F 50%, #111 100%)',
+      background: "url('/art/games/language-reading-001.jpg') center/cover no-repeat",
       direction: 'rtl',
     }}>
 
