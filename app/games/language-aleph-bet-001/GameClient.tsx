@@ -4,6 +4,16 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import GameBackButton from '@/components/GameBackButton'
 import zombieImg from './assets/zombie-walk.png'
+import hint_א from './assets/hints/א.jpg'
+import hint_ב from './assets/hints/ב.jpg'
+import hint_ג from './assets/hints/ג.jpg'
+import hint_ד from './assets/hints/ד.jpg'
+import hint_ה from './assets/hints/ה.jpg'
+import hint_ו from './assets/hints/ו.jpg'
+import hint_ז from './assets/hints/ז.png'
+import hint_ח from './assets/hints/ח.png'
+import hint_ט from './assets/hints/ט.png'
+
 const GAME_ID = 'language-aleph-bet-001'
 
 const ALEPH_BET: { letter: string; name: string; color: string }[] = [
@@ -31,63 +41,16 @@ const ALEPH_BET: { letter: string; name: string; color: string }[] = [
   { letter: 'ת', name: 'תו',    color: '#f0abfc' },
 ]
 
-const loadHint = (letter: string): string | null => {
-  const jpgMap: Record<string, () => string> = {
-    'א': () => require('./assets/hints/א.jpg').default,
-    'ב': () => require('./assets/hints/ב.jpg').default,
-    'ג': () => require('./assets/hints/ג.jpg').default,
-    'ד': () => require('./assets/hints/ד.jpg').default,
-    'ה': () => require('./assets/hints/ה.jpg').default,
-    'ו': () => require('./assets/hints/ו.jpg').default,
-    'ז': () => require('./assets/hints/ז.jpg').default,
-    'ח': () => require('./assets/hints/ח.jpg').default,
-    'ט': () => require('./assets/hints/ט.jpg').default,
-    'י': () => require('./assets/hints/י.jpg').default,
-    'כ': () => require('./assets/hints/כ.jpg').default,
-    'ל': () => require('./assets/hints/ל.jpg').default,
-    'מ': () => require('./assets/hints/מ.jpg').default,
-    'נ': () => require('./assets/hints/נ.jpg').default,
-    'ס': () => require('./assets/hints/ס.jpg').default,
-    'ע': () => require('./assets/hints/ע.jpg').default,
-    'פ': () => require('./assets/hints/פ.jpg').default,
-    'צ': () => require('./assets/hints/צ.jpg').default,
-    'ק': () => require('./assets/hints/ק.jpg').default,
-    'ר': () => require('./assets/hints/ר.jpg').default,
-    'ש': () => require('./assets/hints/ש.jpg').default,
-    'ת': () => require('./assets/hints/ת.jpg').default,
-  }
-  const pngMap: Record<string, () => string> = {
-    'א': () => require('./assets/hints/א.png').default,
-    'ב': () => require('./assets/hints/ב.png').default,
-    'ג': () => require('./assets/hints/ג.png').default,
-    'ד': () => require('./assets/hints/ד.png').default,
-    'ה': () => require('./assets/hints/ה.png').default,
-    'ו': () => require('./assets/hints/ו.png').default,
-    'ז': () => require('./assets/hints/ז.png').default,
-    'ח': () => require('./assets/hints/ח.png').default,
-    'ט': () => require('./assets/hints/ט.png').default,
-    'י': () => require('./assets/hints/י.png').default,
-    'כ': () => require('./assets/hints/כ.png').default,
-    'ל': () => require('./assets/hints/ל.png').default,
-    'מ': () => require('./assets/hints/מ.png').default,
-    'נ': () => require('./assets/hints/נ.png').default,
-    'ס': () => require('./assets/hints/ס.png').default,
-    'ע': () => require('./assets/hints/ע.png').default,
-    'פ': () => require('./assets/hints/פ.png').default,
-    'צ': () => require('./assets/hints/צ.png').default,
-    'ק': () => require('./assets/hints/ק.png').default,
-    'ר': () => require('./assets/hints/ר.png').default,
-    'ש': () => require('./assets/hints/ש.png').default,
-    'ת': () => require('./assets/hints/ת.png').default,
-  }
-  try { const r = jpgMap[letter]?.(); if (r) return r } catch {}
-  try { const r = pngMap[letter]?.(); if (r) return r } catch {}
-  return null
-}
-
-const HINT_IMAGES: Record<string, string | null> = {}
-for (const a of ALEPH_BET) {
-  HINT_IMAGES[a.letter] = loadHint(a.letter)
+const HINT_IMAGES: Record<string, string> = {
+  'א': hint_א.src,
+  'ב': hint_ב.src,
+  'ג': hint_ג.src,
+  'ד': hint_ד.src,
+  'ה': hint_ה.src,
+  'ו': hint_ו.src,
+  'ז': hint_ז.src,
+  'ח': hint_ח.src,
+  'ט': hint_ט.src,
 }
 
 const HINT_COLORS = [
