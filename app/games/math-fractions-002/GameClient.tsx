@@ -19,7 +19,7 @@ const CSS = `
   * { box-sizing: border-box; margin: 0; padding: 0; }
   .fractions-wrap {
     font-family: 'Nunito', sans-serif;
-    background: linear-gradient(135deg, #e8f8f0 0%, #fdf0f4 100%);
+    background: url('/art/games/bg-fractions.jpg') center/cover no-repeat;
     min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
   }
   .fractions-app {
@@ -359,14 +359,6 @@ export default function GameClient() {
     }
   }
 
-  function restart() {
-    setShowCelebration(false)
-    currentQRef.current = 0
-    correctAnswersRef.current = 0
-    setCurrentQ(0)
-    usedDenomsRef.current = []
-    loadNewExercise()
-  }
 
   const segHeight = Math.max(14, Math.floor(220 / denom))
 
