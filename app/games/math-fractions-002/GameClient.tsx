@@ -99,10 +99,19 @@ const CSS = `
   .answer-input:focus { border-color: var(--green-mid); box-shadow: 0 0 0 4px rgba(74,173,122,0.15); }
   .answer-input.correct { border-color: var(--green-dark); background: var(--green-pale); color: var(--green-dark); }
   .answer-input.wrong { border-color: var(--pink-dark); background: var(--pink-pale); color: var(--pink-dark); animation: shake 0.45s ease; }
+  .shake { animation: shake 0.45s ease; }
   @keyframes shake {
     0%,100%{transform:translateX(0)} 15%{transform:translateX(-8px)} 30%{transform:translateX(8px)}
     45%{transform:translateX(-6px)} 60%{transform:translateX(6px)} 75%{transform:translateX(-3px)} 90%{transform:translateX(3px)}
   }
+  .btn-stepper {
+    width: 52px; height: 44px; border: 2px solid var(--green-light); border-radius: var(--radius-sm);
+    background: white; font-size: 18px; cursor: pointer; display: flex; align-items: center;
+    justify-content: center; color: var(--green-dark); transition: background 0.15s, border-color 0.15s;
+    touch-action: manipulation; user-select: none;
+  }
+  .btn-stepper:hover { background: var(--green-pale); border-color: var(--green-mid); }
+  .btn-stepper:active { background: var(--green-light); }
   .calc-feedback { font-size: 12px; font-weight: 700; min-height: 16px; text-align: center; }
   .calc-feedback.ok { color: var(--green-dark); }
   .calc-feedback.err { color: var(--pink-dark); }
@@ -144,6 +153,7 @@ function generateExercise(usedDenoms: number[]): {
 
 export default function GameClient() {
   const router = useRouter()
+  const inputRef = useRef<HTMLInputElement>(null)
   const audioCtxRef = useRef<AudioContext | null>(null)
   const usedDenomsRef = useRef<number[]>([])
   const checkedRef = useRef(false)
@@ -163,6 +173,8 @@ export default function GameClient() {
   const [rectFeedbackMode, setRectFeedbackMode] = useState(false)
   const [showCelebration, setShowCelebration] = useState(false)
   const [showFlash, setShowFlash] = useState(false)
+  const [shakeRect, setShakeRect] = useState(false)
+  const [shakeInput, setShakeInput] = useState(false)
 
   function getACtx() {
     if (!audioCtxRef.current)
@@ -227,6 +239,7 @@ export default function GameClient() {
     setCalcFeedback({ text: '', cls: '' })
     setRectFeedback({ text: '', cls: '' })
     setRectFeedbackMode(false)
+    setTimeout(() => inputRef.current?.focus(), 60)
   }
 
   // SDK load + first exercise
@@ -236,6 +249,7 @@ export default function GameClient() {
     script.src = '/sdk/mathplatform-sdk-v1.js'
     script.onload = () => {
       ;(window as any).MathPlatformSDK?.emit('GAME_STARTED', { gameId: GAME_ID })
+      setTimeout(() => inputRef.current?.focus(), 60)
     }
     document.head.appendChild(script)
   }, [])
@@ -306,8 +320,8 @@ export default function GameClient() {
         calcOk = true
       } else {
         setInputClass('answer-input wrong')
-        setTimeout(() => { setInputClass('answer-input'); setInputValue('') }, 600)
-        setCalcFeedback({ text: '✗ לא נכון', cls: 'err' })
+        setTimeout(() => setInputClass('answer-input'), 600)
+        setCalcFeedback({ text: val > curCorrect ? '✗ גדול מדי' : '✗ קטן מדי', cls: 'err' })
       }
     }
 
@@ -320,7 +334,7 @@ export default function GameClient() {
         setRectFeedback({ text: '✓ צביעה נכונה!', cls: 'ok' })
       } else {
         setRectFeedbackMode(true)
-        setRectFeedback({ text: '✗ צבע רק חלק אחד', cls: 'err' })
+        setRectFeedback({ text: colored > 1 ? '✗ צבעת יותר מדי חלקים' : '✗ צבעת פחות מדי חלקים', cls: 'err' })
       }
     }
 
@@ -365,6 +379,14 @@ export default function GameClient() {
       }
     } else {
       playError()
+      setTimeout(() => inputRef.current?.focus(), 60)
+      // רעידה: צד אחד נכון, השני ריק
+      if (calcOk && !hasRect) {
+        setShakeRect(true); setTimeout(() => setShakeRect(false), 500)
+      }
+      if (rectOk && !hasCalc) {
+        setShakeInput(true); setTimeout(() => setShakeInput(false), 500)
+      }
     }
   }
 
@@ -373,11 +395,7 @@ export default function GameClient() {
 
   function getSegClass(idx: number): string {
     const isColored = coloredCells.includes(idx)
-    if (rectFeedbackMode) {
-      const should = idx < 1
-      if (isColored && !should) return 'rect-seg wrong-colored'
-      if (!isColored && should) return 'rect-seg wrong-empty'
-    }
+    if (rectFeedbackMode && isColored) return 'rect-seg wrong-colored'
     return isColored ? 'rect-seg colored' : 'rect-seg'
   }
 
@@ -426,7 +444,7 @@ export default function GameClient() {
             {/* Left: rectangle */}
             <div className="left-panel">
               <div className="side-label">צבע את השבר במלבן</div>
-              <div className="rect-container">
+              <div className={`rect-container${shakeRect ? ' shake' : ''}`}>
                 {Array.from({ length: denom }, (_, i) => (
                   <div
                     key={i}
@@ -457,18 +475,29 @@ export default function GameClient() {
 
             {/* Right: calculation */}
             <div className="right-panel">
-              <div className="side-label">כמה זה השבר מהמספר?</div>
+              <div className="side-label">{`כמה זה ${FRACTION_NAMES[denom] || `1/${denom}`} מ-${whole}?`}</div>
               <div className="whole-number">{whole}</div>
-              <input
-                type="number"
-                className={inputClass}
-                placeholder="?"
-                min={1}
-                max={999}
-                value={inputValue}
-                onChange={e => setInputValue(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') checkAll() }}
-              />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }} className={shakeInput ? 'shake' : ''}>
+                <button
+                  className="btn-stepper"
+                  onPointerDown={() => setInputValue(v => String((parseInt(v) || 0) + 1))}
+                >▲</button>
+                <input
+                  ref={inputRef}
+                  type="number"
+                  className={inputClass}
+                  placeholder="?"
+                  min={1}
+                  max={999}
+                  value={inputValue}
+                  onChange={e => setInputValue(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') checkAll() }}
+                />
+                <button
+                  className="btn-stepper"
+                  onPointerDown={() => setInputValue(v => String(Math.max(0, (parseInt(v) || 0) - 1)))}
+                >▼</button>
+              </div>
               <div className={`calc-feedback${calcFeedback.cls ? ' ' + calcFeedback.cls : ''}`}>
                 {calcFeedback.text}
               </div>
