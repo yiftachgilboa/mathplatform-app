@@ -276,43 +276,52 @@ export default function GameClient() {
 
   function checkAll() {
     if (checkedRef.current) return
-    const val = parseInt(inputValue)
     const curCorrect = correctAnswerRef.current
     const curColoredCells = coloredCellsRef.current
     const curQ = currentQRef.current
     const curCorrectAnswers = correctAnswersRef.current
+    const hasCalc = inputValue.trim() !== ''
+    const hasRect = curColoredCells.length > 0
 
-    if (isNaN(val)) {
-      setInputClass('answer-input wrong')
-      setTimeout(() => setInputClass('answer-input'), 500)
-      setCalcFeedback({ text: 'יש להכניס מספר', cls: 'err' })
+    // שניהם ריקים — אל תמשיך
+    if (!hasCalc && !hasRect) {
+      setCalcFeedback({ text: 'יש למלא לפחות אחד מהשניים', cls: 'err' })
       playError()
       return
     }
 
     let calcOk = false
-    if (val === curCorrect) {
-      setInputClass('answer-input correct')
-      setCalcFeedback({ text: '✓ נכון!', cls: 'ok' })
-      calcOk = true
-    } else {
-      setInputClass('answer-input wrong')
-      setTimeout(() => { setInputClass('answer-input'); setInputValue('') }, 600)
-      setCalcFeedback({ text: '✗ לא נכון', cls: 'err' })
+    if (hasCalc) {
+      const val = parseInt(inputValue)
+      if (isNaN(val)) {
+        setInputClass('answer-input wrong')
+        setTimeout(() => setInputClass('answer-input'), 500)
+        setCalcFeedback({ text: 'יש להכניס מספר', cls: 'err' })
+        playError()
+        return
+      }
+      if (val === curCorrect) {
+        setInputClass('answer-input correct')
+        setCalcFeedback({ text: '✓ נכון!', cls: 'ok' })
+        calcOk = true
+      } else {
+        setInputClass('answer-input wrong')
+        setTimeout(() => { setInputClass('answer-input'); setInputValue('') }, 600)
+        setCalcFeedback({ text: '✗ לא נכון', cls: 'err' })
+      }
     }
 
-    const colored = curColoredCells.length
     let rectOk = false
-    if (colored === 1) {
-      rectOk = true
-      setRectFeedbackMode(false)
-      setRectFeedback({ text: '✓ צביעה נכונה!', cls: 'ok' })
-    } else {
-      setRectFeedbackMode(true)
-      setRectFeedback({
-        text: colored === 0 ? '✗ יש לצבוע חלק אחד' : '✗ צבע רק חלק אחד',
-        cls: 'err',
-      })
+    if (hasRect) {
+      const colored = curColoredCells.length
+      if (colored === 1) {
+        rectOk = true
+        setRectFeedbackMode(false)
+        setRectFeedback({ text: '✓ צביעה נכונה!', cls: 'ok' })
+      } else {
+        setRectFeedbackMode(true)
+        setRectFeedback({ text: '✗ צבע רק חלק אחד', cls: 'err' })
+      }
     }
 
     // SDK: ANSWER
