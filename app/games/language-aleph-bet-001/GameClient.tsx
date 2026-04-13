@@ -8,6 +8,11 @@ import hintAlef from './assets/hints/א.png'
 import hintBet from './assets/hints/ב.png'
 import hintGimel from './assets/hints/ג.png'
 import hintDalet from './assets/hints/ד.png'
+import hintHe from './assets/hints/ה.png'
+import hintVav from './assets/hints/ו.png'
+import hintZayin from './assets/hints/ז.png'
+import hintHet from './assets/hints/ח.png'
+import hintTet from './assets/hints/ט.png'
 
 const GAME_ID = 'language-aleph-bet-001'
 
@@ -41,6 +46,11 @@ const HINT_IMAGES: Record<string, string> = {
   'ב': hintBet.src,
   'ג': hintGimel.src,
   'ד': hintDalet.src,
+  'ה': hintHe.src,
+  'ו': hintVav.src,
+  'ז': hintZayin.src,
+  'ח': hintHet.src,
+  'ט': hintTet.src,
 }
 
 const HINT_COLORS = [
