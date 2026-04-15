@@ -118,6 +118,14 @@ function weekKey(childId: string) {
   return `weekProgress_${childId}_${d.getFullYear()}-W${String(week).padStart(2, '0')}`
 }
 
+function dailyStarsKey(childId: string, gameId: string) {
+  const d = new Date()
+  const yyyy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `dailyStars_${childId}_${gameId}_${yyyy}-${mm}-${dd}`
+}
+
 function readWeekDays(childId: string): number[] {
   try { return JSON.parse(localStorage.getItem(weekKey(childId)) || '[]') } catch { return [] }
 }
@@ -136,6 +144,7 @@ export default function ChildDashboardClient({ child, games, progress }: { child
   const [topBg, setTopBg] = useState<string | null>(null)
   const [topVisible, setTopVisible] = useState(false)
   const [starsMap, setStarsMap] = useState<Record<string, number>>(starsForGame)
+  const [dailyStarsMap, setDailyStarsMap] = useState<Record<string, number>>({})
   const [completedDays, setCompletedDays] = useState<number[]>([])
 
   const trackPanelRef = useRef<HTMLDivElement>(null)
@@ -169,7 +178,15 @@ export default function ChildDashboardClient({ child, games, progress }: { child
 
   useEffect(() => {
     const dateKey = todayKey(child.id)
-    const readCount = () => setCompletedToday(Math.min(parseInt(localStorage.getItem(dateKey) || '0'), 3))
+    const readCount = () => {
+      setCompletedToday(Math.min(parseInt(localStorage.getItem(dateKey) || '0'), 3))
+      const daily: Record<string, number> = {}
+      games.forEach(g => {
+        const val = parseInt(localStorage.getItem(dailyStarsKey(child.id, g.id)) || '0')
+        if (val > 0) daily[g.id] = val
+      })
+      setDailyStarsMap(daily)
+    }
     readCount()
     setCompletedDays(readWeekDays(child.id))
     const onVisible = () => { if (document.visibilityState === 'visible') readCount() }
@@ -218,8 +235,10 @@ export default function ChildDashboardClient({ child, games, progress }: { child
     }).catch(() => {})
     // Update local stars state (always)
     setStarsMap(prev => ({ ...prev, [gameId]: stars }))
+    localStorage.setItem(dailyStarsKey(child.id, gameId), String(stars))
+    setDailyStarsMap(prev => ({ ...prev, [gameId]: stars }))
     // Auto-advance only on 3 stars
-    if (stars === 3) {
+    if (stars >= 1) {
       const updated = { ...starsMap, [gameId]: stars }
       const nextIdx = stations.findIndex(s => (updated[s.id] ?? 0) < 3)
       const target = nextIdx === -1 ? stations.length - 1 : nextIdx
@@ -430,7 +449,7 @@ export default function ChildDashboardClient({ child, games, progress }: { child
             WebkitBackdropFilter: 'blur(10px)',
             width: '240px',
           }}
-        >⚙️ בחירת נושאים</button>
+        >⚙️ משימות להיום</button>
 
         {/* ── Main area ── */}
         <div style={{
@@ -472,7 +491,7 @@ export default function ChildDashboardClient({ child, games, progress }: { child
               }}>
               {stations.map((station, i) => {
                 const state = nodeState(i)
-                const hasDone = (starsMap[station.id] ?? 0) >= 1
+                const hasDone = (dailyStarsMap[station.id] ?? 0) >= 1
                 const visualState: StationState = state === 'active' ? 'active' : hasDone ? 'done' : 'future'
                 return (
                   <div key={station.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '28px' }}>
@@ -519,7 +538,7 @@ export default function ChildDashboardClient({ child, games, progress }: { child
                           {station.title}
                         </span>
                       </div>
-                      {(starsMap[station.id] ?? 0) >= 3 && (
+                      {(dailyStarsMap[station.id] ?? 0) >= 1 && (
                         <span style={{
                           position: 'absolute', top: '-6px', right: '-6px',
                           width: '22px', height: '22px',
@@ -532,9 +551,9 @@ export default function ChildDashboardClient({ child, games, progress }: { child
                       )}
                     </div>
                     {/* Stars row — only when earned */}
-                    {(starsMap[station.id] ?? 0) > 0 && (
+                    {(dailyStarsMap[station.id] ?? 0) > 0 && (
                       <div style={{ display: 'flex', gap: '3px', marginTop: '6px' }}>
-                        {[1, 2, 3].map(n => (starsMap[station.id] ?? 0) >= n
+                        {[1, 2, 3].map(n => (dailyStarsMap[station.id] ?? 0) >= n
                           ? <span key={n} style={{ fontSize: '14px', color: '#FFD700', lineHeight: 1 }}>⭐</span>
                           : null
                         )}
