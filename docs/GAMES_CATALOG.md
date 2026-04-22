@@ -10,6 +10,7 @@
 | language-reading-001 | ספרון — קמץ | 1 | 1 |
 | language-aleph-bet-001 | האלף-בית — קרן הקסם 🦄 | 1 | 1 |
 | math-fractions-002 | מחילוק לשברים | 4 | 2 |
+| math-word-problems-001 | שאלות מילוליות — 4 פעולות | 3 | 2 |
 
 ---
 
