@@ -73,7 +73,7 @@ function AnswerInput({q,onCorrect}){
   const check=()=>{
     const n=parseInt(val);if(isNaN(n))return;
     const isCorrect = n===correct || n===0;
-    if(isCorrect){playCorrect();setBurst(true);setCls("sfmPop");setFb("ok");setTimeout(()=>setBurst(false),900);setTimeout(()=>onCorrect&&onCorrect(),1800);}
+    if(isCorrect){playCorrect();setBurst(true);setCls("sfmPop");setFb("ok");setTimeout(()=>setBurst(false),900);onCorrect&&onCorrect();}
     else{playWrong();setCls("sfmShake");setFb(n<correct?"low":"high");setTimeout(()=>setCls(""),600);}
   };
   return <div style={{position:"relative",padding:"12px 14px",borderRadius:12,background:fb==="ok"?P.correctBg:fb?P.wrongBg:P.green3,border:`1.5px solid ${fb==="ok"?P.correct:fb?P.wrong:P.cardBorder}`}}>
@@ -125,14 +125,14 @@ function DropZone({rk}){
   </div>;
 }
 
-function QScreen({q,onSolved,hlRange,onSpeak}){
+function QScreen({q,onSolved,hlRange,onSpeak,currentPiece}){
   const [hint,setHint]=useState(false);const [ans,setAns]=useState(false);
   useEffect(()=>{setHint(false);setAns(false);},[q]);
   return <div style={{display:"flex",gap:8,height:"100%"}}>
     <div style={{flex:1,background:"rgba(255,255,255,0.92)",borderRadius:16,border:`2px solid ${P.cardBorder}`,padding:"22px 20px 20px",display:"flex",flexDirection:"column",gap:14,minWidth:0,overflowY:"auto"}}>
       <div style={{color:P.text,fontSize:19,lineHeight:1.9,fontWeight:500}}><HLText text={q.body} s={hlRange&&hlRange.start} e={hlRange&&hlRange.end}/></div>
       <div style={{fontSize:64,textAlign:"center",lineHeight:1,padding:"8px 0"}}>{q.icon}</div>
-      <div style={{marginTop:"auto"}}><AnswerInput q={q} onCorrect={onSolved}/></div>
+      <div style={{marginTop:"auto"}}><AnswerInput q={q} onCorrect={()=>onSolved(currentPiece)}/></div>
       {hint&&<div className="sfmFadeEl" style={{background:P.green3,border:`1px solid ${P.cardBorder}`,borderRadius:8,padding:"10px 14px",fontSize:14,color:P.text,lineHeight:1.9}}>{q.hint.map((h,i)=><div key={i}>{h}</div>)}</div>}
       {ans&&<div className="sfmFadeEl" style={{background:P.green3,border:`1px solid ${P.cardBorder}`,borderRadius:8,padding:"10px 14px",fontSize:14,color:P.text,lineHeight:1.9}}>{q.ans.map((a,i)=><div key={i}>{a}</div>)}<div style={{color:P.correct,fontWeight:700,marginTop:6,fontSize:15}}>{q.final}</div></div>}
     </div>
@@ -153,57 +153,51 @@ function PuzzleScreen({solved,onPick,imageUrl}){
 
   return <div style={{height:"100%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
     <div style={{
-      display:"grid",gridTemplateColumns:"repeat(2,1fr)",
-      gap:0,
+      position:"relative",
       width:"min(90vh,92vw)",
+      aspectRatio:"1",
       borderRadius:16,
       overflow:"hidden",
       boxShadow:"0 8px 32px rgba(0,0,0,0.3)",
     }}>
-      {[0,1,2,3].map((i)=>{
-        const done=solved[i];
-        const isHov=hov===i&&!done;
-        return <div key={i}
-          onClick={()=>!done&&onPick(i)}
-          onMouseEnter={()=>setHov(i)}
-          onMouseLeave={()=>setHov(-1)}
-          style={{
-            aspectRatio:"1",
-            display:"flex",alignItems:"center",justifyContent:"center",
-            cursor:done?"default":"pointer",
-            position:"relative",
-            overflow:"hidden",
-            transition:"transform 0.15s",
-            transform:isHov?"scale(1.04)":"scale(1)",
-          }}>
-          <div style={{position:"absolute",inset:0,overflow:"hidden"}}>
-            <img
-              src={imageUrl??undefined}
-              style={{
-                position:"absolute",
-                width:"200%",height:"200%",
-                top:i<2?"0":"-100%",
-                left:i%2===0?"0":"-100%",
-                objectFit:"cover",
-                display:"block",
-              }}
-            />
-          </div>
-          <div style={{
-            position:"absolute",inset:0,
-            background:COVER_COLORS[i],
-            display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
-            gap:6,
-            transition:"opacity 0.5s, transform 0.5s",
-            opacity:done?0:1,
-            transform:done?"translateY(-100%)":"translateY(0)",
-            pointerEvents:done?"none":"auto",
-          }}>
-            <div style={{fontSize:28,opacity:0.9}}>?</div>
-            {!done&&isHov&&<div style={{fontSize:11,color:"rgba(255,255,255,0.85)",fontWeight:600,textAlign:"center",padding:"0 4px"}}>לחץ לפתרון</div>}
-          </div>
-        </div>;
-      })}
+      <img
+        src={imageUrl??undefined}
+        style={{
+          position:"absolute",inset:0,
+          width:"100%",height:"100%",
+          objectFit:"cover",
+          display:"block",
+        }}
+      />
+
+      <div style={{
+        position:"absolute",inset:0,
+        display:"grid",
+        gridTemplateColumns:"repeat(2,1fr)",
+        gridTemplateRows:"repeat(2,1fr)",
+        gap:2,
+      }}>
+        {COVER_COLORS.map((color,i)=>{
+          const done=solved[i];
+          const isHov=hov===i&&!done;
+          return <div key={i}
+            onClick={()=>onPick(i)}
+            onMouseEnter={()=>setHov(i)}
+            onMouseLeave={()=>setHov(-1)}
+            style={{
+              background:color,
+              cursor:done?"default":"pointer",
+              transition:"opacity 0.5s, transform 0.5s",
+              opacity:done?0:1,
+              transform:done?"translateY(-100%)":"translateY(0)",
+              display:"flex",alignItems:"center",justifyContent:"center",
+              flexDirection:"column",gap:6,
+            }}>
+            {!done&&<div style={{fontSize:28,opacity:0.9}}>?</div>}
+            {!done&&isHov&&<div style={{fontSize:11,color:"rgba(255,255,255,0.85)",fontWeight:600}}>לחץ לפתרון</div>}
+          </div>;
+        })}
+      </div>
     </div>
 
     {allDone&&<button onClick={()=>router.back()} style={{marginTop:20,background:"linear-gradient(135deg,#4a9400,#2d6a00)",border:"none",color:"#fff",fontSize:17,fontWeight:800,padding:"13px 32px",borderRadius:14,cursor:"pointer",boxShadow:"0 4px 16px rgba(45,106,0,0.4)",animation:"sfmReveal 0.5s ease both"}}>המשך ←</button>}
@@ -213,29 +207,20 @@ function PuzzleScreen({solved,onPick,imageUrl}){
 export default function GameClient(){
   const [startIdx] = useState(() => getStartIdx());
   const questions = QUESTIONS.slice(startIdx, startIdx + 4);
-  console.log('startIdx:', startIdx)
-  console.log('questions length:', questions.length)
-  console.log('QUESTIONS length:', QUESTIONS.length)
-  console.log('questions:', questions)
 
   const [imageUrl,setImageUrl]=useState(null);
   const [solved,setSolved]=useState(Array(4).fill(false));
+  const solvedRef=useRef([false,false,false,false]);
   const [screen,setScreen]=useState("puzzle");
   const [piece,setPiece]=useState(null);
+  const pieceRef=useRef(null);
   const [hlRange,setHlRange]=useState(null);
   const dk=useRef(0);
-  const gameOverSent=useRef(false);
 
   useEffect(()=>{
-    async function pickImage(){
-      const params=new URLSearchParams(window.location.search);
-      const childId=params.get('childId');
-      if(!childId){setImageUrl(GAME_IMAGES[0]);return;}
-      const res=await fetch(`/api/game-image?childId=${childId}&gameId=${GAME_ID}`);
-      const{url}=await res.json();
-      setImageUrl(url);
-    }
-    pickImage();
+    const key=`${GAME_ID}-img-idx`;
+    const idx=parseInt(localStorage.getItem(key)||'0');
+    setImageUrl(GAME_IMAGES[idx%GAME_IMAGES.length].src);
   },[]);
 
   useEffect(()=>{
@@ -247,32 +232,6 @@ export default function GameClient(){
     document.head.appendChild(script);
   },[]);
 
-  useEffect(()=>{
-    if(solved.filter(Boolean).length===4&&!gameOverSent.current){
-      gameOverSent.current=true;
-      window.MathPlatformSDK?.emit('GAME_OVER',{
-        score:40,
-        maxScore:40,
-        stars:3,
-        correctAnswers:4,
-        totalQuestions:4,
-      });
-      async function finalize(){
-        const params=new URLSearchParams(window.location.search);
-        const childId=params.get('childId');
-        if(childId&&imageUrl){
-          await fetch('/api/game-image',{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({childId,gameId:GAME_ID,imageUrl}),
-          });
-        }
-        const next=(startIdx+4+4)>QUESTIONS.length?0:startIdx+4;
-        localStorage.setItem('math-word-problems-001-idx',String(next));
-      }
-      finalize();
-    }
-  },[solved]);
 
   useEffect(()=>{
     if(document.getElementById("sfm-css"))return;
@@ -313,19 +272,38 @@ export default function GameClient(){
     window.speechSynthesis.speak(u);
   },[piece,questions]);
 
-  function handlePick(i){setPiece(i);dk.current++;setScreen("q");}
-  function handleSolved(){
+  function handlePick(i){
+    if(solvedRef.current[i])return;
+    pieceRef.current=i;
+    setPiece(i);dk.current++;setScreen("q");
+  }
+  function handleSolved(solvedPiece){
     playReveal();
     window.MathPlatformSDK?.emit('ANSWER',{
       correct:true,
-      questionId:`q-00${(piece??0)+1}`,
+      questionId:`q-00${solvedPiece+1}`,
       questionType:'word-problem',
-      correctAnswer:String(ANSWERS[questions[piece??0].ai]),
-      childAnswer:String(ANSWERS[questions[piece??0].ai]),
+      correctAnswer:String(ANSWERS[questions[solvedPiece].ai]),
+      childAnswer:String(ANSWERS[questions[solvedPiece].ai]),
       attemptNumber:1,
     });
-    setSolved(p=>{const n=[...p];n[piece]=true;return n;});
-    setTimeout(()=>{setScreen("puzzle");setPiece(null);},600);
+    setSolved(prev=>{
+      const next=[...prev];
+      next[solvedPiece]=true;
+      solvedRef.current=next;
+      if(next.every(Boolean)){
+        window.MathPlatformSDK?.emit('GAME_OVER',{score:40,maxScore:40,stars:3,correctAnswers:4,totalQuestions:4});
+        const imgKey=`${GAME_ID}-img-idx`;
+        const imgIdx=parseInt(localStorage.getItem(imgKey)||'0');
+        localStorage.setItem(imgKey,String(imgIdx+1));
+        const nextQIdx=(startIdx+4)>=QUESTIONS.length?0:startIdx+4;
+        localStorage.setItem(`${GAME_ID}-idx`,String(nextQIdx));
+      }
+      return next;
+    });
+    pieceRef.current=null;
+    setScreen("puzzle");
+    setPiece(null);
   }
 
   return <div dir="rtl" style={{background:"linear-gradient(135deg,#e8f5c8 0%,#f0e8ff 50%,#ffe8f0 100%)",height:"100vh",padding:12,fontFamily:"'Segoe UI',Tahoma,sans-serif",display:"flex",flexDirection:"column"}}>
@@ -333,7 +311,7 @@ export default function GameClient(){
     {screen==="puzzle"&&<PuzzleScreen solved={solved} onPick={handlePick} imageUrl={imageUrl}/>}
     {screen==="q"&&piece!=null&&questions[piece]&&<div style={{flex:1,display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)",gap:12,minHeight:0}}>
       <DropZone rk={dk.current}/>
-      <QScreen q={questions[piece]} onSolved={handleSolved} hlRange={hlRange} onSpeak={speak}/>
+      <QScreen q={questions[piece]} onSolved={handleSolved} hlRange={hlRange} onSpeak={speak} currentPiece={piece}/>
     </div>}
   </div>;
 }

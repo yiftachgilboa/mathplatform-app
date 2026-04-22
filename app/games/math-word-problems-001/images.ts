@@ -1,4 +1,4 @@
-export const GAME_IMAGES = [
-  '/art/games/bg-word-problems.jpg',
-]
-// נוסיף תמונות בהמשך
+import img1 from './assets/img1.jpg'
+import img2 from './assets/img2.jpg'
+
+export const GAME_IMAGES = [img1, img2]
