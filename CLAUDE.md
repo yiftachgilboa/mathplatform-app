@@ -261,16 +261,15 @@ end loop;
 
 ## SDK — מפתחות localStorage
 
-אלו המפתחות שה-SDK כותב ל-localStorage ב-`GAME_OVER` — חייבים להתאים בדיוק לדשבורד:
+אלו המפתחות שה-SDK כותב ל-localStorage — חייבים להתאים בדיוק לדשבורד:
 
-| מפתח | פורמט | דוגמה | מתי נכתב |
-|------|--------|--------|-----------|
-| completedToday | `completedToday_${childId}_YYYY-MM-DD` | `completedToday_309c34_2026-04-05` | כל GAME_OVER |
-| dailyStars | `dailyStars_${childId}_${gameId}_YYYY-MM-DD` | `dailyStars_309c34_math-writing-board-001_2026-04-05` | כל GAME_OVER עם stars > 0 |
-| weekProgress | `weekProgress_${childId}_YYYY-WXX` | `weekProgress_309c34_2026-W14` | כשcompletedToday מגיע ל-3 |
+| מפתח | פורמט | דוגמה |
+|------|--------|--------|
+| completedToday | `completedToday_${childId}_YYYY-MM-DD` | `completedToday_309c34_2026-04-05` |
+| weekProgress | `weekProgress_${childId}_YYYY-WXX` | `weekProgress_309c34_2026-W14` |
+| dailyStars | `dailyStars_${childId}_${gameId}_YYYY-MM-DD` | `dailyStars_309c34_math-addition-001_2026-04-05` |
 
-⚠️ **ה-SDK הוא מקור האמת היחיד** לשלושת המפתחות האלו. `handleGameOver` ב-`ChildDashboardClient.tsx` משמש רק ל-debug shortcut (מקשים 1/2/3) ולא נקרא ממשחקים אמיתיים.
-
+⚠️ כל שלושת המפתחות נכתבים על ידי ה-SDK עצמו ב-`GAME_OVER` — לא על ידי הדשבורד. `readCount()` ב-`ChildDashboardClient` קורא אותם כשהילד חוזר מהמשחק דרך `visibilitychange`.
 ⚠️ אל תשנה פורמטים אלו ב-SDK בלי לעדכן גם את `ChildDashboardClient.tsx`.
 אל תשתמש ב-`new Date().toDateString()` — הפורמט שלו משתנה לפי locale.
 תמיד השתמש ב-`new Date().toISOString().split('T')[0]` לתאריך.
@@ -360,6 +359,7 @@ s.from('TABLE_NAME').select('*').limit(3).then(r => console.log(JSON.stringify(r
 | ✅ | language-aleph-bet-001 — משחק אלף-בית עם חד-קרן, זומבים, זיהוי קולי |
 | ✅ | באג: אחרי הוספת ילד — redirect תוקן ל-`/select-child` |
 | ✅ | SPEECH_RECOGNITION_LESSONS.md — תיעוד ניסיון זיהוי דיבור עברי בילדים |
+| ✅ | תיקון SDK — כותב dailyStars + weekProgress ב-GAME_OVER; וי וכוכבים מתעדכנים אחרי חזרה ממשחק |
 | 🛠 | debug shortcut קיים ב-ChildDashboardClient.tsx — פעיל רק ב-development. מפתחות: 1/2/3 = כוכבים, 4 = הפתעה |
 | 🟠 | עיצוב מסך הכניסה המפוצל — לא תואם את הפלטה |
 | 🟠 | באג: בתהליך הוספת ילד אין כפתור חזרה |
