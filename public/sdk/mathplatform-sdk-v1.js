@@ -19,12 +19,33 @@
       if (!this.childId) return;
 
       if (event === 'GAME_OVER') {
-        const dateKey = 'completedToday_' + this.childId + '_' + new Date().toISOString().split('T')[0];
+        const today = new Date().toISOString().split('T')[0];
+        const dateKey = 'completedToday_' + this.childId + '_' + today;
         if (this.gameId === 'surprise-coins-001') {
           localStorage.setItem(dateKey, '0');
         } else {
           const current = parseInt(localStorage.getItem(dateKey) || '0');
-          localStorage.setItem(dateKey, Math.min(current + 1, 3).toString());
+          const newCount = Math.min(current + 1, 3);
+          localStorage.setItem(dateKey, newCount.toString());
+
+          if (data && data.stars > 0) {
+            const dailyStarsKey = 'dailyStars_' + this.childId + '_' + this.gameId + '_' + today;
+            localStorage.setItem(dailyStarsKey, String(data.stars));
+          }
+
+          if (newCount >= 3) {
+            const d = new Date();
+            const jan1 = new Date(d.getFullYear(), 0, 1);
+            const week = Math.ceil(((d.getTime() - jan1.getTime()) / 86400000 + jan1.getDay() + 1) / 7);
+            const weekKey = 'weekProgress_' + this.childId + '_' + d.getFullYear() + '-W' + String(week).padStart(2, '0');
+            const day = d.getDay();
+            let days = [];
+            try { days = JSON.parse(localStorage.getItem(weekKey) || '[]'); } catch {}
+            if (!days.includes(day)) {
+              days.push(day);
+              localStorage.setItem(weekKey, JSON.stringify(days));
+            }
+          }
         }
       }
 
