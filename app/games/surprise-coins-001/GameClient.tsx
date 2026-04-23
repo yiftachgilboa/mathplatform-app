@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import GameBackButton from '@/components/GameBackButton'
 
 const GAME_ID = 'surprise-coins-001'
-const GAME_DURATION = 60
+const GAME_DURATION = 30
 
 const COMBO_COLORS = ['#1ED4D9','#FF6B9E','#FFAA5E','#A78BFA','#5ED17E','#4ECDC4','#FFEEAA']
 
@@ -38,6 +39,7 @@ interface GS {
   lastHit: number; combo: number; comboColorIdx: number
   px: number; py: number; pdown: boolean
   uiDirty: boolean; glowOffAt: number
+  tutorialStart: number
   raf: number; actx: AudioContext | null
 }
 
@@ -53,6 +55,7 @@ function makeGS(): GS {
     lastHit: 0, combo: 0, comboColorIdx: 0,
     px: -999, py: -999, pdown: false,
     uiDirty: false, glowOffAt: 0,
+    tutorialStart: 0,
     raf: 0, actx: null,
   }
 }
@@ -312,9 +315,10 @@ export default function GameClient() {
 
     soundJingle(g)
 
-    // Tutorial coin — spawned paused, hovering at 46% height
+    // Tutorial coin — centered, large, paused
     const tc = spawnCoin(g, canvas.width, true)
-    if (tc) { tc.y = canvas.height * 0.46; tc.vy = 0 }
+    if (tc) { tc.x = canvas.width / 2; tc.y = canvas.height * 0.46; tc.size = 65; tc.vy = 0 }
+    g.tutorialStart = performance.now()
 
     setUi({ phase: 'tutorial', score: 0, timeLeft: GAME_DURATION, glow: false })
   }, [])
@@ -366,8 +370,11 @@ export default function GameClient() {
         coin.wobble    += 0.04
         coin.glowPhase += 0.03
         if (coin.paused) {
-          // Tutorial: gentle bob
           coin.y = H * 0.46 + Math.sin(now * 0.002) * 6
+          if (g.tutorialStart > 0 && now - g.tutorialStart > 5000) {
+            coin.active = false
+            g.phase = 'playing'; g.uiDirty = true; g.nextSpawn = now + 200
+          }
         } else {
           coin.vy += 0.055 * sm
           coin.y  += coin.vy
@@ -406,10 +413,13 @@ export default function GameClient() {
       for (const coin of g.coins) {
         if (!coin.active) continue
         drawCoin(ctx, coin)
-        // Tutorial finger
+        // Tutorial finger — centered on coin, white glow
         if (coin.paused) {
-          ctx.font = '28px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-          ctx.fillText('👆', coin.x + coin.size + 18, coin.y)
+          ctx.save()
+          ctx.font = '56px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+          ctx.shadowColor = 'rgba(255,255,255,0.95)'; ctx.shadowBlur = 20
+          ctx.fillText('👆', coin.x, coin.y)
+          ctx.restore()
         }
       }
 
@@ -490,8 +500,10 @@ export default function GameClient() {
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat',
       fontFamily: "var(--font-secular,'Secular One',sans-serif)",
-      cursor: (phase === 'playing' || phase === 'tutorial') ? 'none' : 'default',
+      cursor: 'default',
     }}>
+      <GameBackButton />
+
       <style>{`
         @keyframes btnPulse  {
           0%,100%{box-shadow:0 0 20px 6px rgba(212,160,23,.4),0 0 40px 12px rgba(212,160,23,.15)}
@@ -530,7 +542,7 @@ export default function GameClient() {
 
           {/* Timer */}
           <div style={{
-            position: 'absolute', top: 14, right: 18,
+            position: 'absolute', top: 14, right: 70,
             fontSize: 58, fontWeight: 900, color: timerColor,
             textShadow: '0 2px 10px rgba(0,0,0,.6)',
             animation: timeLeft <= 10 ? 'tPulse .5s ease-in-out infinite' : 'none',
@@ -586,25 +598,14 @@ export default function GameClient() {
           }}>
             {score}
           </div>
-          <div style={{ display: 'flex', gap: 16 }}>
-            <button
-              onClick={startGame}
-              style={{
-                width: 64, height: 64, borderRadius: '50%', border: 'none', cursor: 'pointer',
-                background: 'linear-gradient(135deg,#34E08E,#1ED4D9)', fontSize: 28,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 4px 20px rgba(52,224,142,.5)',
-              }}
-            >🔄</button>
-            <button
-              onClick={() => router.back()}
-              style={{
-                width: 64, height: 64, borderRadius: '50%', cursor: 'pointer', color: 'white',
-                background: 'rgba(255,255,255,.1)', border: '1.5px solid rgba(255,255,255,.3)',
-                fontSize: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-            >←</button>
-          </div>
+          <button
+            onClick={() => router.back()}
+            style={{
+              width: 64, height: 64, borderRadius: '50%', cursor: 'pointer', color: 'white',
+              background: 'rgba(255,255,255,.1)', border: '1.5px solid rgba(255,255,255,.3)',
+              fontSize: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >←</button>
         </div>
       )}
     </div>

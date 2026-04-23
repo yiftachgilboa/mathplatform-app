@@ -146,6 +146,7 @@ export default function ChildDashboardClient({ child, games, progress }: { child
   const [starsMap, setStarsMap] = useState<Record<string, number>>(starsForGame)
   const [dailyStarsMap, setDailyStarsMap] = useState<Record<string, number>>({})
   const [completedDays, setCompletedDays] = useState<number[]>([])
+  const [showSurprise, setShowSurprise] = useState(false)
 
   const trackPanelRef = useRef<HTMLDivElement>(null)
   const energyBarRef  = useRef<HTMLDivElement>(null)
@@ -179,7 +180,9 @@ export default function ChildDashboardClient({ child, games, progress }: { child
   useEffect(() => {
     const dateKey = todayKey(child.id)
     const readCount = () => {
-      setCompletedToday(Math.min(parseInt(localStorage.getItem(dateKey) || '0'), 3))
+      const count = Math.min(parseInt(localStorage.getItem(dateKey) || '0'), 3)
+      setCompletedToday(count)
+      setShowSurprise(count >= 3)
       const daily: Record<string, number> = {}
       games.forEach(g => {
         const val = parseInt(localStorage.getItem(dailyStarsKey(child.id, g.id)) || '0')
@@ -250,6 +253,7 @@ export default function ChildDashboardClient({ child, games, progress }: { child
     localStorage.setItem(dateKey, String(newCount))
     setCompletedToday(newCount)
     if (newCount >= 3) {
+      setShowSurprise(true)
       const day = new Date().getDay()
       const days = readWeekDays(child.id)
       if (!days.includes(day)) {
@@ -280,6 +284,7 @@ export default function ChildDashboardClient({ child, games, progress }: { child
         const dateKey = todayKey(child.id)
         localStorage.setItem(dateKey, '0')
         setCompletedToday(0)
+        setShowSurprise(false)
         return
       }
       if (e.key === '0') {
@@ -299,6 +304,7 @@ export default function ChildDashboardClient({ child, games, progress }: { child
   function selectStation(idx: number) {
     setSelectedIdx(idx)
     setIsDone(false)
+    setShowSurprise(false)
     const src = stations[idx]?.bg || '/art/games/bg-magical-forest.jpg'
     const img = new window.Image()
     const onReady = (finalSrc: string) => {
@@ -635,16 +641,13 @@ export default function ChildDashboardClient({ child, games, progress }: { child
 
             <div style={{
               width: '64%', margin: '0 auto', flex: 1, minHeight: 0,
-              background: completedToday >= 3 ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0)',
-              border: completedToday >= 3 ? '1.5px solid rgba(255,255,255,0.2)' : 'none',
-              boxShadow: completedToday >= 3 ? '0 8px 32px rgba(0,0,0,0.3)' : 'none',
+              background: 'transparent',
+              border: 'none',
+              boxShadow: 'none',
               borderRadius: '40px',
               padding: '20px 24px',
               position: 'relative', overflow: 'hidden',
-              backdropFilter: completedToday >= 3 ? 'blur(12px)' : 'none',
-              WebkitBackdropFilter: completedToday >= 3 ? 'blur(12px)' : 'none',
               display: 'flex', flexDirection: 'column',
-              transition: 'background 0.6s ease, backdrop-filter 0.6s ease',
             }}>
 
               {/* Background image */}
@@ -670,7 +673,7 @@ export default function ChildDashboardClient({ child, games, progress }: { child
                 zIndex: 1,
               }} />
 
-              {completedToday >= 3 ? (
+              {showSurprise ? (
                 /* ── Surprise card ── */
                 <>
                   {/* Content — screen background handles the image */}
