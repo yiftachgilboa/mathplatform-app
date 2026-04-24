@@ -1,0 +1,554 @@
+'use client'
+
+import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
+import GameBackButton from '@/components/GameBackButton'
+
+const GAME_ID = 'math-fractions-003'
+
+const FRACTION_NAMES = ['','מלא','חצי','שליש','רבע','חמישית','שישית','שביעית','שמינית','תשיעית','עשירית']
+
+const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap');
+  :root {
+    --green-dark: #2d7a4f; --green-mid: #4aad7a; --green-light: #a8e6c3; --green-pale: #e8f8f0;
+    --pink-dark: #c2456b; --pink-mid: #e8789a; --pink-light: #f7bdd0; --pink-pale: #fdf0f4;
+    --neutral: #f9f5f7; --text-dark: #2b2b3a; --text-mid: #5a5a72; --text-light: #9090a8;
+    --white: #ffffff; --radius: 18px; --radius-sm: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  .fractions-wrap {
+    font-family: 'Nunito', sans-serif;
+    background: url('/art/games/bg-fractions3.jpg') center/cover no-repeat;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .fractions-app {
+    width: 100%; max-width: 780px; background: var(--white); border-radius: 32px;
+    box-shadow: 0 8px 48px rgba(45,122,79,0.13), 0 2px 8px rgba(194,69,107,0.08);
+    padding: 32px 36px 28px; position: relative; overflow: hidden;
+  }
+  .fractions-app::before {
+    content: ''; position: absolute; top: -60px; left: -60px; width: 200px; height: 200px;
+    background: radial-gradient(circle, var(--green-pale) 0%, transparent 70%); pointer-events: none;
+  }
+  .fractions-app::after {
+    content: ''; position: absolute; bottom: -60px; right: -60px; width: 200px; height: 200px;
+    background: radial-gradient(circle, var(--pink-pale) 0%, transparent 70%); pointer-events: none;
+  }
+  .app-header { text-align: center; margin-bottom: 22px; }
+  .app-title { font-family: 'Fredoka One', cursive; font-size: 30px; color: var(--green-dark); letter-spacing: 1px; }
+  .progress-row { display: flex; justify-content: center; gap: 14px; margin-bottom: 26px; }
+  .progress-dot {
+    width: 36px; height: 36px; border-radius: 50%; border: 2.5px solid var(--green-light);
+    background: var(--white); display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: transparent; transition: all 0.4s cubic-bezier(.34,1.56,.64,1);
+  }
+  .progress-dot.done {
+    background: linear-gradient(135deg, var(--green-mid), var(--green-dark)); border-color: var(--green-dark);
+    color: white; transform: scale(1.12); box-shadow: 0 4px 16px rgba(74,173,122,0.4);
+  }
+  .progress-dot.current {
+    border-color: var(--green-mid); box-shadow: 0 0 0 4px rgba(74,173,122,0.15);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%,100%{box-shadow:0 0 0 4px rgba(74,173,122,0.15)} 50%{box-shadow:0 0 0 8px rgba(74,173,122,0.08)}
+  }
+  .exercise-card {
+    background: var(--neutral); border-radius: var(--radius); padding: 28px 20px;
+    display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 0; min-height: 280px;
+  }
+  .vdivider {
+    width: 1px; align-self: stretch; flex: 0 0 1px;
+    background: linear-gradient(180deg, transparent, var(--green-light), var(--pink-light), transparent);
+  }
+  .left-panel { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0 28px; flex: 0 0 auto; }
+  .side-label { font-size: 12px; font-weight: 700; color: var(--text-mid); text-align: center; letter-spacing: 0.3px; }
+  .pie-slice { transition: filter 0.12s; cursor: pointer; }
+  .pie-slice:hover { filter: brightness(0.88); }
+  .rect-feedback { font-size: 12px; font-weight: 700; min-height: 16px; text-align: center; }
+  .rect-feedback.ok { color: var(--green-dark); }
+  .rect-feedback.err { color: var(--pink-dark); }
+  .fraction-center { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0 36px; flex: 0 0 auto; }
+  .fraction-box {
+    background: white; border-radius: 20px; padding: 16px 28px;
+    box-shadow: 0 4px 24px rgba(45,122,79,0.10); display: flex; flex-direction: column; align-items: center;
+  }
+  .frac-num { font-family: 'Fredoka One', cursive; font-size: 50px; color: var(--green-dark); line-height: 1; }
+  .frac-line { width: 54px; height: 3px; background: linear-gradient(90deg, var(--green-mid), var(--pink-mid)); border-radius: 2px; margin: 6px 0; }
+  .frac-denom { font-family: 'Fredoka One', cursive; font-size: 50px; color: var(--pink-dark); line-height: 1; }
+  .frac-name { font-size: 14px; color: var(--text-light); font-weight: 700; }
+  .right-panel { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0 28px; flex: 0 0 auto; }
+  .whole-number { font-family: 'Fredoka One', cursive; font-size: 60px; color: var(--text-dark); line-height: 1; text-align: center; }
+  .answer-input {
+    width: 80px; height: 52px; border: 2.5px solid var(--green-light); border-radius: var(--radius-sm);
+    font-family: 'Fredoka One', cursive; font-size: 28px; text-align: center; background: white;
+    color: var(--text-dark); outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    -moz-appearance: textfield;
+  }
+  .answer-input::-webkit-inner-spin-button, .answer-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .answer-input:focus { border-color: var(--green-mid); box-shadow: 0 0 0 4px rgba(74,173,122,0.15); }
+  .answer-input.correct { border-color: var(--green-dark); background: var(--green-pale); color: var(--green-dark); }
+  .answer-input.wrong { border-color: var(--pink-dark); background: var(--pink-pale); color: var(--pink-dark); animation: shake 0.45s ease; }
+  .shake { animation: shake 0.45s ease; }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)} 15%{transform:translateX(-8px)} 30%{transform:translateX(8px)}
+    45%{transform:translateX(-6px)} 60%{transform:translateX(6px)} 75%{transform:translateX(-3px)} 90%{transform:translateX(3px)}
+  }
+  .btn-stepper {
+    width: 52px; height: 44px; border: 2px solid var(--green-light); border-radius: var(--radius-sm);
+    background: white; font-size: 18px; cursor: pointer; display: flex; align-items: center;
+    justify-content: center; color: var(--green-dark); transition: background 0.15s, border-color 0.15s;
+    touch-action: manipulation; user-select: none;
+  }
+  .btn-stepper:hover { background: var(--green-pale); border-color: var(--green-mid); }
+  .btn-stepper:active { background: var(--green-light); }
+  .calc-feedback { font-size: 12px; font-weight: 700; min-height: 16px; text-align: center; }
+  .calc-feedback.ok { color: var(--green-dark); }
+  .calc-feedback.err { color: var(--pink-dark); }
+  .btn-row { display: flex; justify-content: center; gap: 16px; margin-top: 22px; }
+  .btn { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 15px; border: none; border-radius: 50px; padding: 12px 28px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
+  .btn:active { transform: scale(0.96); }
+  .btn-check { background: linear-gradient(135deg, var(--green-mid), var(--green-dark)); color: white; box-shadow: 0 4px 18px rgba(45,122,79,0.35); }
+  .btn-check:hover { box-shadow: 0 6px 24px rgba(45,122,79,0.45); transform: translateY(-1px); }
+  .btn-new { background: linear-gradient(135deg, var(--pink-light), var(--pink-mid)); color: var(--pink-dark); box-shadow: 0 4px 14px rgba(194,69,107,0.18); }
+  .btn-new:hover { box-shadow: 0 6px 20px rgba(194,69,107,0.28); transform: translateY(-1px); }
+  .btn-continue { background: linear-gradient(135deg, var(--green-mid), var(--green-dark)); color: white; box-shadow: 0 4px 18px rgba(45,122,79,0.35); margin-top: 16px; }
+  .celebration-overlay {
+    position: fixed; inset: 0; background: rgba(45,122,79,0.12); backdrop-filter: blur(3px);
+    z-index: 100; display: flex; align-items: center; justify-content: center;
+  }
+  .celebration-box {
+    background: white; border-radius: 32px; padding: 44px 56px; text-align: center;
+    box-shadow: 0 16px 64px rgba(45,122,79,0.22); animation: pop-in 0.5s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes pop-in { 0%{transform:scale(0.5);opacity:0} 100%{transform:scale(1);opacity:1} }
+  .celebration-emoji { font-size: 64px; display: block; margin-bottom: 8px; }
+  .celebration-title { font-family: 'Fredoka One', cursive; font-size: 36px; color: var(--green-dark); margin-bottom: 6px; }
+  .celebration-sub { font-size: 16px; color: var(--text-mid); font-weight: 600; }
+  .correct-flash { position: fixed; inset: 0; background: rgba(74,173,122,0.18); pointer-events: none; z-index: 50; opacity: 0; transition: opacity 0.3s; }
+  .correct-flash.show { opacity: 1; }
+  @keyframes confetti-fall { 0%{opacity:1;transform:translateY(-10px) rotate(0deg)} 100%{opacity:0;transform:translateY(100vh) rotate(720deg)} }
+`
+
+const PIE_CX = 80, PIE_CY = 80, PIE_R = 62, PIE_CYL_H = 16, PIE_BOT_RY = 12
+
+function pieSlicePath(startAngle: number, endAngle: number): string {
+  const sx = PIE_CX + PIE_R * Math.cos(startAngle)
+  const sy = PIE_CY + PIE_R * Math.sin(startAngle)
+  const ex = PIE_CX + PIE_R * Math.cos(endAngle)
+  const ey = PIE_CY + PIE_R * Math.sin(endAngle)
+  const large = endAngle - startAngle > Math.PI ? 1 : 0
+  return `M ${PIE_CX} ${PIE_CY} L ${sx.toFixed(1)} ${sy.toFixed(1)} A ${PIE_R} ${PIE_R} 0 ${large} 1 ${ex.toFixed(1)} ${ey.toFixed(1)} Z`
+}
+
+function pieSideWallPath(startAngle: number, endAngle: number): string | null {
+  const a0 = Math.max(startAngle, 0)
+  const a1 = Math.min(endAngle, Math.PI)
+  if (a0 >= a1) return null
+  const tsx = PIE_CX + PIE_R * Math.cos(a0), tsy = PIE_CY + PIE_R * Math.sin(a0)
+  const tex = PIE_CX + PIE_R * Math.cos(a1), tey = PIE_CY + PIE_R * Math.sin(a1)
+  const bsx = PIE_CX + PIE_R * Math.cos(a0), bsy = (PIE_CY + PIE_CYL_H) + PIE_BOT_RY * Math.sin(a0)
+  const bex = PIE_CX + PIE_R * Math.cos(a1), bey = (PIE_CY + PIE_CYL_H) + PIE_BOT_RY * Math.sin(a1)
+  const large = a1 - a0 > Math.PI ? 1 : 0
+  return `M ${tsx.toFixed(1)} ${tsy.toFixed(1)} A ${PIE_R} ${PIE_R} 0 ${large} 1 ${tex.toFixed(1)} ${tey.toFixed(1)} L ${bex.toFixed(1)} ${bey.toFixed(1)} A ${PIE_R} ${PIE_BOT_RY} 0 ${large} 0 ${bsx.toFixed(1)} ${bsy.toFixed(1)} Z`
+}
+
+function generateExercise(usedDenoms: number[]): {
+  denom: number; numer: number; whole: number; correctAnswer: number; newUsedDenoms: number[]
+} {
+  const avail = [3, 4, 5, 6, 7, 8, 9, 10].filter(d => !usedDenoms.includes(d))
+  const pool = avail.length ? avail : [3, 4, 5, 6, 7, 8, 9, 10]
+  const denom = pool[Math.floor(Math.random() * pool.length)]
+  const newUsedDenoms = avail.length ? [...usedDenoms, denom] : [denom]
+  const numer = 2 + Math.floor(Math.random() * (denom - 2))
+  const mult = 2 + Math.floor(Math.random() * 9)
+  return { denom, numer, whole: denom * mult, correctAnswer: mult * numer, newUsedDenoms }
+}
+
+export default function GameClient() {
+  const router = useRouter()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const audioCtxRef = useRef<AudioContext | null>(null)
+  const usedDenomsRef = useRef<number[]>([])
+  const checkedRef = useRef(false)
+  const correctAnswerRef = useRef(4)
+  const coloredCellsRef = useRef<number[]>([])
+  const currentQRef = useRef(0)
+  const correctAnswersRef = useRef(0)
+
+  const [denom, setDenom] = useState(3)
+  const [numer, setNumer] = useState(2)
+  const [whole, setWhole] = useState(12)
+  const [coloredCells, setColoredCells] = useState<number[]>([])
+  const [currentQ, setCurrentQ] = useState(0)
+  const [inputValue, setInputValue] = useState('')
+  const [inputClass, setInputClass] = useState('answer-input')
+  const [calcFeedback, setCalcFeedback] = useState({ text: '', cls: '' })
+  const [rectFeedback, setRectFeedback] = useState({ text: '', cls: '' })
+  const [rectFeedbackMode, setRectFeedbackMode] = useState(false)
+  const [showCelebration, setShowCelebration] = useState(false)
+  const [showFlash, setShowFlash] = useState(false)
+  const [shakePie, setShakePie] = useState(false)
+  const [shakeInput, setShakeInput] = useState(false)
+
+  function getACtx() {
+    if (!audioCtxRef.current)
+      audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+    return audioCtxRef.current
+  }
+
+  function playSuccess() {
+    try {
+      const ctx = getACtx()
+      ;[523, 659, 784, 1047].forEach((freq, i) => {
+        const o = ctx.createOscillator(), g = ctx.createGain()
+        o.connect(g); g.connect(ctx.destination); o.type = 'sine'
+        o.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.12)
+        g.gain.setValueAtTime(0, ctx.currentTime + i * 0.12)
+        g.gain.linearRampToValueAtTime(0.18, ctx.currentTime + i * 0.12 + 0.02)
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.3)
+        o.start(ctx.currentTime + i * 0.12); o.stop(ctx.currentTime + i * 0.12 + 0.35)
+      })
+    } catch {}
+  }
+
+  function playError() {
+    try {
+      const ctx = getACtx()
+      const o = ctx.createOscillator(), g = ctx.createGain()
+      o.connect(g); g.connect(ctx.destination); o.type = 'sawtooth'
+      o.frequency.setValueAtTime(220, ctx.currentTime)
+      o.frequency.exponentialRampToValueAtTime(110, ctx.currentTime + 0.3)
+      g.gain.setValueAtTime(0.15, ctx.currentTime)
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35)
+      o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.4)
+    } catch {}
+  }
+
+  function playWin() {
+    try {
+      const ctx = getACtx()
+      ;[523, 659, 784, 659, 784, 1047, 784, 1047, 1319].forEach((freq, i) => {
+        const o = ctx.createOscillator(), g = ctx.createGain()
+        o.connect(g); g.connect(ctx.destination); o.type = 'sine'
+        o.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.1)
+        g.gain.setValueAtTime(0, ctx.currentTime + i * 0.1)
+        g.gain.linearRampToValueAtTime(0.15, ctx.currentTime + i * 0.1 + 0.02)
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.1 + 0.25)
+        o.start(ctx.currentTime + i * 0.1); o.stop(ctx.currentTime + i * 0.1 + 0.3)
+      })
+    } catch {}
+  }
+
+  function loadNewExercise() {
+    const { denom: d, numer: n, whole: w, correctAnswer: ca, newUsedDenoms } = generateExercise(usedDenomsRef.current)
+    usedDenomsRef.current = newUsedDenoms
+    correctAnswerRef.current = ca
+    checkedRef.current = false
+    coloredCellsRef.current = []
+    setDenom(d)
+    setNumer(n)
+    setWhole(w)
+    setColoredCells([])
+    setInputValue('')
+    setInputClass('answer-input')
+    setCalcFeedback({ text: '', cls: '' })
+    setRectFeedback({ text: '', cls: '' })
+    setRectFeedbackMode(false)
+    setTimeout(() => inputRef.current?.focus(), 60)
+  }
+
+  // SDK load + first exercise
+  useEffect(() => {
+    loadNewExercise()
+    const script = document.createElement('script')
+    script.src = '/sdk/mathplatform-sdk-v1.js'
+    script.onload = () => {
+      ;(window as any).MathPlatformSDK?.emit('GAME_STARTED', { gameId: GAME_ID })
+      setTimeout(() => inputRef.current?.focus(), 60)
+    }
+    document.head.appendChild(script)
+  }, [])
+
+  // CSS injection
+  useEffect(() => {
+    const style = document.createElement('style')
+    style.textContent = CSS
+    document.head.appendChild(style)
+    return () => { document.head.removeChild(style) }
+  }, [])
+
+  function toggleCell(idx: number) {
+    if (checkedRef.current) return
+    const next = coloredCellsRef.current.includes(idx)
+      ? coloredCellsRef.current.filter(i => i !== idx)
+      : [...coloredCellsRef.current, idx]
+    coloredCellsRef.current = next
+    setColoredCells([...next])
+  }
+
+  function spawnConfetti() {
+    const cols = ['#4aad7a', '#e8789a', '#a8e6c3', '#f7bdd0', '#2d7a4f', '#c2456b']
+    for (let i = 0; i < 60; i++) {
+      const c = document.createElement('div')
+      c.style.cssText = [
+        'position:fixed', 'pointer-events:none', 'z-index:200',
+        `left:${Math.random() * 100}vw`,
+        `background:${cols[Math.floor(Math.random() * cols.length)]}`,
+        `animation:confetti-fall ${1 + Math.random() * 0.8}s ease-in ${Math.random() * 0.8}s forwards`,
+        `width:${8 + Math.random() * 8}px`, `height:${8 + Math.random() * 8}px`,
+        `border-radius:${Math.random() > 0.5 ? '50%' : '2px'}`,
+      ].join(';')
+      document.body.appendChild(c)
+      setTimeout(() => c.remove(), 2400)
+    }
+  }
+
+  function checkAll() {
+    if (checkedRef.current) return
+    const curCorrect = correctAnswerRef.current
+    const curColoredCells = coloredCellsRef.current
+    const curQ = currentQRef.current
+    const curCorrectAnswers = correctAnswersRef.current
+    const hasCalc = inputValue.trim() !== ''
+    const hasRect = curColoredCells.length > 0
+
+    // שניהם ריקים — אל תמשיך
+    if (!hasCalc && !hasRect) {
+      setCalcFeedback({ text: 'יש למלא לפחות אחד מהשניים', cls: 'err' })
+      playError()
+      return
+    }
+
+    let calcOk = false
+    if (hasCalc) {
+      const val = parseInt(inputValue)
+      if (isNaN(val)) {
+        setInputClass('answer-input wrong')
+        setTimeout(() => setInputClass('answer-input'), 500)
+        setCalcFeedback({ text: 'יש להכניס מספר', cls: 'err' })
+        playError()
+        return
+      }
+      if (val === curCorrect) {
+        setInputClass('answer-input correct')
+        setCalcFeedback({ text: '✓ נכון!', cls: 'ok' })
+        calcOk = true
+      } else {
+        setInputClass('answer-input wrong')
+        setTimeout(() => setInputClass('answer-input'), 600)
+        setCalcFeedback({ text: val > curCorrect ? '✗ גדול מדי' : '✗ קטן מדי', cls: 'err' })
+      }
+    }
+
+    let rectOk = false
+    if (hasRect) {
+      const colored = curColoredCells.length
+      if (colored === numer) {
+        rectOk = true
+        setRectFeedbackMode(false)
+        setRectFeedback({ text: '✓ צביעה נכונה!', cls: 'ok' })
+      } else {
+        setRectFeedbackMode(true)
+        setRectFeedback({ text: colored > 1 ? '✗ צבעת יותר מדי חלקים' : '✗ צבעת פחות מדי חלקים', cls: 'err' })
+      }
+    }
+
+    // SDK: ANSWER
+    ;(window as any).MathPlatformSDK?.emit('ANSWER', {
+      correct: calcOk && rectOk,
+      questionId: `q-${curQ + 1}`,
+      questionType: 'fraction-of-number',
+      correctAnswer: String(curCorrect),
+      childAnswer: inputValue,
+      attemptNumber: 1,
+    })
+
+    if (calcOk && rectOk) {
+      checkedRef.current = true
+      const nextQ = curQ + 1
+      const newCorrectAnswers = curCorrectAnswers + 1
+      currentQRef.current = nextQ
+      correctAnswersRef.current = newCorrectAnswers
+      setCurrentQ(nextQ)
+      playSuccess()
+      setShowFlash(true)
+      setTimeout(() => setShowFlash(false), 500)
+
+      if (nextQ >= 5) {
+        setTimeout(() => {
+          playWin()
+          spawnConfetti()
+          const score = newCorrectAnswers * 20
+          const stars = score >= 90 ? 3 : score >= 60 ? 2 : 1
+          ;(window as any).MathPlatformSDK?.emit('GAME_OVER', {
+            score,
+            maxScore: 100,
+            stars,
+            correctAnswers: newCorrectAnswers,
+            totalQuestions: 5,
+          })
+          setShowCelebration(true)
+        }, 1100)
+      } else {
+        setTimeout(() => loadNewExercise(), 1000)
+      }
+    } else {
+      playError()
+      setTimeout(() => inputRef.current?.focus(), 60)
+      // רעידה: צד אחד נכון, השני ריק
+      if (calcOk && !hasRect) {
+        setShakePie(true); setTimeout(() => setShakePie(false), 500)
+      }
+      if (rectOk && !hasCalc) {
+        setShakeInput(true); setTimeout(() => setShakeInput(false), 500)
+      }
+    }
+  }
+
+
+  return (
+    <>
+      <GameBackButton />
+
+      {/* Green flash */}
+      <div className={`correct-flash${showFlash ? ' show' : ''}`} />
+
+      {/* Celebration overlay */}
+      {showCelebration && (
+        <div className="celebration-overlay">
+          <div className="celebration-box">
+            <span className="celebration-emoji">🎉</span>
+            <div className="celebration-title">כל הכבוד!</div>
+            <div className="celebration-sub">השלמת את כל 5 התרגילים!</div>
+            <br />
+            <button className="btn btn-continue" onClick={() => router.back()}>
+              המשך ▶
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="fractions-wrap">
+        <div className="fractions-app">
+          <div className="app-header">
+            <div className="app-title">🌿 תרגול שברים 🌸</div>
+          </div>
+
+          {/* Progress dots */}
+          <div className="progress-row">
+            {Array.from({ length: 5 }, (_, i) => (
+              <div
+                key={i}
+                className={`progress-dot${i < currentQ ? ' done' : i === currentQ ? ' current' : ''}`}
+              >
+                {i < currentQ ? '✓' : ''}
+              </div>
+            ))}
+          </div>
+
+          {/* Exercise card */}
+          <div className="exercise-card">
+            {/* Left: pie */}
+            <div className="left-panel">
+              <div className="side-label">צבע את השבר בעוגה</div>
+              <svg
+                className={shakePie ? 'shake' : ''}
+                width="160" height="140"
+                viewBox="0 0 160 140"
+                style={{ display: 'block', overflow: 'visible' }}
+              >
+                {/* Ground shadow */}
+                <ellipse cx={PIE_CX} cy={PIE_CY + PIE_CYL_H + 8} rx={PIE_R - 5} ry={PIE_BOT_RY - 4} fill="rgba(0,0,0,0.10)" />
+                {/* Bottom base */}
+                <ellipse cx={PIE_CX} cy={PIE_CY + PIE_CYL_H} rx={PIE_R} ry={PIE_BOT_RY} fill="#c07828" />
+                {/* Side walls */}
+                {Array.from({ length: denom }, (_, i) => {
+                  const a0 = (i * 2 * Math.PI / denom) - Math.PI / 2
+                  const a1 = ((i + 1) * 2 * Math.PI / denom) - Math.PI / 2
+                  const isColored = coloredCells.includes(i)
+                  const wp = pieSideWallPath(a0, a1)
+                  if (!wp) return null
+                  return <path key={`w${i}`} d={wp} fill={rectFeedbackMode && isColored ? '#c2456b' : isColored ? '#d4882a' : '#dbd5d0'} stroke="rgba(0,0,0,0.07)" strokeWidth="0.5" />
+                })}
+                {/* Top slices */}
+                {Array.from({ length: denom }, (_, i) => {
+                  const a0 = (i * 2 * Math.PI / denom) - Math.PI / 2
+                  const a1 = ((i + 1) * 2 * Math.PI / denom) - Math.PI / 2
+                  const isColored = coloredCells.includes(i)
+                  return (
+                    <path
+                      key={`s${i}`}
+                      d={pieSlicePath(a0, a1)}
+                      fill={rectFeedbackMode && isColored ? '#e8789a' : isColored ? '#f5a623' : '#faf7f2'}
+                      stroke="rgba(0,0,0,0.15)"
+                      strokeWidth="1"
+                      className="pie-slice"
+                      onClick={() => toggleCell(i)}
+                    />
+                  )
+                })}
+                {/* Center dot */}
+                <circle cx={PIE_CX} cy={PIE_CY} r={3} fill="rgba(0,0,0,0.18)" style={{ pointerEvents: 'none' }} />
+              </svg>
+              <div className={`rect-feedback${rectFeedback.cls ? ' ' + rectFeedback.cls : ''}`}>
+                {rectFeedback.text}
+              </div>
+            </div>
+
+            <div className="vdivider" />
+
+            {/* Center: fraction */}
+            <div className="fraction-center">
+              <div className="fraction-box">
+                <div className="frac-num">{numer}</div>
+                <div className="frac-line" />
+                <div className="frac-denom">{denom}</div>
+              </div>
+              <div className="frac-name">{`${numer}/${denom}`}</div>
+            </div>
+
+            <div className="vdivider" />
+
+            {/* Right: calculation */}
+            <div className="right-panel">
+              <div className="side-label">{`כמה זה ${numer}/${denom} מ-${whole}?`}</div>
+              <div className="whole-number">{whole}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }} className={shakeInput ? 'shake' : ''}>
+                <button
+                  className="btn-stepper"
+                  onPointerDown={() => setInputValue(v => String((parseInt(v) || 0) + 1))}
+                >▲</button>
+                <input
+                  ref={inputRef}
+                  type="number"
+                  className={inputClass}
+                  placeholder="?"
+                  min={1}
+                  max={999}
+                  value={inputValue}
+                  onChange={e => setInputValue(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') checkAll() }}
+                />
+                <button
+                  className="btn-stepper"
+                  onPointerDown={() => setInputValue(v => String(Math.max(0, (parseInt(v) || 0) - 1)))}
+                >▼</button>
+              </div>
+              <div className={`calc-feedback${calcFeedback.cls ? ' ' + calcFeedback.cls : ''}`}>
+                {calcFeedback.text}
+              </div>
+            </div>
+          </div>
+
+          {/* Buttons */}
+          <div className="btn-row">
+            <button className="btn btn-check" onClick={checkAll}>בדיקה ✓</button>
+            <button className="btn btn-new" onClick={loadNewExercise}>תרגיל חדש ↻</button>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
