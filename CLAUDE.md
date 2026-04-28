@@ -80,6 +80,13 @@ mathplatform-app/
 
 **קרא את `docs/GAME_INTEGRATION.md` לפני כל הוספת משחק.**
 
+## משחקים עם התקדמות פנימית
+
+משחק `math-addition-subtraction-001` כולל מפה פנימית של 21 שלבים.
+שמירת ההתקדמות הפנימית נעשית דרך טבלת `game_internal_progress` ב-Supabase + localStorage כ-fallback.
+בעת הוספת משחק דומה בעתיד — השתמש באותו API route:
+`app/api/game-progress/[childId]/[gameId]/route.ts`
+
 צ'קליסט מהיר:
 ```
 □ GAME_ID מוגדר ותואם ל-id ב-Supabase
@@ -297,6 +304,7 @@ MathPlatformSDK.emit('GAME_OVER', { score, maxScore, stars, correctAnswers, tota
 | math-fractions-002 | מחילוק לשברים | 4 | 2 |
 | math-word-problems-001 | שאלות מילוליות — 4 פעולות | 3 | 2 |
 | math-fractions-003 | שברים עם מונה גדול מ-1 | 4 | 2 |
+| math-addition-subtraction-001 | חיבור וחיסור — לגו מתמטיקה | 1 | 2 |
 
 ראה גם `docs/GAMES_CATALOG.md`
 
