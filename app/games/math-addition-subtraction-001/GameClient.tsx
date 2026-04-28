@@ -10,10 +10,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
 ───────────────────────────────────────────── */
 const COLORS = ['#E3000B','#006CB7','#00A650','#FF6B00','#7B2D8B','#00A99D','#CC5500','#2255CC'];
 const BRICK_H = 52, UNIT_W = 38, UNIT_GAP = 2, FLOOR_H = 46, GRAVITY = 0.55, BOUNCE = 0.28;
-const brickW = v => v * UNIT_W + (v - 1) * UNIT_GAP;
-const rnd = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
-const pickColor = ex => { const p = ex ? COLORS.filter(c => c !== ex) : COLORS; return p[Math.floor(Math.random() * p.length)]; };
-const darken = hex => {
+const brickW = (v: number) => v * UNIT_W + (v - 1) * UNIT_GAP;
+const rnd = (a: number, b: number) => Math.floor(Math.random() * (b - a + 1)) + a;
+const pickColor = (ex?: string) => { const p = ex ? COLORS.filter(c => c !== ex) : COLORS; return p[Math.floor(Math.random() * p.length)]; };
+const darken = (hex: string) => {
   const c = parseInt(hex.slice(1), 16);
   return `rgb(${Math.max(0,(c>>16)-45)},${Math.max(0,((c>>8)&255)-45)},${Math.max(0,(c&255)-45)})`;
 };
@@ -21,9 +21,9 @@ const darken = hex => {
 /* ─────────────────────────────────────────────
    AUDIO
 ───────────────────────────────────────────── */
-let audioCtx = null;
-const getAudio = () => { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); return audioCtx; };
-const playTone = (freq, type, dur, vol = 0.3, startFreq = null) => {
+let audioCtx: AudioContext | null = null;
+const getAudio = () => { if (!audioCtx) audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)(); return audioCtx; };
+const playTone = (freq: number, type: OscillatorType, dur: number, vol = 0.3, startFreq: number | null = null) => {
   try {
     const ctx = getAudio();
     const osc = ctx.createOscillator(), gain = ctx.createGain();
@@ -38,7 +38,7 @@ const playTone = (freq, type, dur, vol = 0.3, startFreq = null) => {
 };
 const soundSuccess = () => [523,659,784,1047].forEach((f,i) => setTimeout(() => playTone(f,'sine',0.18,0.25), i*80));
 const soundWrong = () => playTone(120,'sawtooth',0.35,0.2,280);
-const soundMerge = val => { const freq = 200 + val * 30; playTone(freq,'sine',0.15,0.22,freq*1.4); };
+const soundMerge = (val: number) => { const freq = 200 + val * 30; playTone(freq,'sine',0.15,0.22,freq*1.4); };
 const soundLevelComplete = () => {
   [523,659,784,1047,1318].forEach((f,i) => setTimeout(() => playTone(f,'sine',0.25,0.28), i*100));
   setTimeout(() => playTone(1047,'sine',0.5,0.3), 600);
@@ -123,8 +123,8 @@ const NODE_COLOR_STYLES = [
 /* ─────────────────────────────────────────────
    SAVE / LOAD
 ───────────────────────────────────────────── */
-const saveState = s => { try { localStorage.setItem('legoMath_v1', JSON.stringify(s)); } catch(e){} };
-const loadState = () => { try { return JSON.parse(localStorage.getItem('legoMath_v1')); } catch(e){ return null; } };
+const saveState = (s: object) => { try { localStorage.setItem('legoMath_v1', JSON.stringify(s)); } catch(e){} };
+const loadState = () => { try { return JSON.parse(localStorage.getItem('legoMath_v1') ?? 'null'); } catch(e){ return null; } };
 const defaultState = () => ({ currentLevel: 0, levels: Array.from({length:21},(_,i)=>({stars:0,unlocked:i===0})) });
 
 /* ─────────────────────────────────────────────
@@ -158,7 +158,7 @@ const RobotSVG = ({ size = 52 }) => (
 /* ─────────────────────────────────────────────
    GENERATE EXERCISES
 ───────────────────────────────────────────── */
-const genExercises = levelIdx => {
+const genExercises = (levelIdx: number) => {
   const lvl = LEVELS[levelIdx];
   const exs = [];
   let prevAns = null;
@@ -170,20 +170,20 @@ const genExercises = levelIdx => {
       attempt++;
     } while (ans === prevAns && attempt < 12);
     prevAns = ans;
-    if (lvl.op === '+chain') exs.push({ chain: res.slice(0,-1), ans: res[res.length-1], op: '+' });
-    else if (lvl.op === 'mix') exs.push({ a: res[0], b: res[1], ans: res[2], op: res[3] });
-    else exs.push({ a: res[0], b: res[1], ans: res[2], op: lvl.op });
+    if (lvl.op === '+chain') exs.push({ chain: res.slice(0,-1) as number[], ans: res[res.length-1] as number, op: '+' });
+    else if (lvl.op === 'mix') exs.push({ a: res[0] as number, b: res[1] as number, ans: res[2] as number, op: String(res[3]) });
+    else exs.push({ a: res[0] as number, b: res[1] as number, ans: res[2] as number, op: lvl.op });
   }
   return exs;
 };
 
-const freshExercise = (levelIdx, prevAns) => {
+const freshExercise = (levelIdx: number, prevAns: number | null) => {
   const lvl = LEVELS[levelIdx];
   let res, ans, att = 0;
   do { res = lvl.gen(); ans = lvl.op==='+chain'?res[res.length-1]:res[2]; att++; } while (ans===prevAns && att<12);
-  if (lvl.op==='+chain') return { chain:res.slice(0,-1), ans:res[res.length-1], op:'+' };
-  if (lvl.op==='mix') return { a:res[0], b:res[1], ans:res[2], op:res[3] };
-  return { a:res[0], b:res[1], ans:res[2], op:lvl.op };
+  if (lvl.op==='+chain') return { chain:res.slice(0,-1) as number[], ans:res[res.length-1] as number, op:'+' };
+  if (lvl.op==='mix') return { a:res[0] as number, b:res[1] as number, ans:res[2] as number, op:String(res[3]) };
+  return { a:res[0] as number, b:res[1] as number, ans:res[2] as number, op:lvl.op };
 };
 
 /* ─────────────────────────────────────────────
@@ -248,6 +248,28 @@ const CSS = `
 `;
 
 /* ─────────────────────────────────────────────
+   TYPES
+───────────────────────────────────────────── */
+interface Brick {
+  id: number;
+  val: number;
+  color: string;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  el: HTMLDivElement;
+}
+
+type Exercise = {
+  ans: number;
+  op: string;
+  a?: number;
+  b?: number;
+  chain?: number[];
+};
+
+/* ─────────────────────────────────────────────
    MAIN COMPONENT
 ───────────────────────────────────────────── */
 export default function GameClient() {
@@ -255,27 +277,27 @@ export default function GameClient() {
   const [screen, setScreen] = useState('map'); // 'map' | 'game'
   const [gameState, setGameState] = useState(() => defaultState());
   const childIdRef = useRef<string | null>(null);
-  const [confetti, setConfetti] = useState([]);
+  const [confetti, setConfetti] = useState<{ id: number; left: number; color: string; duration: number; delay: number }[]>([]);
 
   // Game state
   const [currentLevelIdx, setCurrentLevelIdx] = useState(0);
-  const [exercises, setExercises] = useState([]);
+  const [exercises, setExercises] = useState<Exercise[]>([]);
   const [exIdx, setExIdx] = useState(0);
   const [hearts, setHearts] = useState(3);
   const [mistakes, setMistakes] = useState(0);
   const [progressPct, setProgressPct] = useState(0);
   const [numpadOpen, setNumpadOpen] = useState(false);
   const [answered, setAnswered] = useState(false);
-  const [typedAns, setTypedAns] = useState(null);
+  const [typedAns, setTypedAns] = useState<number | null>(null);
   const [cardFlip, setCardFlip] = useState(''); // '' | 'out' | 'in'
   const [robotCelebrate, setRobotCelebrate] = useState(false);
   const [levelComplete, setLevelComplete] = useState(false);
   const [lcStars, setLcStars] = useState(0);
-  const [hiddenKeys, setHiddenKeys] = useState(new Set());
+  const [hiddenKeys, setHiddenKeys] = useState<Set<number>>(new Set());
   const [shakeHeart, setShakeHeart] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
   const [hintMode, setHintMode] = useState(false);
-  const hiddenKeysRef = useRef(new Set());
+  const hiddenKeysRef = useRef<Set<number>>(new Set());
   const hintModeRef = useRef(false);
 
   // Tutorial state
@@ -283,29 +305,29 @@ export default function GameClient() {
   const tutorialStepRef = useRef(0);
 
   // Slash state
-  const slashStartRef = useRef(null);
-  const slashSvgRef = useRef(null);
-  const slashLineRef = useRef(null);
+  const slashStartRef = useRef<{ x: number; y: number } | null>(null);
+  const slashSvgRef = useRef<SVGSVGElement | null>(null);
+  const slashLineRef = useRef<SVGLineElement | null>(null);
   const isSlashingRef = useRef(false);
 
   const sessionCorrectRef = useRef(0);
   const sessionTotalRef = useRef(0);
 
   // Bricks (managed via refs for physics loop)
-  const bricksRef = useRef([]);
+  const bricksRef = useRef<Brick[]>([]);
   const nextIdRef = useRef(0);
-  const playgroundRef = useRef(null);
-  const playgroundInnerRef = useRef(null);
-  const trashBinRef = useRef(null);
+  const playgroundRef = useRef<HTMLDivElement | null>(null);
+  const playgroundInnerRef = useRef<HTMLDivElement | null>(null);
+  const trashBinRef = useRef<HTMLDivElement | null>(null);
   const physicsRunningRef = useRef(false);
   const isDraggingRef = useRef(false);
-  const dragBrickRef = useRef(null);
+  const dragBrickRef = useRef<Brick | null>(null);
   const dragOXRef = useRef(0);
   const dragOYRef = useRef(0);
-  const mapScreenRef = useRef(null);
-  const mapSceneRef = useRef(null);
-  const mapRobotRef = useRef(null);
-  const exercisesRef = useRef([]);
+  const mapScreenRef = useRef<HTMLDivElement | null>(null);
+  const mapSceneRef = useRef<HTMLDivElement | null>(null);
+  const mapRobotRef = useRef<HTMLDivElement | null>(null);
+  const exercisesRef = useRef<Exercise[]>([]);
   const exIdxRef = useRef(0);
   const heartsRef = useRef(3);
   const mistakesRef = useRef(0);
@@ -380,11 +402,11 @@ export default function GameClient() {
     const style = document.createElement('style');
     style.textContent = CSS;
     document.head.appendChild(style);
-    return () => document.head.removeChild(style);
+    return () => { document.head.removeChild(style); };
   }, []);
 
   /* ─── SAVE STATE ─── */
-  const updateAndSave = updater => {
+  const updateAndSave = (updater: (prev: ReturnType<typeof defaultState>) => ReturnType<typeof defaultState>) => {
     setGameState(prev => {
       const next = updater(prev);
       saveState(next);
@@ -408,7 +430,7 @@ export default function GameClient() {
     mapScreenRef.current.scrollTop = Math.max(0, pos.y - 200);
   };
 
-  const buildMapRobot = useCallback((levelIdx, animate = false, fromIdx = null) => {
+  const buildMapRobot = useCallback((levelIdx: number, animate = false, fromIdx: number | null = null) => {
     if (!mapSceneRef.current) return;
     if (mapRobotRef.current) { mapRobotRef.current.remove(); mapRobotRef.current = null; }
     const toPos = NODE_POSITIONS[levelIdx];
@@ -480,7 +502,7 @@ export default function GameClient() {
     bricksRef.current = [];
   };
 
-  const isOverTrash = b => {
+  const isOverTrash = (b: Brick) => {
     if (!playgroundRef.current || !trashBinRef.current) return false;
     const pgRect = playgroundRef.current.getBoundingClientRect();
     const tRect = trashBinRef.current.getBoundingClientRect();
@@ -488,7 +510,7 @@ export default function GameClient() {
     return b.x < tL + tRect.width && b.x + brickW(b.val) > tL && b.y < tT + tRect.height && b.y + BRICK_H > tT;
   };
 
-  const removeBrickById = id => {
+  const removeBrickById = (id: number) => {
     const idx = bricksRef.current.findIndex(b => b.id === id);
     if (idx < 0) return;
     const b = bricksRef.current[idx];
@@ -496,17 +518,17 @@ export default function GameClient() {
     if (b.el && b.el.parentNode) b.el.parentNode.removeChild(b.el);
   };
 
-  const bricksOverlap = (a, b) =>
+  const bricksOverlap = (a: Brick, b: Brick) =>
     a.x < b.x + brickW(b.val) && a.x + brickW(a.val) > b.x && a.y < b.y + BRICK_H && a.y + BRICK_H > b.y;
 
-  const bringToFront = brick => {
-    bricksRef.current.forEach(x => { if (x.el) x.el.style.zIndex = 10; });
-    if (brick.el) brick.el.style.zIndex = 100;
+  const bringToFront = (brick: Brick) => {
+    bricksRef.current.forEach(x => { if (x.el) x.el.style.zIndex = '10'; });
+    if (brick.el) brick.el.style.zIndex = '100';
   };
 
-  const addBrick = useCallback((val, color, x, y) => {
+  const addBrick = useCallback((val: number, color: string, x: number, y: number) => {
     const id = nextIdRef.current++;
-    const brick = { id, val, color, x, y, vx: 0, vy: 0 };
+    const brick = { id, val, color, x, y, vx: 0, vy: 0 } as Brick;
     bricksRef.current.push(brick);
     const el = document.createElement('div');
     el.className = 'lm-brick';
@@ -514,20 +536,20 @@ export default function GameClient() {
     el.style.cssText = `width:${w}px;height:${BRICK_H}px;background:${color};box-shadow:0 5px 0 ${darken(color)},0 7px 14px rgba(0,0,0,0.18);left:${x}px;top:${y}px;z-index:10;`;
     const lbl = document.createElement('div');
     lbl.style.cssText = 'font-size:1.6rem;color:rgba(255,255,255,0.95);text-shadow:1px 1px 3px rgba(0,0,0,0.4);position:relative;z-index:2;pointer-events:none;font-family:Fredoka One,cursive;';
-    lbl.textContent = val;
+    lbl.textContent = String(val);
     el.appendChild(lbl);
-    brick.el = el;
+    (brick as Brick).el = el;
 
     setupBrickDrag(el, brick);
     if (playgroundInnerRef.current) playgroundInnerRef.current.appendChild(el);
     return brick;
   }, []);
 
-  const setupBrickDrag = (el, brick) => {
+  const setupBrickDrag = (el: HTMLDivElement, brick: Brick) => {
     let touchStartX = 0, touchStartY = 0, touchMoved = false, lastTapTime = 0;
     const MOVE_THRESHOLD = 8;
 
-    const doSplit = clientX => {
+    const doSplit = (clientX: number) => {
       if (brick.val <= 1) return;
       const rect = el.getBoundingClientRect();
       const localX = clientX - rect.left;
@@ -540,7 +562,7 @@ export default function GameClient() {
       addBrick(v2, c2, x + brickW(v1) + 14, y);
     };
 
-    const startDrag = (cx, cy) => {
+    const startDrag = (cx: number, cy: number) => {
       isDraggingRef.current = true; dragBrickRef.current = brick;
       const rect = el.getBoundingClientRect();
       dragOXRef.current = cx - rect.left; dragOYRef.current = cy - rect.top;
@@ -552,9 +574,9 @@ export default function GameClient() {
       }
     };
 
-    const onMouseMove = e => {
+    const onMouseMove = (e: MouseEvent) => {
       if (!isDraggingRef.current || dragBrickRef.current !== brick) return;
-      const pgRect = playgroundRef.current.getBoundingClientRect();
+      const pgRect = playgroundRef.current!.getBoundingClientRect();
       brick.x = e.clientX - pgRect.left - dragOXRef.current;
       brick.y = e.clientY - pgRect.top - dragOYRef.current;
       el.style.left = brick.x + 'px'; el.style.top = brick.y + 'px';
@@ -587,7 +609,7 @@ export default function GameClient() {
       const dx = t.clientX - touchStartX, dy = t.clientY - touchStartY;
       if (!touchMoved && Math.sqrt(dx*dx+dy*dy) > MOVE_THRESHOLD) { touchMoved = true; startDrag(touchStartX, touchStartY); }
       if (touchMoved && isDraggingRef.current && dragBrickRef.current === brick) {
-        const pgRect = playgroundRef.current.getBoundingClientRect();
+        const pgRect = playgroundRef.current!.getBoundingClientRect();
         brick.x = t.clientX - pgRect.left - dragOXRef.current;
         brick.y = t.clientY - pgRect.top - dragOYRef.current;
         el.style.left = brick.x + 'px'; el.style.top = brick.y + 'px';
@@ -615,7 +637,7 @@ export default function GameClient() {
     }, { passive: false });
   };
 
-  const tryMerge = brick => {
+  const tryMerge = (brick: Brick) => {
     for (const other of bricksRef.current) {
       if (other === brick) continue;
       if (!bricksOverlap(brick, other)) continue;
@@ -627,7 +649,7 @@ export default function GameClient() {
   const tutorialCheckSliceRef = useRef<() => void>(() => {});
   const spawnConfettiRef = useRef<(n: number) => void>(() => {});
 
-  const doMerge = (moved, other) => {
+  const doMerge = (moved: Brick, other: Brick) => {
     const total = moved.val + other.val;
     if (total <= 10) { mergeBricksAction(moved, other, total); }
     else {
@@ -644,7 +666,7 @@ export default function GameClient() {
     }
   };
 
-  const mergeBricksAction = (moved, stationary, v) => {
+  const mergeBricksAction = (moved: Brick, stationary: Brick, v: number) => {
     const color = moved.val >= stationary.val ? moved.color : stationary.color;
     const y = stationary.y;
     const movedCx = moved.x + brickW(moved.val) / 2, statCx = stationary.x + brickW(stationary.val) / 2;
@@ -661,10 +683,10 @@ export default function GameClient() {
   };
 
   /* ─── SLASH HELPERS ─── */
-  const doSlashSplit = useCallback((sx, sy, ex, ey) => {
+  const doSlashSplit = useCallback((sx: number, sy: number, ex: number, ey: number) => {
     // Sample multiple points along the slash line to find a hit
     const steps = 20;
-    let hitX = null, hitBrick = null;
+    let hitX: number | null = null, hitBrick: Brick | null = null;
     for (let i = 0; i <= steps; i++) {
       const t = i / steps;
       const px = sx + (ex - sx) * t;
@@ -679,7 +701,7 @@ export default function GameClient() {
       }
       if (hitBrick) break;
     }
-    if (!hitBrick) return;
+    if (!hitBrick || hitX === null) return;
 
     const localX = hitX - hitBrick.x;
     const segW = brickW(hitBrick.val) / hitBrick.val;
@@ -699,7 +721,7 @@ export default function GameClient() {
   }, [addBrick]);
 
   /* ─── SLASH pointer handlers for playground ─── */
-  const handlePlaygroundPointerDown = useCallback(e => {
+  const handlePlaygroundPointerDown = useCallback((e: React.PointerEvent) => {
     // Only handle direct playground clicks (not on bricks - bricks stopPropagation on mousedown)
     if (isDraggingRef.current) return;
     if (!playgroundRef.current) return;
@@ -717,17 +739,17 @@ export default function GameClient() {
     if (playgroundRef.current) playgroundRef.current.style.cursor = 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'32\' height=\'32\' viewBox=\'0 0 32 32\'%3E%3Ctext y=\'28\' font-size=\'28\'%3E✂️%3C/text%3E%3C/svg%3E") 16 16, crosshair'
     slashStartRef.current = { x, y };
     if (slashLineRef.current) {
-      slashLineRef.current.setAttribute('x1', x);
-      slashLineRef.current.setAttribute('y1', y);
-      slashLineRef.current.setAttribute('x2', x);
-      slashLineRef.current.setAttribute('y2', y);
+      slashLineRef.current.setAttribute('x1', String(x));
+      slashLineRef.current.setAttribute('y1', String(y));
+      slashLineRef.current.setAttribute('x2', String(x));
+      slashLineRef.current.setAttribute('y2', String(y));
       slashLineRef.current.style.opacity = '1';
       slashLineRef.current.classList.remove('lm-slash-line-fade');
     }
     e.stopPropagation();
   }, []);
 
-  const handlePlaygroundPointerMove = useCallback(e => {
+  const handlePlaygroundPointerMove = useCallback((e: React.PointerEvent) => {
     if (isSlashingRef.current) {
       if (playgroundRef.current) playgroundRef.current.style.cursor =
         'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'32\' height=\'32\' viewBox=\'0 0 32 32\'%3E%3Ctext y=\'28\' font-size=\'28\'%3E✂️%3C/text%3E%3C/svg%3E") 16 16, crosshair'
@@ -742,12 +764,12 @@ export default function GameClient() {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     if (slashLineRef.current) {
-      slashLineRef.current.setAttribute('x2', x);
-      slashLineRef.current.setAttribute('y2', y);
+      slashLineRef.current.setAttribute('x2', String(x));
+      slashLineRef.current.setAttribute('y2', String(y));
     }
   }, []);
 
-  const handlePlaygroundPointerUp = useCallback(e => {
+  const handlePlaygroundPointerUp = useCallback((e: React.PointerEvent) => {
     if (!isSlashingRef.current || !slashStartRef.current) return;
     if (!playgroundRef.current) return;
     const rect = playgroundRef.current.getBoundingClientRect();
@@ -809,7 +831,7 @@ export default function GameClient() {
   }, [addBrick]);
 
   /* ─── LOAD EXERCISE ─── */
-  const loadExerciseBricks = useCallback((ex) => {
+  const loadExerciseBricks = useCallback((ex: Exercise) => {
     clearBricks();
     if (!playgroundRef.current) return;
     const pgW = playgroundRef.current.offsetWidth, pgH = playgroundRef.current.offsetHeight;
@@ -822,17 +844,17 @@ export default function GameClient() {
       const colors = [c1, c2, ...COLORS.filter(c => c !== c1 && c !== c2)];
       vals.forEach((v, i) => { addBrick(v, colors[i % colors.length], sx, gY - 60); sx += brickW(v) + 20; });
     } else if (ex.op === '-') {
-      const w1 = brickW(ex.a);
-      addBrick(ex.a, c1, (pgW - w1) / 2, gY - 60);
+      const w1 = brickW(ex.a!);
+      addBrick(ex.a!, c1, (pgW - w1) / 2, gY - 60);
     } else {
-      const w1 = brickW(ex.a), w2 = brickW(ex.b), gap = 20, totalW = w1 + gap + w2;
+      const w1 = brickW(ex.a!), w2 = brickW(ex.b!), gap = 20, totalW = w1 + gap + w2;
       const startX = (pgW - totalW) / 2;
-      addBrick(ex.a, c1, startX, gY - 60);
-      addBrick(ex.b, c2, startX + w1 + gap, gY - 60);
+      addBrick(ex.a!, c1, startX, gY - 60);
+      addBrick(ex.b!, c2, startX + w1 + gap, gY - 60);
     }
   }, [addBrick]);
 
-  const loadExercise = useCallback((ex, animate = true) => {
+  const loadExercise = useCallback((ex: Exercise, animate = true) => {
     if (animate) {
       setCardFlip('out');
       setTimeout(() => {
@@ -856,7 +878,7 @@ export default function GameClient() {
   }, [loadExerciseBricks]);
 
   /* ─── START LEVEL ─── */
-  const startLevel = useCallback(idx => {
+  const startLevel = useCallback((idx: number) => {
     currentLevelIdxRef.current = idx;
     setCurrentLevelIdx(idx);
     const exs = genExercises(idx);
@@ -944,7 +966,7 @@ export default function GameClient() {
     }
   }, [updateAndSave]);
 
-  const spawnConfetti = useCallback(n => {
+  const spawnConfetti = useCallback((n: number) => {
     const all = [...COLORS, '#FFD700', '#FF69B4'];
     const pieces = Array.from({ length: n }, (_, i) => ({
       id: Date.now() + i + Math.random(),
@@ -1005,7 +1027,7 @@ export default function GameClient() {
     }
   }, [addBrick]);
 
-  const typeAnswer = useCallback(n => {
+  const typeAnswer = useCallback((n: number) => {
     if (answeredRef.current) return;
     const ex = exercisesRef.current[exIdxRef.current];
     if (!ex) return;
@@ -1060,7 +1082,7 @@ export default function GameClient() {
           const nextEx = wasHint
             ? freshExercise(currentLevelIdxRef.current, ans)
             : exercisesRef.current[exIdxRef.current];
-          loadExercise(nextEx, true);
+          if (nextEx) loadExercise(nextEx, true);
         }, 1400);
       }
     } else {
@@ -1070,20 +1092,21 @@ export default function GameClient() {
       const isLastHeart = heartsRef.current === 1;
       const keyEls = document.querySelectorAll('.lm-numkey');
       keyEls.forEach(k => {
-        const kn = +k.dataset.n;
+        const el = k as HTMLElement;
+        const kn = +el.dataset.n!;
         const isClicked = kn === n;
         const isWrong = kn !== ans2;
         const isVisible = !hiddenKeysRef.current.has(kn);
         if (isClicked || (isLastHeart && isWrong && isVisible)) {
-          const rect = k.getBoundingClientRect();
+          const rect = el.getBoundingClientRect();
           if (rect.width === 0) return;
-          const clone = k.cloneNode(true);
+          const clone = el.cloneNode(true) as HTMLElement;
           clone.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;background:white;border:3px solid #E3000B;color:#E3000B;border-radius:14px;display:flex;align-items:center;justify-content:center;font-family:'Fredoka One',cursive;font-size:1.4rem;z-index:9990;pointer-events:none;animation:lm-keyFall 0.8s ease-in forwards;`;
           document.body.appendChild(clone);
           setTimeout(() => clone.remove(), 900);
         }
       });
-      if (isLastHeart) {
+      if (isLastHeart && ans2 !== null) {
         const allWrong = new Set(
           Array.from({length:10}, (_,i) => (ans2 <= 10 ? 1 : 11) + i).filter(x => x !== ans2)
         );
@@ -1114,8 +1137,8 @@ export default function GameClient() {
   }, [buildMapRobot]);
 
   /* ─── MAP NODE DOUBLE-TAP UNLOCK ─── */
-  const unlockTaps = useRef({});
-  const handleNodeClick = (i) => {
+  const unlockTaps = useRef<Record<number, number>>({});
+  const handleNodeClick = (i: number) => {
     const gs = gameStateRef.current;
     if (gs.levels[i].unlocked) {
       if (i === 0) { startTutorial(); return; }
