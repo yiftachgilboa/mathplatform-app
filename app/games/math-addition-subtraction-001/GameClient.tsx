@@ -1060,7 +1060,9 @@ export default function GameClient() {
             const mapNodeIdx = currentLevelIdxRef.current + 1;
             const next = { ...prev, levels: prev.levels.map((l,i) => i === mapNodeIdx ? { ...l, stars: Math.max(l.stars, stars), unlocked: true } : l) };
             const nextIdx = mapNodeIdx + 1;
-            if (nextIdx <= 20) next.levels[nextIdx] = { ...next.levels[nextIdx], unlocked: true };
+            if (stars === 3) {
+              if (next.levels[nextIdx]) next.levels[nextIdx] = { ...next.levels[nextIdx], unlocked: true };
+            }
             if (stars === 3 && nextIdx > next.currentLevel) next.currentLevel = nextIdx;
             return next;
           });
@@ -1131,7 +1133,12 @@ export default function GameClient() {
     setScreen('map');
     if (withRobot) {
       setTimeout(() => {
-        buildMapRobot(currentLevelIdxRef.current, true, currentLevelIdxRef.current);
+        const completedNodeIdx = currentLevelIdxRef.current + 1;
+        if (completedStars === 3 && gameStateRef.current.levels[completedNodeIdx + 1]?.unlocked) {
+          buildMapRobot(completedNodeIdx + 1, true, completedNodeIdx);
+        } else {
+          buildMapRobot(completedNodeIdx, true, completedNodeIdx);
+        }
       }, 300);
     }
   }, [buildMapRobot]);
