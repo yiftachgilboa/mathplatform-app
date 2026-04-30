@@ -389,3 +389,53 @@ s.from('TABLE_NAME').select('*').limit(3).then(r => console.log(JSON.stringify(r
 - נרמול גרש עברי
 - זיהוי טעות מכוונת vs סתם דיבור
 - מנגנון streaks להצלחות
+
+---
+
+## המרת קבצי JavaScript ל-TypeScript (Next.js)
+
+כשמעתיקים קוד JS לקובץ TSX, חובה להוסיף טיפוסים לכל פרמטר:
+
+### דוגמאות נפוצות
+- `const fn = (v) =>` → `const fn = (v: number) =>`
+- `const fn = (a, b) =>` → `const fn = (a: number, b: number) =>`
+- `const fn = (hex) =>` → `const fn = (hex: string) =>`
+- `useRef(() => {})` → `useRef<() => void>(() => {})`
+- `useRef(null)` → `useRef<HTMLDivElement | null>(null)`
+
+הרץ `npm run build` לפני כל push — שגיאות TypeScript לא מופיעות ב-dev אבל שוברות את Vercel.
+
+---
+
+## תלויות מעגליות ב-useCallback
+
+כשממירים קובץ JS גדול עם הרבה `useCallback` — בדוק תלויות מעגליות לפני הריצה.
+
+### הבעיה
+פונקציה A מופיעה ב-dependencies של פונקציה B שמוגדרת לפניה:
+```ts
+const doMerge = useCallback(() => {
+  tutorialCheckMerge() // ❌ לא מוגדרת עדיין
+}, [tutorialCheckMerge])
+
+const tutorialCheckMerge = useCallback(() => { ... }, [])
+```
+
+### הפתרון — דפוס ref
+```ts
+// 1. הוסף ref לפני הפונקציה המוקדמת
+const tutorialCheckMergeRef = useRef<() => void>(() => {})
+
+// 2. בתוך הפונקציה המוקדמת — קרא דרך ref
+const doMerge = useCallback(() => {
+  tutorialCheckMergeRef.current() // ✅
+}, []) // הסר מ-dependencies
+
+// 3. אחרי ההגדרה של הפונקציה המאוחרת — עדכן את ה-ref
+useEffect(() => {
+  tutorialCheckMergeRef.current = tutorialCheckMerge
+}, [tutorialCheckMerge])
+```
+
+### זיהוי מוקדם
+לפני הריצה — חפש ב-GameClient.tsx את המילה `useCallback` ובדוק שכל dependency מוגדרת **לפני** השימוש בה.
