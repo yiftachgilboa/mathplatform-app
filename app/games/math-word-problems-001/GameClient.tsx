@@ -333,7 +333,8 @@ export default function GameClient(){
     } else {
       playReveal();
       const totalQ=story.chapters.reduce((sum,ch)=>sum+ch.questions.length,0);
-      const stars=newFtc>=10?3:newFtc>=7?2:1;
+      const pct=newFtc/totalQ;
+      const stars=pct>=0.83?3:pct>=0.58?2:1;
       const score=newFtc*10;
       window.MathPlatformSDK?.emit('GAME_OVER',{
         score,
