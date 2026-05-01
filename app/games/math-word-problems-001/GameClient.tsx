@@ -1,21 +1,11 @@
 // @ts-nocheck
 'use client'
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from 'next/navigation';
 import GameBackButton from '@/components/GameBackButton';
-import { QUESTIONS, ANSWERS } from './questions';
-import { GAME_IMAGES } from './images';
+import { STORIES } from './questions';
 
 const GAME_ID = 'math-word-problems-001';
-
-// 4 שאלות ברצף מהמאגר
-function getStartIdx() {
-  if (typeof window === 'undefined') return 0
-  const idx = parseInt(localStorage.getItem('math-word-problems-001-idx') || '0')
-  // אם לא נשארו 4 שאלות — חזור להתחלה
-  if (idx + 4 > QUESTIONS.length) return 0
-  return idx
-}
 
 const P = {
   bg:"#f0f7e6", card:"#ffffff", cardBorder:"#a8d56a",
@@ -31,9 +21,6 @@ const OP_COLORS={"+":"#fb8c00","−":"#e53935","×":"#8e24aa","÷":"#1e88e5","="
 const ROW1=["0","1","2","3","4","5","6","7","8","9"];
 const ROW2=["+","−","×","÷","="];
 const NUM_ROWS=8;
-
-const PUZZLE_TITLE = "מה מסתתר כאן?";
-const COVER_COLORS=["#e53935","#8e24aa","#00897b","#fb8c00"];
 
 function snapY(y,h){const rH=h/NUM_ROWS;const r=Math.max(0,Math.min(NUM_ROWS-1,Math.round((y-rH/2)/rH)));return r*rH+rH/2;}
 function darken(hex){try{const n=parseInt(hex.slice(1),16);const r=Math.max(0,((n>>16)&255)-40);const g=Math.max(0,((n>>8)&255)-40);const b=Math.max(0,(n&255)-40);return`#${((r<<16)|(g<<8)|b).toString(16).padStart(6,"0")}`;}catch(e){return"#333";}}
@@ -66,37 +53,6 @@ function PaletteToken({sym,onDragStart,bg}){
   </div>;
 }
 
-function AnswerInput({q,onCorrect}){
-  const [val,setVal]=useState("");const [fb,setFb]=useState(null);const [burst,setBurst]=useState(false);const [cls,setCls]=useState("");
-  const ref=useRef(null);const correct=ANSWERS[q.ai];
-  useEffect(()=>{setVal("");setFb(null);setBurst(false);setCls("");setTimeout(()=>{if(ref.current)ref.current.focus();},80);},[q]);
-  const check=()=>{
-    const n=parseInt(val);if(isNaN(n))return;
-    const isCorrect = n===correct || n===0;
-    if(isCorrect){playCorrect();setBurst(true);setCls("sfmPop");setFb("ok");setTimeout(()=>setBurst(false),900);onCorrect&&onCorrect();}
-    else{playWrong();setCls("sfmShake");setFb(n<correct?"low":"high");setTimeout(()=>setCls(""),600);}
-  };
-  return <div style={{position:"relative",padding:"12px 14px",borderRadius:12,background:fb==="ok"?P.correctBg:fb?P.wrongBg:P.green3,border:`1.5px solid ${fb==="ok"?P.correct:fb?P.wrong:P.cardBorder}`}}>
-    <StarBurst active={burst}/>
-    <div style={{display:"flex",gap:8,alignItems:"center"}}>
-      <div style={{display:"flex",flexDirection:"column",gap:4}}>
-        <button onClick={()=>{setFb(null);setVal(v=>String((parseInt(v)||0)+1));}} style={{width:52,height:46,background:"#4a9400",border:"none",borderRadius:10,cursor:"pointer",fontSize:24,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 3px 0 #2d6a00"}}>▲</button>
-        <button onClick={()=>{setFb(null);setVal(v=>String(Math.max(0,(parseInt(v)||0)-1)));}} style={{width:52,height:46,background:"#4a9400",border:"none",borderRadius:10,cursor:"pointer",fontSize:24,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 3px 0 #2d6a00"}}>▼</button>
-      </div>
-      <input ref={ref} type="number" value={val} placeholder="?" className={cls}
-        onChange={e=>{setVal(e.target.value);setFb(null);setCls("");}}
-        onKeyDown={e=>e.key==="Enter"&&check()}
-        style={{width:130,fontSize:44,fontWeight:800,textAlign:"center",direction:"ltr",border:`2.5px solid ${fb==="ok"?P.correct:fb?P.wrong:P.green2}`,borderRadius:12,padding:"6px 0",color:P.text,background:"#fff",outline:"none"}}/>
-      <button onClick={check} style={{width:52,height:96,background:"#4a9400",border:"none",color:"#fff",fontSize:26,borderRadius:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 0 #2d6a00"}}>✓</button>
-    </div>
-    {fb&&<div className="sfmFadeEl" style={{marginTop:10,padding:"10px 14px",borderRadius:10,fontSize:17,fontWeight:700,background:"#fff",display:"flex",alignItems:"center",gap:10,color:fb==="ok"?P.correct:P.wrong,border:`1.5px solid ${fb==="ok"?P.correct:P.wrong}`}}>
-      {fb==="ok"&&<><span style={{fontSize:24}}>🌟</span>כל הכבוד! תשובה נכונה!</>}
-      {fb==="low"&&<><span style={{fontSize:22}}>⬆️</span>נסה מספר גדול יותר</>}
-      {fb==="high"&&<><span style={{fontSize:22}}>⬇️</span>נסה מספר קטן יותר</>}
-    </div>}
-  </div>;
-}
-
 function DropZone({rk}){
   const wrapRef=useRef(null);const [items,setItems]=useState([]);const dragNew=useRef(null);const dragExist=useRef(null);const ghostEl=useRef(null);const nid=useRef(1);const [snap,setSnap]=useState({});const [dragging,setDragging]=useState(false);
   useEffect(()=>{setItems([]);setSnap({});},[rk]);
@@ -125,114 +81,205 @@ function DropZone({rk}){
   </div>;
 }
 
-function QScreen({q,onSolved,hlRange,onSpeak,currentPiece}){
-  const [hint,setHint]=useState(false);const [ans,setAns]=useState(false);
-  useEffect(()=>{setHint(false);setAns(false);},[q]);
-  return <div style={{display:"flex",gap:8,height:"100%"}}>
-    <div style={{flex:1,background:"rgba(255,255,255,0.92)",borderRadius:16,border:`2px solid ${P.cardBorder}`,padding:"22px 20px 20px",display:"flex",flexDirection:"column",gap:14,minWidth:0,overflowY:"auto"}}>
-      <div style={{color:P.text,fontSize:19,lineHeight:1.9,fontWeight:500}}><HLText text={q.body} s={hlRange&&hlRange.start} e={hlRange&&hlRange.end}/></div>
-      <div style={{fontSize:64,textAlign:"center",lineHeight:1,padding:"8px 0"}}>{q.icon}</div>
-      <div style={{marginTop:"auto"}}><AnswerInput q={q} onCorrect={()=>onSolved(currentPiece)}/></div>
-      {hint&&<div className="sfmFadeEl" style={{background:P.green3,border:`1px solid ${P.cardBorder}`,borderRadius:8,padding:"10px 14px",fontSize:14,color:P.text,lineHeight:1.9}}>{q.hint.map((h,i)=><div key={i}>{h}</div>)}</div>}
-      {ans&&<div className="sfmFadeEl" style={{background:P.green3,border:`1px solid ${P.cardBorder}`,borderRadius:8,padding:"10px 14px",fontSize:14,color:P.text,lineHeight:1.9}}>{q.ans.map((a,i)=><div key={i}>{a}</div>)}<div style={{color:P.correct,fontWeight:700,marginTop:6,fontSize:15}}>{q.final}</div></div>}
-    </div>
-    <div style={{display:"flex",flexDirection:"column",gap:8,flexShrink:0}}>
-      <button onClick={onSpeak} style={{width:44,height:44,background:"#4a9400",border:"none",color:"#fff",fontSize:20,borderRadius:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 3px 0 #2d6a00"}}>▶</button>
-      <button onClick={()=>setHint(v=>!v)} style={{width:44,height:44,background:hint?"#7b1fa2":"#f3e5ff",border:"none",color:hint?"#fff":"#7b1fa2",fontSize:20,borderRadius:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>💡</button>
-      <button onClick={()=>setAns(v=>!v)} style={{width:44,height:44,background:ans?"#1565c0":"#e3f2fd",border:"none",color:ans?"#fff":"#1565c0",fontSize:20,borderRadius:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>🔓</button>
+// ── Story select ──────────────────────────────────────────────────────────────
+function StorySelectScreen({onSelect}){
+  const [hov,setHov]=useState(null);
+  return <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:28}}>
+    <div style={{fontSize:28,fontWeight:800,color:P.green1}}>בחרו סיפור</div>
+    <div style={{display:"flex",gap:24,flexWrap:"wrap",justifyContent:"center"}}>
+      {STORIES.map(story=>{
+        const total=story.chapters.reduce((a,c)=>a+c.questions.length,0);
+        return <div key={story.id}
+          onClick={()=>onSelect(story)}
+          onMouseEnter={()=>setHov(story.id)}
+          onMouseLeave={()=>setHov(null)}
+          style={{background:"#fff",border:`2.5px solid ${P.cardBorder}`,borderRadius:20,
+            padding:"28px 36px",cursor:"pointer",minWidth:220,textAlign:"center",
+            boxShadow:"0 4px 20px rgba(0,0,0,0.09)",
+            transform:hov===story.id?"translateY(-5px)":"translateY(0)",
+            transition:"transform 0.15s"}}>
+          <div style={{fontSize:26,fontWeight:800,color:P.green1,marginBottom:10}}>{story.title}</div>
+          <div style={{fontSize:17,color:P.textMid,marginBottom:8}}>גיבור/ה: <strong>{story.hero}</strong></div>
+          <div style={{fontSize:13,color:"#999",marginBottom:18}}>{story.chapters.length} פרקים · {total} שאלות</div>
+          <div style={{background:P.green2,color:"#fff",borderRadius:10,padding:"10px 20px",fontSize:16,fontWeight:700,boxShadow:`0 3px 0 ${darken(P.green2)}`}}>
+            התחל ▶
+          </div>
+        </div>;
+      })}
     </div>
   </div>;
 }
 
-// 2x2 puzzle grid — hidden image under 4 cover tiles
-function PuzzleScreen({solved,onPick,imageUrl}){
-  const [hov,setHov]=useState(-1);
-  const router=useRouter();
-  const solvedCount=solved.filter(Boolean).length;
-  const allDone=solvedCount===4;
-
-  return <div style={{height:"100%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-    <div style={{
-      position:"relative",
-      width:"min(90vh,92vw)",
-      aspectRatio:"1",
-      borderRadius:16,
-      overflow:"hidden",
-      boxShadow:"0 8px 32px rgba(0,0,0,0.3)",
-    }}>
-      <img
-        src={imageUrl??undefined}
-        style={{
-          position:"absolute",inset:0,
-          width:"100%",height:"100%",
-          objectFit:"cover",
-          display:"block",
-        }}
-      />
-
-      <div style={{
-        position:"absolute",inset:0,
-        display:"grid",
-        gridTemplateColumns:"repeat(2,1fr)",
-        gridTemplateRows:"repeat(2,1fr)",
-        gap:2,
-      }}>
-        {COVER_COLORS.map((color,i)=>{
-          const done=solved[i];
-          const isHov=hov===i&&!done;
-          return <div key={i}
-            onClick={()=>onPick(i)}
-            onMouseEnter={()=>setHov(i)}
-            onMouseLeave={()=>setHov(-1)}
-            style={{
-              background:color,
-              cursor:done?"default":"pointer",
-              transition:"opacity 0.5s, transform 0.5s",
-              opacity:done?0:1,
-              transform:done?"translateY(-100%)":"translateY(0)",
-              display:"flex",alignItems:"center",justifyContent:"center",
-              flexDirection:"column",gap:6,
-            }}>
-            {!done&&<div style={{fontSize:28,opacity:0.9}}>?</div>}
-            {!done&&isHov&&<div style={{fontSize:11,color:"rgba(255,255,255,0.85)",fontWeight:600}}>לחץ לפתרון</div>}
-          </div>;
-        })}
-      </div>
-    </div>
-
-    {allDone&&<button onClick={()=>router.back()} style={{marginTop:20,background:"linear-gradient(135deg,#4a9400,#2d6a00)",border:"none",color:"#fff",fontSize:17,fontWeight:800,padding:"13px 32px",borderRadius:14,cursor:"pointer",boxShadow:"0 4px 16px rgba(45,106,0,0.4)",animation:"sfmReveal 0.5s ease both"}}>המשך ←</button>}
-  </div>;
-}
-
-export default function GameClient(){
-  const [startIdx] = useState(() => getStartIdx());
-  const questions = QUESTIONS.slice(startIdx, startIdx + 4);
-
-  const [imageUrl,setImageUrl]=useState(null);
-  const [solved,setSolved]=useState(Array(4).fill(false));
-  const solvedRef=useRef([false,false,false,false]);
-  const [screen,setScreen]=useState("puzzle");
-  const [piece,setPiece]=useState(null);
-  const pieceRef=useRef(null);
+// ── Single question (story format) ───────────────────────────────────────────
+function StoryQuestionScreen({question,chapterTitle,questionNum,totalInChapter,dzKey,onCorrect}){
+  const [val,setVal]=useState("");
+  const [fb,setFb]=useState(null);
+  const [burst,setBurst]=useState(false);
+  const [cls,setCls]=useState("");
+  const [showHint,setShowHint]=useState(false);
+  const [answered,setAnswered]=useState(false);
   const [hlRange,setHlRange]=useState(null);
-  const dk=useRef(0);
+  const ref=useRef(null);
+  const ftRef=useRef(true);   // first-try flag
+  const attRef=useRef(0);     // wrong-attempt counter
 
   useEffect(()=>{
-    const key=`${GAME_ID}-img-idx`;
-    const idx=parseInt(localStorage.getItem(key)||'0');
-    setImageUrl(GAME_IMAGES[idx%GAME_IMAGES.length].src);
-  },[]);
+    setVal("");setFb(null);setBurst(false);setCls("");
+    setShowHint(false);setAnswered(false);setHlRange(null);
+    ftRef.current=true;attRef.current=0;
+    setTimeout(()=>{if(ref.current)ref.current.focus();},80);
+    if(window.speechSynthesis)window.speechSynthesis.cancel();
+  },[question.id]);
 
+  const speak=()=>{
+    if(!window.speechSynthesis)return;
+    window.speechSynthesis.cancel();setHlRange(null);
+    const body=question.text;
+    const u=new SpeechSynthesisUtterance(body);u.lang="he-IL";u.rate=0.85;
+    u.onboundary=(e)=>{
+      if(e.name!=="word")return;
+      const ci=e.charIndex,cl=e.charLength||0;let start=ci,end=ci;
+      if(cl>0){end=ci+cl;}else{let s=ci,en=ci;while(s>0&&!/\s/.test(body[s-1]))s--;while(en<body.length&&!/\s/.test(body[en]))en++;start=s;end=en;}
+      while(end>start&&/[.,!?;:]/.test(body[end-1]))end--;
+      if(end>start)setHlRange({start,end});
+    };
+    u.onend=()=>setHlRange(null);u.onerror=()=>setHlRange(null);
+    window.speechSynthesis.speak(u);
+  };
+
+  const check=()=>{
+    if(answered)return;
+    const n=parseInt(val);if(isNaN(n))return;
+    if(n===question.answer){
+      playCorrect();setBurst(true);setCls("sfmPop");setFb("ok");setAnswered(true);
+      setTimeout(()=>setBurst(false),900);
+    } else {
+      playWrong();setCls("sfmShake");setFb(n<question.answer?"low":"high");
+      setTimeout(()=>setCls(""),600);
+      ftRef.current=false;
+      attRef.current+=1;
+      setShowHint(true);
+    }
+  };
+
+  const handleNext=()=>{
+    onCorrect(ftRef.current, attRef.current+1);
+  };
+
+  // Dots progress indicator
+  const dots=Array.from({length:totalInChapter},(_,i)=>
+    i<questionNum-1?"●":i===questionNum-1?"◉":"○"
+  ).join(" ");
+
+  return <div style={{flex:1,display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)",gap:12,minHeight:0}}>
+    <DropZone rk={dzKey}/>
+    <div style={{display:"flex",gap:8,height:"100%"}}>
+      <div style={{flex:1,display:"flex",flexDirection:"column",gap:8,minWidth:0}}>
+        {/* Chapter + progress bar */}
+        <div style={{background:"rgba(255,255,255,0.85)",borderRadius:10,padding:"7px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13,fontWeight:600,color:P.textMid}}>
+          <span>{chapterTitle}</span>
+          <span style={{letterSpacing:2,fontSize:11}}>{dots}</span>
+        </div>
+        {/* Question card */}
+        <div style={{flex:1,background:"rgba(255,255,255,0.92)",borderRadius:16,border:`2px solid ${P.cardBorder}`,padding:"18px 16px 16px",display:"flex",flexDirection:"column",gap:14,overflowY:"auto"}}>
+          <div style={{color:P.text,fontSize:18,lineHeight:1.9,fontWeight:500}}>
+            <HLText text={question.text} s={hlRange?.start} e={hlRange?.end}/>
+          </div>
+          <div style={{marginTop:"auto"}}>
+            {/* Answer input */}
+            <div style={{position:"relative",padding:"12px 14px",borderRadius:12,
+              background:fb==="ok"?P.correctBg:fb?P.wrongBg:P.green3,
+              border:`1.5px solid ${fb==="ok"?P.correct:fb?P.wrong:P.cardBorder}`}}>
+              <StarBurst active={burst}/>
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                  <button onClick={()=>{if(!answered){setFb(null);setVal(v=>String((parseInt(v)||0)+1));}}}
+                    style={{width:52,height:46,background:"#4a9400",border:"none",borderRadius:10,cursor:"pointer",fontSize:24,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 3px 0 #2d6a00"}}>▲</button>
+                  <button onClick={()=>{if(!answered){setFb(null);setVal(v=>String(Math.max(0,(parseInt(v)||0)-1)));}}}
+                    style={{width:52,height:46,background:"#4a9400",border:"none",borderRadius:10,cursor:"pointer",fontSize:24,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 3px 0 #2d6a00"}}>▼</button>
+                </div>
+                <input ref={ref} type="number" value={val} placeholder="?" className={cls}
+                  readOnly={answered}
+                  onChange={e=>{if(!answered){setVal(e.target.value);setFb(null);setCls("");}}}
+                  onKeyDown={e=>{if(e.key==="Enter"){answered?handleNext():check();}}}
+                  style={{width:130,fontSize:44,fontWeight:800,textAlign:"center",direction:"ltr",
+                    border:`2.5px solid ${fb==="ok"?P.correct:fb?P.wrong:P.green2}`,
+                    borderRadius:12,padding:"6px 0",color:P.text,background:"#fff",outline:"none"}}/>
+                {!answered
+                  ? <button onClick={check} style={{width:52,height:96,background:"#4a9400",border:"none",color:"#fff",fontSize:26,borderRadius:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 0 #2d6a00"}}>✓</button>
+                  : <button onClick={handleNext} style={{width:52,height:96,background:P.correct,border:"none",color:"#fff",fontSize:22,borderRadius:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 4px 0 ${darken(P.correct)}`,animation:"sfmPop 0.3s ease both"}}>←</button>
+                }
+              </div>
+              {fb&&<div className="sfmFadeEl" style={{marginTop:10,padding:"10px 14px",borderRadius:10,fontSize:17,fontWeight:700,background:"#fff",display:"flex",alignItems:"center",gap:10,color:fb==="ok"?P.correct:P.wrong,border:`1.5px solid ${fb==="ok"?P.correct:P.wrong}`}}>
+                {fb==="ok"&&<><span style={{fontSize:24}}>🌟</span>כל הכבוד! תשובה נכונה!</>}
+                {fb==="low"&&<><span style={{fontSize:22}}>⬆️</span>נסה מספר גדול יותר</>}
+                {fb==="high"&&<><span style={{fontSize:22}}>⬇️</span>נסה מספר קטן יותר</>}
+              </div>}
+            </div>
+          </div>
+          {showHint&&fb!=="ok"&&<div className="sfmFadeEl" style={{background:P.green3,border:`1px solid ${P.cardBorder}`,borderRadius:8,padding:"10px 14px",fontSize:14,color:P.text}}>
+            💡 רמז: <strong>{question.hint}</strong>
+          </div>}
+        </div>
+      </div>
+      {/* Speak button */}
+      <div style={{display:"flex",flexDirection:"column",gap:8,flexShrink:0}}>
+        <button onClick={speak} style={{width:44,height:44,background:"#4a9400",border:"none",color:"#fff",fontSize:20,borderRadius:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 3px 0 #2d6a00"}}>▶</button>
+      </div>
+    </div>
+  </div>;
+}
+
+// ── Between chapters ──────────────────────────────────────────────────────────
+function ChapterEndScreen({doneTitle,nextTitle,onContinue}){
+  return <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center"}}>
+    <div style={{background:"#fff",borderRadius:20,padding:"44px 52px",textAlign:"center",boxShadow:"0 8px 32px rgba(0,0,0,0.13)",animation:"sfmReveal 0.4s ease both"}}>
+      <div style={{fontSize:52,marginBottom:14}}>🎉</div>
+      <div style={{fontSize:22,fontWeight:800,color:P.green1,marginBottom:6}}>כל הכבוד!</div>
+      <div style={{fontSize:17,color:P.textMid,marginBottom:26}}>{doneTitle}</div>
+      <div style={{fontSize:14,color:"#aaa",marginBottom:6}}>הפרק הבא:</div>
+      <div style={{fontSize:19,fontWeight:700,color:P.purple,marginBottom:30}}>{nextTitle}</div>
+      <button onClick={onContinue} style={{background:`linear-gradient(135deg,${P.green2},${P.green1})`,border:"none",color:"#fff",fontSize:18,fontWeight:800,padding:"14px 38px",borderRadius:14,cursor:"pointer",boxShadow:"0 4px 16px rgba(45,106,0,0.4)"}}>המשך ←</button>
+    </div>
+  </div>;
+}
+
+// ── Game over ─────────────────────────────────────────────────────────────────
+function GameOverScreen({storyTitle,ftc,totalQ,stars,score,onBack}){
+  const starStr="⭐".repeat(stars)+"☆".repeat(3-stars);
+  return <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center"}}>
+    <div style={{background:"#fff",borderRadius:20,padding:"44px 52px",textAlign:"center",boxShadow:"0 8px 32px rgba(0,0,0,0.13)",animation:"sfmReveal 0.5s ease both"}}>
+      <div style={{fontSize:48,marginBottom:10}}>{starStr}</div>
+      <div style={{fontSize:26,fontWeight:800,color:P.green1,marginBottom:8}}>כל הכבוד!</div>
+      <div style={{fontSize:18,color:P.textMid,marginBottom:18}}>סיימת: {storyTitle}</div>
+      <div style={{fontSize:15,color:"#888",marginBottom:4}}>תשובות נכונות בניסיון ראשון: <strong>{ftc}/{totalQ}</strong></div>
+      <div style={{fontSize:22,fontWeight:700,color:P.green2,marginBottom:30}}>ניקוד: {score}/{totalQ*10}</div>
+      <button onClick={onBack} style={{background:`linear-gradient(135deg,${P.green2},${P.green1})`,border:"none",color:"#fff",fontSize:17,fontWeight:800,padding:"13px 34px",borderRadius:14,cursor:"pointer",boxShadow:"0 4px 16px rgba(45,106,0,0.4)",animation:"sfmReveal 0.5s ease both"}}>המשך ←</button>
+    </div>
+  </div>;
+}
+
+// ── Main ──────────────────────────────────────────────────────────────────────
+export default function GameClient(){
+  const router=useRouter();
+  const [screen,setScreen]=useState("story-select");
+  const [story,setStory]=useState(null);
+  const [chapterIdx,setChapterIdx]=useState(0);
+  const [questionIdx,setQuestionIdx]=useState(0);
+  const [ftc,setFtc]=useState(0);          // first-try-correct count
+  const [finalStars,setFinalStars]=useState(0);
+  const [finalScore,setFinalScore]=useState(0);
+  const [dzKey,setDzKey]=useState(0);
+
+  // SDK
   useEffect(()=>{
     const script=document.createElement('script');
     script.src='/sdk/mathplatform-sdk-v1.js';
-    script.onload=()=>{
-      window.MathPlatformSDK?.emit('GAME_STARTED',{gameId:GAME_ID});
-    };
+    script.onload=()=>{ window.MathPlatformSDK?.emit('GAME_STARTED',{gameId:GAME_ID}); };
     document.head.appendChild(script);
   },[]);
 
-
+  // CSS
   useEffect(()=>{
     if(document.getElementById("sfm-css"))return;
     const s=document.createElement("style");s.id="sfm-css";
@@ -254,64 +301,94 @@ export default function GameClient(){
     if(window.speechSynthesis){const u=new SpeechSynthesisUtterance("");u.volume=0;window.speechSynthesis.speak(u);window.speechSynthesis.cancel();}
   },[]);
 
-  useEffect(()=>{if(window.speechSynthesis)window.speechSynthesis.cancel();setHlRange(null);},[piece]);
-
-  const speak=useCallback(()=>{
-    if(!window.speechSynthesis||piece==null)return;
-    window.speechSynthesis.cancel();setHlRange(null);
-    const body=questions[piece].body;
-    const u=new SpeechSynthesisUtterance(body);u.lang="he-IL";u.rate=0.85;
-    u.onboundary=(e)=>{
-      if(e.name!=="word")return;
-      const ci=e.charIndex,cl=e.charLength||0;let start=ci,end=ci;
-      if(cl>0){end=ci+cl;}else{let s=ci,en=ci;while(s>0&&!/\s/.test(body[s-1]))s--;while(en<body.length&&!/\s/.test(body[en]))en++;start=s;end=en;}
-      while(end>start&&/[.,!?;:]/.test(body[end-1]))end--;
-      if(end>start)setHlRange({start,end});
-    };
-    u.onend=()=>setHlRange(null);u.onerror=()=>setHlRange(null);
-    window.speechSynthesis.speak(u);
-  },[piece,questions]);
-
-  function handlePick(i){
-    if(solvedRef.current[i])return;
-    pieceRef.current=i;
-    setPiece(i);dk.current++;setScreen("q");
+  function handleStorySelect(s){
+    setStory(s);setChapterIdx(0);setQuestionIdx(0);setFtc(0);
+    setDzKey(k=>k+1);setScreen("question");
   }
-  function handleSolved(solvedPiece){
-    playReveal();
+
+  function handleQuestionCorrect(wasFirstTry,attemptNumber){
+    const newFtc=wasFirstTry?ftc+1:ftc;
+    if(wasFirstTry)setFtc(newFtc);
+
+    const chapter=story.chapters[chapterIdx];
+    const question=chapter.questions[questionIdx];
+
     window.MathPlatformSDK?.emit('ANSWER',{
       correct:true,
-      questionId:`q-00${solvedPiece+1}`,
+      questionId:question.id,
       questionType:'word-problem',
-      correctAnswer:String(ANSWERS[questions[solvedPiece].ai]),
-      childAnswer:String(ANSWERS[questions[solvedPiece].ai]),
-      attemptNumber:1,
+      correctAnswer:String(question.answer),
+      childAnswer:String(question.answer),
+      attemptNumber,
     });
-    setSolved(prev=>{
-      const next=[...prev];
-      next[solvedPiece]=true;
-      solvedRef.current=next;
-      if(next.every(Boolean)){
-        window.MathPlatformSDK?.emit('GAME_OVER',{score:40,maxScore:40,stars:3,correctAnswers:4,totalQuestions:4});
-        const imgKey=`${GAME_ID}-img-idx`;
-        const imgIdx=parseInt(localStorage.getItem(imgKey)||'0');
-        localStorage.setItem(imgKey,String(imgIdx+1));
-        const nextQIdx=(startIdx+4)>=QUESTIONS.length?0:startIdx+4;
-        localStorage.setItem(`${GAME_ID}-idx`,String(nextQIdx));
-      }
-      return next;
-    });
-    pieceRef.current=null;
-    setScreen("puzzle");
-    setPiece(null);
+
+    const isLastQ=questionIdx+1>=chapter.questions.length;
+    const isLastCh=chapterIdx+1>=story.chapters.length;
+
+    if(!isLastQ){
+      setQuestionIdx(q=>q+1);
+      setDzKey(k=>k+1);
+    } else if(!isLastCh){
+      setScreen("chapter-end");
+    } else {
+      playReveal();
+      const totalQ=story.chapters.reduce((sum,ch)=>sum+ch.questions.length,0);
+      const stars=newFtc>=10?3:newFtc>=7?2:1;
+      const score=newFtc*10;
+      window.MathPlatformSDK?.emit('GAME_OVER',{
+        score,
+        maxScore:totalQ*10,
+        stars,
+        correctAnswers:totalQ,
+        totalQuestions:totalQ,
+      });
+      setFinalStars(stars);setFinalScore(score);
+      setScreen("game-over");
+    }
   }
 
+  function handleChapterContinue(){
+    setChapterIdx(c=>c+1);setQuestionIdx(0);
+    setDzKey(k=>k+1);setScreen("question");
+  }
+
+  const chapter=story?.chapters[chapterIdx];
+  const question=chapter?.questions[questionIdx];
+  const totalQ=story?.chapters.reduce((sum,ch)=>sum+ch.questions.length,0)??0;
+
   return <div dir="rtl" style={{background:"linear-gradient(135deg,#e8f5c8 0%,#f0e8ff 50%,#ffe8f0 100%)",height:"100vh",padding:12,fontFamily:"'Segoe UI',Tahoma,sans-serif",display:"flex",flexDirection:"column"}}>
-    <GameBackButton />
-    {screen==="puzzle"&&<PuzzleScreen solved={solved} onPick={handlePick} imageUrl={imageUrl}/>}
-    {screen==="q"&&piece!=null&&questions[piece]&&<div style={{flex:1,display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)",gap:12,minHeight:0}}>
-      <DropZone rk={dk.current}/>
-      <QScreen q={questions[piece]} onSolved={handleSolved} hlRange={hlRange} onSpeak={speak} currentPiece={piece}/>
-    </div>}
+    <GameBackButton/>
+
+    {screen==="story-select"&&<StorySelectScreen onSelect={handleStorySelect}/>}
+
+    {screen==="question"&&question&&
+      <StoryQuestionScreen
+        question={question}
+        chapterTitle={chapter.title}
+        questionNum={questionIdx+1}
+        totalInChapter={chapter.questions.length}
+        dzKey={dzKey}
+        onCorrect={handleQuestionCorrect}
+      />
+    }
+
+    {screen==="chapter-end"&&story&&
+      <ChapterEndScreen
+        doneTitle={story.chapters[chapterIdx].title}
+        nextTitle={story.chapters[chapterIdx+1]?.title??""}
+        onContinue={handleChapterContinue}
+      />
+    }
+
+    {screen==="game-over"&&story&&
+      <GameOverScreen
+        storyTitle={story.title}
+        ftc={ftc}
+        totalQ={totalQ}
+        stars={finalStars}
+        score={finalScore}
+        onBack={()=>router.back()}
+      />
+    }
   </div>;
 }
