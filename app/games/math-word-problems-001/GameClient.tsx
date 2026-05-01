@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from 'next/navigation';
 import GameBackButton from '@/components/GameBackButton';
 import { STORIES } from './questions';
+import { GAME_IMAGES } from './images';
 
 const GAME_ID = 'math-word-problems-001';
 
@@ -21,6 +22,7 @@ const OP_COLORS={"+":"#fb8c00","−":"#e53935","×":"#8e24aa","÷":"#1e88e5","="
 const ROW1=["0","1","2","3","4","5","6","7","8","9"];
 const ROW2=["+","−","×","÷","="];
 const NUM_ROWS=8;
+const COVER_COLORS=["#e53935","#8e24aa","#00897b","#fb8c00"];
 
 function snapY(y,h){const rH=h/NUM_ROWS;const r=Math.max(0,Math.min(NUM_ROWS-1,Math.round((y-rH/2)/rH)));return r*rH+rH/2;}
 function darken(hex){try{const n=parseInt(hex.slice(1),16);const r=Math.max(0,((n>>16)&255)-40);const g=Math.max(0,((n>>8)&255)-40);const b=Math.max(0,(n&255)-40);return`#${((r<<16)|(g<<8)|b).toString(16).padStart(6,"0")}`;}catch(e){return"#333";}}
@@ -230,16 +232,34 @@ function StoryQuestionScreen({question,chapterTitle,questionNum,totalInChapter,d
   </div>;
 }
 
-// ── Between chapters ──────────────────────────────────────────────────────────
-function ChapterEndScreen({doneTitle,nextTitle,onContinue}){
-  return <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center"}}>
-    <div style={{background:"#fff",borderRadius:20,padding:"44px 52px",textAlign:"center",boxShadow:"0 8px 32px rgba(0,0,0,0.13)",animation:"sfmReveal 0.4s ease both"}}>
-      <div style={{fontSize:52,marginBottom:14}}>🎉</div>
-      <div style={{fontSize:22,fontWeight:800,color:P.green1,marginBottom:6}}>כל הכבוד!</div>
-      <div style={{fontSize:17,color:P.textMid,marginBottom:26}}>{doneTitle}</div>
-      <div style={{fontSize:14,color:"#aaa",marginBottom:6}}>הפרק הבא:</div>
-      <div style={{fontSize:19,fontWeight:700,color:P.purple,marginBottom:30}}>{nextTitle}</div>
-      <button onClick={onContinue} style={{background:`linear-gradient(135deg,${P.green2},${P.green1})`,border:"none",color:"#fff",fontSize:18,fontWeight:800,padding:"14px 38px",borderRadius:14,cursor:"pointer",boxShadow:"0 4px 16px rgba(45,106,0,0.4)"}}>המשך ←</button>
+// ── Puzzle reveal (shown after each chapter) ──────────────────────────────────
+function PuzzleRevealScreen({solvedCount,imageUrl,nextChapterTitle,onContinue}){
+  const isLast=!nextChapterTitle;
+  // first solvedCount tiles are revealed
+  const solved=COVER_COLORS.map((_,i)=>i<solvedCount);
+
+  return <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20}}>
+    {/* Puzzle grid */}
+    <div style={{position:"relative",width:"min(72vh,80vw)",aspectRatio:"1",borderRadius:16,overflow:"hidden",boxShadow:"0 8px 32px rgba(0,0,0,0.3)"}}>
+      <img src={imageUrl??undefined} style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+      <div style={{position:"absolute",inset:0,display:"grid",gridTemplateColumns:"repeat(2,1fr)",gridTemplateRows:"repeat(2,1fr)",gap:2}}>
+        {COVER_COLORS.map((color,i)=>{
+          const done=solved[i];
+          return <div key={i} style={{background:color,transition:"opacity 0.6s, transform 0.6s",opacity:done?0:1,transform:done?"translateY(-110%)":"translateY(0)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            {!done&&<div style={{fontSize:32,opacity:0.7}}>?</div>}
+          </div>;
+        })}
+      </div>
+    </div>
+
+    {/* Label + continue button */}
+    <div style={{textAlign:"center"}}>
+      {!isLast&&<div style={{fontSize:14,color:"#aaa",marginBottom:4}}>הפרק הבא:</div>}
+      {!isLast&&<div style={{fontSize:18,fontWeight:700,color:P.purple,marginBottom:16}}>{nextChapterTitle}</div>}
+      {isLast&&<div style={{fontSize:20,fontWeight:800,color:P.green1,marginBottom:16}}>🎉 סיימת את כל הפרקים!</div>}
+      <button onClick={onContinue} style={{background:`linear-gradient(135deg,${P.green2},${P.green1})`,border:"none",color:"#fff",fontSize:17,fontWeight:800,padding:"13px 34px",borderRadius:14,cursor:"pointer",boxShadow:"0 4px 16px rgba(45,106,0,0.4)",animation:"sfmReveal 0.5s ease both"}}>
+        {isLast?"לסיכום ←":"המשך ←"}
+      </button>
     </div>
   </div>;
 }
@@ -270,6 +290,7 @@ export default function GameClient(){
   const [finalStars,setFinalStars]=useState(0);
   const [finalScore,setFinalScore]=useState(0);
   const [dzKey,setDzKey]=useState(0);
+  const [imageUrl,setImageUrl]=useState(null);
 
   // SDK
   useEffect(()=>{
@@ -303,7 +324,11 @@ export default function GameClient(){
 
   function handleStorySelect(s){
     setStory(s);setChapterIdx(0);setQuestionIdx(0);setFtc(0);
-    setDzKey(k=>k+1);setScreen("question");
+    setDzKey(k=>k+1);
+    // pick a fresh image for this session
+    const imgIdx=parseInt(localStorage.getItem(`${GAME_ID}-img-idx`)||'0');
+    setImageUrl(GAME_IMAGES[imgIdx%GAME_IMAGES.length].src);
+    setScreen("question");
   }
 
   function handleQuestionCorrect(wasFirstTry,attemptNumber){
@@ -329,8 +354,11 @@ export default function GameClient(){
       setQuestionIdx(q=>q+1);
       setDzKey(k=>k+1);
     } else if(!isLastCh){
-      setScreen("chapter-end");
+      // chapter done (not last) → reveal puzzle tile, then next chapter
+      playReveal();
+      setScreen("puzzle");
     } else {
+      // last chapter done → reveal complete puzzle, then game-over
       playReveal();
       const totalQ=story.chapters.reduce((sum,ch)=>sum+ch.questions.length,0);
       const pct=newFtc/totalQ;
@@ -344,13 +372,21 @@ export default function GameClient(){
         totalQuestions:totalQ,
       });
       setFinalStars(stars);setFinalScore(score);
-      setScreen("game-over");
+      setScreen("puzzle");
     }
   }
 
-  function handleChapterContinue(){
-    setChapterIdx(c=>c+1);setQuestionIdx(0);
-    setDzKey(k=>k+1);setScreen("question");
+  function handlePuzzleContinue(){
+    const isLast=chapterIdx+1>=story.chapters.length;
+    if(isLast){
+      // rotate image index for next session
+      const imgIdx=parseInt(localStorage.getItem(`${GAME_ID}-img-idx`)||'0');
+      localStorage.setItem(`${GAME_ID}-img-idx`,String(imgIdx+1));
+      setScreen("game-over");
+    } else {
+      setChapterIdx(c=>c+1);setQuestionIdx(0);
+      setDzKey(k=>k+1);setScreen("question");
+    }
   }
 
   const chapter=story?.chapters[chapterIdx];
@@ -373,11 +409,12 @@ export default function GameClient(){
       />
     }
 
-    {screen==="chapter-end"&&story&&
-      <ChapterEndScreen
-        doneTitle={story.chapters[chapterIdx].title}
-        nextTitle={story.chapters[chapterIdx+1]?.title??""}
-        onContinue={handleChapterContinue}
+    {screen==="puzzle"&&story&&
+      <PuzzleRevealScreen
+        solvedCount={chapterIdx+1}
+        imageUrl={imageUrl}
+        nextChapterTitle={story.chapters[chapterIdx+1]?.title??null}
+        onContinue={handlePuzzleContinue}
       />
     }
 
