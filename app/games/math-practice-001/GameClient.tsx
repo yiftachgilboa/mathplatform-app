@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import GameBackButton from "@/components/GameBackButton";
+import bg from './assets/bg.jpg';
 
 const TOPICS = {
   decompose:  { label: "פירוק מספרים" },
@@ -850,7 +851,9 @@ export default function GameClient() {
 
       <div style={{
         minHeight: "100vh",
-        background: "linear-gradient(180deg, #4aa8e8 0%, #87ceeb 100%)",
+        backgroundImage: `url(${bg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
         fontFamily: "'Nunito',sans-serif",
         position: "relative", overflow: "hidden",
@@ -1000,7 +1003,7 @@ export default function GameClient() {
                   <div key={row} style={{
                     position: "absolute",
                     top: row * CH,
-                    left: row === 1 ? CD : (1 - row) * CD,
+                    left: (2 - row) * CD,
                     width: boardW, height: SVG_H,
                     display: "flex", alignItems: "flex-start",
                   }}>
@@ -1010,9 +1013,9 @@ export default function GameClient() {
                       return (
                         <div key={col} style={{
                           position: "relative", width: SVG_W,
-                          marginLeft: col === 0 ? 0 : -CD,
+                          marginLeft: col === 0 ? 0 : col === 1 ? 0 : -CD,
                           height: SVG_H,
-                          zIndex: st === "gone" ? 0 : (row * 10 + col + 1),
+                          zIndex: st === "gone" ? 0 : (col + 1),
                           overflow: "visible", flexShrink: 0,
                         }}>
                           <Cube
