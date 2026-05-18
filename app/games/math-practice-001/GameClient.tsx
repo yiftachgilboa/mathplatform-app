@@ -204,20 +204,58 @@ function Sign({ question, visible, revealAnswer }: SignProps) {
         </div>
       );
     }
-    const renderQ = (text: string) => {
-      if (!text.includes("?")) return <span>{text}</span>;
-      const idx = text.indexOf("?");
+    const isMultDiv = raw.includes('×') || raw.includes(':');
+    if (isMultDiv) {
       return (
-        <>
-          <span>{text.slice(0, idx)}</span>
-          <span style={{ color: revealAnswer != null ? "#44ff88" : "#ffe033", fontWeight: 900, minWidth: "1.1ch", display: "inline-block", textAlign: "center", transition: "color 0.2s" }}>
-            {revealAnswer != null ? revealAnswer : "?"}
-          </span>
-          <span>{text.slice(idx + 1)}</span>
-        </>
+        <div style={{ direction: 'ltr', fontSize: 40, fontWeight: 900, color: TEXT_WHITE, lineHeight: 1.1, textShadow: "0 2px 4px #0006", textAlign: 'center', whiteSpace: 'nowrap' }}>
+          {raw}{revealAnswer != null && <span style={{ color: "#44ff88" }}> = {revealAnswer}</span>}
+        </div>
       );
-    };
-    return <div style={{ fontSize: 40, fontWeight: 900, color: TEXT_WHITE, lineHeight: 1.1, textShadow: "0 2px 4px #0006", textAlign: "center" }}>{renderQ(raw)}</div>;
+    }
+    const isAddSub = raw.includes('+') || raw.includes('−');
+    if (isAddSub) {
+      const match = raw.match(/^(\d+)\s*([+−\-])\s*(\d+)$/);
+      if (match) {
+        const [, n1, op, n2] = match;
+        const opStr = op + ' ' + n2;
+        const ansStr = revealAnswer != null ? String(revealAnswer) : '';
+        const maxLen = Math.max(n1.length, opStr.length, ansStr.length);
+        const sep = '─'.repeat(maxLen);
+        return (
+          <div style={{ textAlign: 'right', direction: 'ltr' }}>
+            <div style={{
+              display: 'inline-block',
+              fontFamily: "'Courier New', Courier, monospace",
+              fontSize: 36,
+              fontWeight: 900,
+              color: TEXT_WHITE,
+              lineHeight: 1.5,
+              textShadow: "0 2px 4px #0006",
+              whiteSpace: 'pre',
+              textAlign: 'right',
+              direction: 'ltr',
+            }}>
+              {n1.padStart(maxLen)}{'\n'}
+              {opStr.padStart(maxLen)}{'\n'}
+              {sep}
+            </div>
+            {revealAnswer != null && (
+              <div style={{
+                fontFamily: "'Courier New', Courier, monospace",
+                fontSize: 36,
+                fontWeight: 900,
+                color: "#44ff88",
+                lineHeight: 1.5,
+                textAlign: 'right',
+                direction: 'ltr',
+                whiteSpace: 'pre',
+              }}>{ansStr.padStart(maxLen)}</div>
+            )}
+          </div>
+        );
+      }
+    }
+    return <div style={{ fontSize: 40, fontWeight: 900, color: TEXT_WHITE, lineHeight: 1.1, textShadow: "0 2px 4px #0006", textAlign: "center" }}>{raw}</div>;
   };
 
   return (
@@ -228,7 +266,6 @@ function Sign({ question, visible, revealAnswer }: SignProps) {
         borderRadius: 12,
         padding: isDecomp ? "16px 20px 14px" : "10px 28px 12px",
         boxShadow: "0 6px 20px #0005,inset 0 1px 0 #ffffff22",
-        minWidth: isDecomp ? "auto" : 160,
         position: "relative",
       }}>
         <div style={{ position: "absolute", inset: 0, borderRadius: 10, overflow: "hidden", pointerEvents: "none" }}>
@@ -903,17 +940,6 @@ export default function GameClient() {
             height: 180,
             overflow: "visible",
           }}>
-            <div style={{
-              position: "absolute",
-              bottom: 0,
-              left: "calc(-50vw + 50%)",
-              width: "100vw",
-              height: 28,
-              background: "linear-gradient(180deg, #6b3a1f 0%, #3d1e08 100%)",
-              borderTop: "3px solid #a0622a",
-              zIndex: 1,
-            }} />
-
             <div ref={villainRef} style={{
               position: "absolute",
               left: 16,
@@ -993,7 +1019,7 @@ export default function GameClient() {
                   bottom: boardH + 4,
                   left: CD * 2 + (SVG_W - CD) + Math.floor(SVG_W / 2),
                   transform: "translateX(-50%)",
-                  zIndex: 999,
+                  zIndex: 9999,
                   pointerEvents: "none",
                 }}>
                   <Sign question={questions[qIdx]} visible={qVisible} revealAnswer={revealAnswer} />
