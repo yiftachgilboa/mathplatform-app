@@ -897,8 +897,6 @@ export default function GameClient() {
       }}>
         <GameBackButton />
 
-        <div style={{ position: 'absolute', top: 180, left: 0, right: 0, bottom: 0, background: 'linear-gradient(180deg,#5dbe6a 0%,#3a9e4a 100%)', zIndex: 0, pointerEvents: 'none' }} />
-
         {[{ x: 10, y: 5 }, { x: 30, y: 8 }, { x: 60, y: 3 }, { x: 80, y: 9 }, { x: 92, y: 4 }, { x: 45, y: 12 }, { x: 70, y: 7 }].map((s, i) => (
           <div key={i} style={{ position: "absolute", left: s.x + "%", top: s.y + "%", width: 2, height: 2, borderRadius: "50%", background: "#fff", opacity: 0.6, pointerEvents: "none" }} />
         ))}
