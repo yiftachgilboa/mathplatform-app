@@ -18,8 +18,6 @@ const TOPICS = {
 };
 const DEFAULT_SETTINGS = { topics:["add20"], multiplyTables:[], breakingTen:false };
 
-const SKY_TOP = "#0f2b6b";
-const SKY_BTM = "#1a5fb4";
 const TEXT_WHITE = "#ffffff";
 const TEXT_DARK  = "#2a0040";
 
@@ -888,7 +886,7 @@ export default function GameClient() {
 
       <div style={{
         minHeight: "100vh",
-        backgroundImage: `url(${bg})`,
+        backgroundImage: `url(${bg.src})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
