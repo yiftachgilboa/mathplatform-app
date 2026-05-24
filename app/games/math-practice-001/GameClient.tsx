@@ -173,109 +173,52 @@ function Cube({ value, cubeIdx, state, onClick }: CubeProps) {
   );
 }
 
-interface SignProps {
-  question: Question | null;
-  visible: boolean;
-  revealAnswer: number | null;
-}
-
-function Sign({ question, visible, revealAnswer }: SignProps) {
-  if (!question) return null;
-  const raw = question.q;
-  const isDecomp = raw.startsWith("D|");
-
-  const renderInner = () => {
-    if (isDecomp) {
-      const parts = raw.split("|");
-      const n = parseInt(parts[1]), a = parseInt(parts[2]);
-      const BAR_W = 220;
-      const bWidth = Math.round((a / n) * BAR_W);
-      const qWidth = BAR_W - bWidth;
-      const ansColor = revealAnswer != null ? "#33cc77" : "#9966ee";
-      return (
-        <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
-          <div style={{ width: BAR_W, height: 42, background: "#cc4488", borderRadius: 7, border: "2.5px solid rgba(255,255,255,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Nunito',sans-serif", fontWeight: 900, fontSize: 22, color: "#fff" }}>{n}</div>
-          <div style={{ display: "flex", gap: 5, width: BAR_W }}>
-            <div style={{ width: bWidth - 2, height: 42, background: "#4488dd", borderRadius: 7, border: "2.5px solid rgba(255,255,255,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Nunito',sans-serif", fontWeight: 900, fontSize: bWidth < 50 ? 13 : 20, color: "#fff", flexShrink: 0 }}>{a}</div>
-            <div style={{ flex: 1, height: 42, background: ansColor, borderRadius: 7, border: "2.5px solid rgba(255,255,255,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Nunito',sans-serif", fontWeight: 900, fontSize: qWidth < 50 ? 13 : 20, color: "#fff", transition: "background 0.3s" }}>{revealAnswer != null ? revealAnswer : "?"}</div>
-          </div>
-        </div>
-      );
-    }
-    const isMultDiv = raw.includes('×') || raw.includes(':');
-    if (isMultDiv) {
-      return (
-        <div style={{ direction: 'ltr', fontSize: 40, fontWeight: 900, color: TEXT_WHITE, lineHeight: 1.1, textShadow: "0 2px 4px #0006", textAlign: 'center', whiteSpace: 'nowrap' }}>
-          {raw}{revealAnswer != null && <span style={{ color: "#44ff88" }}> = {revealAnswer}</span>}
-        </div>
-      );
-    }
-    const isAddSub = raw.includes('+') || raw.includes('−');
-    if (isAddSub) {
-      const match = raw.match(/^(\d+)\s*([+−\-])\s*(\d+)$/);
-      if (match) {
-        const [, n1, op, n2] = match;
-        const opStr = op + ' ' + n2;
-        const ansStr = revealAnswer != null ? String(revealAnswer) : '';
-        const maxLen = Math.max(n1.length, opStr.length, ansStr.length);
-        const sep = '─'.repeat(maxLen);
-        return (
-          <div style={{ textAlign: 'right', direction: 'ltr' }}>
-            <div style={{
-              display: 'inline-block',
-              fontFamily: "'Courier New', Courier, monospace",
-              fontSize: 36,
-              fontWeight: 900,
-              color: TEXT_WHITE,
-              lineHeight: 1.5,
-              textShadow: "0 2px 4px #0006",
-              whiteSpace: 'pre',
-              textAlign: 'right',
-              direction: 'ltr',
-            }}>
-              {n1.padStart(maxLen)}{'\n'}
-              {opStr.padStart(maxLen)}{'\n'}
-              {sep}
-            </div>
-            {revealAnswer != null && (
-              <div style={{
-                fontFamily: "'Courier New', Courier, monospace",
-                fontSize: 36,
-                fontWeight: 900,
-                color: "#44ff88",
-                lineHeight: 1.5,
-                textAlign: 'right',
-                direction: 'ltr',
-                whiteSpace: 'pre',
-              }}>{ansStr.padStart(maxLen)}</div>
-            )}
-          </div>
-        );
-      }
-    }
-    return <div style={{ fontSize: 40, fontWeight: 900, color: TEXT_WHITE, lineHeight: 1.1, textShadow: "0 2px 4px #0006", textAlign: "center" }}>{raw}</div>;
-  };
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 8 }}>
-      <div style={{
-        background: "linear-gradient(135deg,#a0622a 0%,#c07838 40%,#8b4f1e 100%)",
-        border: "3px solid #5a3010",
-        borderRadius: 12,
-        padding: isDecomp ? "16px 20px 14px" : "10px 28px 12px",
-        boxShadow: "0 6px 20px #0005,inset 0 1px 0 #ffffff22",
-        position: "relative",
-      }}>
-        <div style={{ position: "absolute", inset: 0, borderRadius: 10, overflow: "hidden", pointerEvents: "none" }}>
-          {[8, 18, 28, 38, 48, 58].map(y => <div key={y} style={{ position: "absolute", left: 0, right: 0, top: y, height: 1, background: "#00000010" }} />)}
-        </div>
-        <div style={{ opacity: visible ? 1 : 0, transition: "opacity 0.15s" }}>
-          {renderInner()}
+function renderQuestion(raw: string, revealAnswer: number | null) {
+  if (raw.startsWith("D|")) {
+    const parts = raw.split("|");
+    const n = parseInt(parts[1]), a = parseInt(parts[2]);
+    const BAR_W = 180;
+    const bWidth = Math.round((a / n) * BAR_W);
+    const qWidth = BAR_W - bWidth;
+    const ansColor = revealAnswer != null ? "#1a7a40" : "#5533aa";
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6 }}>
+        <div style={{ width: BAR_W, height: 36, background: "#aa2266", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Nunito',sans-serif", fontWeight: 900, fontSize: 20, color: "#fff" }}>{n}</div>
+        <div style={{ display: "flex", gap: 4, width: BAR_W }}>
+          <div style={{ width: bWidth - 2, height: 36, background: "#2255bb", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Nunito',sans-serif", fontWeight: 900, fontSize: bWidth < 50 ? 12 : 18, color: "#fff", flexShrink: 0 }}>{a}</div>
+          <div style={{ flex: 1, height: 36, background: ansColor, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Nunito',sans-serif", fontWeight: 900, fontSize: qWidth < 50 ? 12 : 18, color: "#fff", transition: "background 0.3s" }}>{revealAnswer != null ? revealAnswer : "?"}</div>
         </div>
       </div>
-      <div style={{ width: 10, height: 28, background: "linear-gradient(#7a4010,#a05828,#7a4010)", borderRadius: "0 0 4px 4px", boxShadow: "1px 2px 4px #0005" }} />
-    </div>
-  );
+    );
+  }
+  if (raw.includes('×') || raw.includes(':')) {
+    return (
+      <div style={{ direction: 'ltr', fontSize: 38, fontWeight: 900, color: "#2a1800", lineHeight: 1.1, textAlign: 'center', whiteSpace: 'nowrap' }}>
+        {raw}{revealAnswer != null && <span style={{ color: "#1a6e00" }}> = {revealAnswer}</span>}
+      </div>
+    );
+  }
+  const match = raw.match(/^(\d+)\s*([+−\-])\s*(\d+)$/);
+  if (match) {
+    const [, n1, op, n2] = match;
+    const opStr = op + ' ' + n2;
+    const ansStr = revealAnswer != null ? String(revealAnswer) : '';
+    const maxLen = Math.max(n1.length, opStr.length, ansStr.length);
+    const sep = '─'.repeat(maxLen);
+    return (
+      <div style={{ textAlign: 'right', direction: 'ltr' }}>
+        <div style={{ display: 'inline-block', fontFamily: "'Courier New',Courier,monospace", fontSize: 34, fontWeight: 900, color: "#2a1800", lineHeight: 1.5, whiteSpace: 'pre', textAlign: 'right', direction: 'ltr' }}>
+          {n1.padStart(maxLen)}{'\n'}
+          {opStr.padStart(maxLen)}{'\n'}
+          {sep}
+        </div>
+        {revealAnswer != null && (
+          <div style={{ fontFamily: "'Courier New',Courier,monospace", fontSize: 34, fontWeight: 900, color: "#1a6e00", lineHeight: 1.5, textAlign: 'right', direction: 'ltr', whiteSpace: 'pre' }}>{ansStr.padStart(maxLen)}</div>
+        )}
+      </div>
+    );
+  }
+  return <div style={{ fontSize: 38, fontWeight: 900, color: "#2a1800", lineHeight: 1.1, textAlign: "center", direction: "ltr" }}>{raw}</div>;
 }
 
 interface SettingsPanelProps {
@@ -939,7 +882,7 @@ export default function GameClient() {
             <div ref={villainRef} style={{
               position: "absolute",
               left: 16,
-              bottom: 28,
+              bottom: 120,
               zIndex: 5,
               display: "flex", flexDirection: "column", alignItems: "center",
             }}>
@@ -957,7 +900,7 @@ export default function GameClient() {
             <div ref={heroRef} style={{
               position: "absolute",
               right: 16,
-              bottom: 28,
+              bottom: 120,
               zIndex: 5,
               display: "flex", flexDirection: "column", alignItems: "center",
             }}>
@@ -1009,16 +952,17 @@ export default function GameClient() {
                 isolation: "isolate",
                 animation: "boardFloat 4s ease-in-out infinite",
               }}>
-                {/* Sign — centered above col 1 (middle column) of row 0 */}
+                {/* Question overlay on background sign — adjust top/right to match sign position in bg.jpg */}
                 <div style={{
-                  position: "absolute",
-                  bottom: boardH + 4,
-                  left: CD * 2 + (SVG_W - CD) + Math.floor(SVG_W / 2),
-                  transform: "translateX(-50%)",
+                  position: "fixed",
+                  top: "18%",
+                  right: "8%",
                   zIndex: 9999,
                   pointerEvents: "none",
+                  opacity: qVisible ? 1 : 0,
+                  transition: "opacity 0.15s",
                 }}>
-                  <Sign question={questions[qIdx]} visible={qVisible} revealAnswer={revealAnswer} />
+                  {questions[qIdx] && renderQuestion(questions[qIdx].q, revealAnswer)}
                 </div>
 
                 {[0, 1, 2].map(row => (
