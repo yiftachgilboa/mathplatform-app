@@ -944,19 +944,19 @@ export default function GameClient() {
             ) : questions.length === 0 ? (
               <div style={{ color: TEXT_WHITE, opacity: 0.8, fontSize: 15 }}>אין שאלות — שנה הגדרות</div>
             ) : (
-              <div style={{
-                position: "relative",
-                width: boardW + CD * 2,
-                height: boardH,
-                marginTop: 110,
-                isolation: "isolate",
-                animation: "boardFloat 4s ease-in-out infinite",
-              }}>
-                {/* Question overlay on background sign — adjust top/right to match sign position in bg.jpg */}
+              <>
+                {/* Question overlay on background sign — fixed relative to viewport, outside transform parent */}
                 <div style={{
                   position: "fixed",
-                  top: "18%",
-                  right: "8%",
+                  top: "38%",
+                  right: "14%",
+                  width: 260,
+                  textAlign: "center",
+                  direction: "ltr",
+                  fontSize: 42,
+                  fontWeight: 900,
+                  color: "#fff",
+                  textShadow: "0 2px 6px #0008",
                   zIndex: 9999,
                   pointerEvents: "none",
                   opacity: qVisible ? 1 : 0,
@@ -964,38 +964,46 @@ export default function GameClient() {
                 }}>
                   {questions[qIdx] && renderQuestion(questions[qIdx].q, revealAnswer)}
                 </div>
-
-                {[0, 1, 2].map(row => (
-                  <div key={row} style={{
-                    position: "absolute",
-                    top: row * CH,
-                    left: (2 - row) * CD,
-                    width: boardW, height: SVG_H,
-                    display: "flex", alignItems: "flex-start",
-                  }}>
-                    {[0, 1, 2].map(col => {
-                      const i = row * 3 + col;
-                      const st = cubeStates[i] || "idle";
-                      return (
-                        <div key={col} style={{
-                          position: "relative", width: SVG_W,
-                          marginLeft: col === 0 ? 0 : col === 1 ? 0 : -CD,
-                          height: SVG_H,
-                          zIndex: st === "gone" ? 0 : (col + 1),
-                          overflow: "visible", flexShrink: 0,
-                        }}>
-                          <Cube
-                            value={boardOpts[i]}
-                            cubeIdx={i}
-                            state={st}
-                            onClick={() => handleAnswer(boardOpts[i], i)}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
+                <div style={{
+                  position: "relative",
+                  width: boardW + CD * 2,
+                  height: boardH,
+                  marginTop: 110,
+                  isolation: "isolate",
+                  animation: "boardFloat 4s ease-in-out infinite",
+                }}>
+                  {[0, 1, 2].map(row => (
+                    <div key={row} style={{
+                      position: "absolute",
+                      top: row * CH,
+                      left: (2 - row) * CD,
+                      width: boardW, height: SVG_H,
+                      display: "flex", alignItems: "flex-start",
+                    }}>
+                      {[0, 1, 2].map(col => {
+                        const i = row * 3 + col;
+                        const st = cubeStates[i] || "idle";
+                        return (
+                          <div key={col} style={{
+                            position: "relative", width: SVG_W,
+                            marginLeft: col === 0 ? 0 : col === 1 ? 0 : -CD,
+                            height: SVG_H,
+                            zIndex: st === "gone" ? 0 : (col + 1),
+                            overflow: "visible", flexShrink: 0,
+                          }}>
+                            <Cube
+                              value={boardOpts[i]}
+                              cubeIdx={i}
+                              state={st}
+                              onClick={() => handleAnswer(boardOpts[i], i)}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </div>
 
