@@ -979,7 +979,8 @@ export default function GameClient() {
                   position: "relative",
                   width: boardW + CD * 2,
                   height: boardH,
-                  marginTop: 110,
+                  marginTop: -100,
+                  marginRight: 120,
                   isolation: "isolate",
                   animation: "boardFloat 4s ease-in-out infinite",
                 }}>
