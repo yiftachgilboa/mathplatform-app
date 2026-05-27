@@ -173,7 +173,7 @@ function Cube({ value, cubeIdx, state, onClick }: CubeProps) {
   );
 }
 
-function renderQuestion(raw: string, revealAnswer: number | null) {
+function renderQuestion(raw: string, revealAnswer: number | null, topic?: string) {
   if (raw.startsWith("D|")) {
     const parts = raw.split("|");
     const n = parseInt(parts[1]), a = parseInt(parts[2]);
@@ -193,28 +193,39 @@ function renderQuestion(raw: string, revealAnswer: number | null) {
   }
   if (raw.includes('×') || raw.includes(':')) {
     return (
-      <div style={{ direction: 'ltr', fontSize: 38, fontWeight: 900, color: "#2a1800", lineHeight: 1.1, textAlign: 'center', whiteSpace: 'nowrap' }}>
-        {raw}{revealAnswer != null && <span style={{ color: "#1a6e00" }}> = {revealAnswer}</span>}
+      <div style={{ direction: 'ltr', fontSize: 38, fontWeight: 900, color: "#fff", lineHeight: 1.1, textAlign: 'center', whiteSpace: 'nowrap' }}>
+        {raw}{revealAnswer != null && <span style={{ color: "#44ff88" }}> = {revealAnswer}</span>}
       </div>
     );
   }
-  const match = raw.match(/^(\d+)\s*([+−\-])\s*(\d+)$/);
-  if (match) {
-    const [, n1, op, n2] = match;
-    const opStr = op + ' ' + n2;
-    const ansStr = revealAnswer != null ? String(revealAnswer) : '';
-    const maxLen = Math.max(n1.length, opStr.length, ansStr.length);
-    const sep = '─'.repeat(maxLen);
+  if (raw.includes('+') || raw.includes('−')) {
+    const isVertical = topic === 'add100' || topic === 'sub100';
+    if (isVertical) {
+      const match = raw.match(/^(\d+)\s*([+−\-])\s*(\d+)$/);
+      if (match) {
+        const [, n1, op, n2] = match;
+        const numStyle = { fontFamily: "'Courier New',Courier,monospace", fontSize: 34, fontWeight: 900, color: '#fff', lineHeight: 1.6 };
+        return (
+          <div style={{ textAlign: 'center', direction: 'ltr' }}>
+            <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end', direction: 'ltr' }}>
+              <div style={{ display: 'flex', alignItems: 'stretch' }}>
+                <div style={{ fontFamily: "'Courier New',Courier,monospace", fontSize: 34, fontWeight: 900, color: '#fff', display: 'flex', alignItems: 'center', paddingRight: 8 }}>{op}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                  <div style={numStyle}>{n1}</div>
+                  <div style={numStyle}>{n2}</div>
+                </div>
+              </div>
+              {revealAnswer != null && (
+                <div style={{ fontFamily: "'Courier New',Courier,monospace", fontSize: 34, fontWeight: 900, color: '#44ff88', lineHeight: 1.6 }}>{String(revealAnswer)}</div>
+              )}
+            </div>
+          </div>
+        );
+      }
+    }
     return (
-      <div style={{ textAlign: 'right', direction: 'ltr' }}>
-        <div style={{ display: 'inline-block', fontFamily: "'Courier New',Courier,monospace", fontSize: 34, fontWeight: 900, color: "#2a1800", lineHeight: 1.5, whiteSpace: 'pre', textAlign: 'right', direction: 'ltr' }}>
-          {n1.padStart(maxLen)}{'\n'}
-          {opStr.padStart(maxLen)}{'\n'}
-          {sep}
-        </div>
-        {revealAnswer != null && (
-          <div style={{ fontFamily: "'Courier New',Courier,monospace", fontSize: 34, fontWeight: 900, color: "#1a6e00", lineHeight: 1.5, textAlign: 'right', direction: 'ltr', whiteSpace: 'pre' }}>{ansStr.padStart(maxLen)}</div>
-        )}
+      <div style={{ direction: 'ltr', fontSize: 38, fontWeight: 900, color: '#fff', lineHeight: 1.1, textAlign: 'center', whiteSpace: 'nowrap' }}>
+        {raw}{revealAnswer != null && <span style={{ color: '#44ff88' }}> = {revealAnswer}</span>}
       </div>
     );
   }
@@ -948,7 +959,7 @@ export default function GameClient() {
                 {/* Question overlay on background sign — fixed relative to viewport, outside transform parent */}
                 <div style={{
                   position: "fixed",
-                  top: "38%",
+                  top: "33%",
                   right: "14%",
                   width: 260,
                   textAlign: "center",
@@ -962,7 +973,7 @@ export default function GameClient() {
                   opacity: qVisible ? 1 : 0,
                   transition: "opacity 0.15s",
                 }}>
-                  {questions[qIdx] && renderQuestion(questions[qIdx].q, revealAnswer)}
+                  {questions[qIdx] && renderQuestion(questions[qIdx].q, revealAnswer, questions[qIdx].key.split(':')[0])}
                 </div>
                 <div style={{
                   position: "relative",
