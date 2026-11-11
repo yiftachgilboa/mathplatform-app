@@ -56,6 +56,15 @@ async function placeholder(file, label, sub, color) {
   console.log(`✓ placeholder: ${path.relative(ROOT, file)}`)
 }
 
+async function plainBackground(file) {
+  if (fs.existsSync(file)) { console.log(`• exists, kept: ${path.relative(ROOT, file)}`); return }
+  const svg = `<svg width="1920" height="1080" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cdeffd"/><stop offset="1" stop-color="#ffe3ec"/></linearGradient></defs>
+    <rect width="100%" height="100%" fill="url(#g)"/></svg>`
+  await sharp(Buffer.from(svg)).jpeg({ quality: 85 }).toFile(file)
+  console.log(`✓ plain background: ${path.relative(ROOT, file)}`)
+}
+
 function addToCatalog(id, title, grade, difficulty) {
   const file = path.join(ROOT, 'docs', 'GAMES_CATALOG.md')
   const lines = fs.readFileSync(file, 'utf8').split('\n')
@@ -89,7 +98,7 @@ async function create(a) {
   console.log(`✓ code: app/games/${a.id}/`)
 
   // 2. תמונות
-  await placeholder(path.join(ART, `${a.id}-game-bg.jpg`), 'IN-GAME BACKGROUND', a.id, '#3d5a80')
+  await plainBackground(path.join(ART, `${a.id}-game-bg.jpg`)) // גוון נקי בלי טקסט — לא מפריע במשחק עד שיש ארט
   await placeholder(path.join(ART, `${a.id}-dashboard.jpg`), 'DASHBOARD IMAGE', a.id, '#6a4c93')
 
   // 3. Supabase

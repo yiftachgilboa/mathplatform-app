@@ -19,7 +19,7 @@ node scripts/new-game.mjs create --id <id> --title "<כותרת>" --grade <n> --
 הסקריפט יוצר:
 - `app/games/<id>/page.tsx` + `GameClient.tsx` — מחובר ל-SDK, כפתור יציאה, כוכבים, מסך סיום
 - `app/games/<id>/assets/` — לארט פנימי (דמויות, אובייקטים), מיובא עם `import`
-- `public/art/games/<id>-game-bg.jpg` — **ממלא מקום** לרקע בתוך המשחק
+- `public/art/games/<id>-game-bg.jpg` — רקע זמני בגוון נקי (בלי טקסט) בתוך המשחק
 - `public/art/games/<id>-dashboard.jpg` — **ממלא מקום** לתמונה במסך הראשי כשהילד בוחר את המשחק (`games.bg_image`)
 - שורה בטבלת `games` עם `is_visible = false` (ילדים עוד לא רואים) + שורה ב-`docs/GAMES_CATALOG.md`
 
@@ -43,7 +43,7 @@ node scripts/new-game.mjs create --id <id> --title "<כותרת>" --grade <n> --
 
 ## 5. מסירה למשתמש
 לומר לו:
-- אילו שני קבצי תמונה להחליף (שם זהה, 1920×1080, jpg) — `public/art/games/<id>-game-bg.jpg`, `public/art/games/<id>-dashboard.jpg`
+- אילו שני קבצי תמונה להחליף (שם זהה, 1920×1080, jpg) — `public/art/games/<id>-game-bg.jpg` (נוצר כגוון נקי בלי טקסט), `public/art/games/<id>-dashboard.jpg`
 - שהמשחק מוסתר עד publish:
 ```bash
 node scripts/new-game.mjs publish <id>
