@@ -266,22 +266,16 @@ export default function GameClient() {
     }
   }, [])
 
-  // שעון — רץ רק בזמן שמקלידים תשובה
+  // שעון — רץ רק בזמן שמקלידים תשובה. כשנגמר: רק אין טיפ (בלי עונש, בלי עכביש)
   useEffect(() => {
     if (phase !== 'order' || timeLeft <= 0) return
     const t = setTimeout(() => {
       const next = timeLeft - 1
       setTimeLeft(next)
       if (next <= 10 && next > 0) sfx.tick()
-      if (next === 0) {
-        setLine('נגמר הזמן! בלי טיפ הפעם 😅 אבל עדיין אפשר לשלם')
-        flashMood('sad', 1500)
-        sfx.wrong()
-        addMistake()
-      }
     }, 1000)
     return () => clearTimeout(t)
-  }, [phase, timeLeft, flashMood, addMistake])
+  }, [phase, timeLeft])
 
   function reveal() {
     if (phase !== 'greet') return
