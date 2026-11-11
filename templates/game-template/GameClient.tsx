@@ -45,8 +45,9 @@ function calcStars(firstTryCorrect: number) {
   return pct >= 0.9 ? 3 : pct >= 0.6 ? 2 : 1
 }
 
+type SDK = { emit: (event: string, data: Record<string, unknown>) => void }
 function sdk() {
-  return (window as any).MathPlatformSDK
+  return (window as unknown as { MathPlatformSDK?: SDK }).MathPlatformSDK
 }
 
 export default function GameClient() {
