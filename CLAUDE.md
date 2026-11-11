@@ -78,7 +78,7 @@ mathplatform-app/
 
 ## הוספת משחק חדש
 
-**קרא את `docs/GAME_INTEGRATION.md` לפני כל הוספת משחק.**
+**השתמש ב-skill `new-game` (`.claude/skills/new-game/SKILL.md`)** — שלד ב-`templates/game-template/`, סקריפט `scripts/new-game.mjs` (יוצר קוד, תמונות ממלא-מקום `<id>-game-bg.jpg` ו-`<id>-dashboard.jpg`, שורה ב-Supabase מוסתרת, שורה בקטלוג). `publish <id>` מציג לילדים.
 
 ## משחקים עם התקדמות פנימית
 
