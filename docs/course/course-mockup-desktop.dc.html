@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>kidodo — עמוד הקורס</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FFFEFA}
+a{color:#176FBE}a:hover{color:#0B5FA9}
+.press{transition:transform .2s ease, background-color .2s ease, border-color .2s ease, color .2s ease, padding .25s ease, font-size .25s ease, min-height .25s ease;cursor:pointer}
+.press:hover{transform:translateY(-2px)}
+.press:active{transform:scale(.96)}
+.press:focus-visible{outline:3px solid #176FBE;outline-offset:3px}
+.primary:hover{background-color:#0B5FA9 !important}
+.light:hover{background-color:#CDEFE2 !important}
+.ans:hover{border-color:#176FBE !important}
+nav::-webkit-scrollbar{width:8px}nav::-webkit-scrollbar-thumb{background:#C9D8E0;border-radius:4px}
+.panel-in{animation:panelIn .32s cubic-bezier(.2,.8,.3,1)}
+.pop{animation:pop .35s cubic-bezier(.2,.9,.3,1.3)}
+@keyframes panelIn{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){.panel-in,.pop{animation:none}.press{transition:none}.press:hover{transform:none}}
+</style>
+</helmet>
+<div dir="rtl" style="font-family: 'Heebo', Arial, sans-serif; color: #163E6B; min-height: 100vh; background: #FFFEFA; box-sizing: border-box; font-size: 17px; line-height: 1.4">
+
+<header style="height: 72px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 max(24px, calc((100% - 1320px) / 2)); border-bottom: 1px solid #E1EDF1">
+  <img src="/_blob/f38cbec3e82abb69ed2397fc0b80e55d" alt="kidodo" style="width: 112px; height: 42px; object-fit: contain">
+  <div style="display: flex; align-items: center; gap: 12px">
+    <div style="width: 48px; height: 48px; border-radius: 50%; background: #DFF3FF; display: flex; align-items: center; justify-content: center; overflow: hidden">
+      <img src="/_blob/cf8b7af5a42e01573ff00c4a4903fadb" alt="הדמות שלך" style="width: 40px; height: 40px; object-fit: contain">
+    </div>
+    <span style="font-size: 22px; font-weight: 900; letter-spacing: -0.5px">שלום, נועה!</span>
+  </div>
+  <button class="press light" aria-label="יציאה" style="width: 46px; height: 46px; padding: 0; border-radius: 50%; background: #DFF6EE; border: 1px solid #B7E8D7; display: flex; align-items: center; justify-content: center">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#164D78" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"></path><path d="M9 8l-4 4 4 4"></path><path d="M5 12h10"></path></svg>
+  </button>
+</header>
+
+<div style="max-width: 1320px; margin: 0 auto; padding: 28px 24px 56px; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start">
+
+  <nav aria-label="המפתחות שלי" style="flex: 1 1 340px; max-width: 400px; max-height: calc(100vh - 128px); min-height: 520px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #C9D8E0 transparent; background: #FFFFFF; border: 1px solid #E1EDF1; border-radius: 32px; padding: 22px; box-sizing: border-box">
+    <div style="display: flex; flex-direction: column; gap: 14px">
+      <sc-for list="{{lessons}}" as="l" hint-placeholder-count="10">
+        <button class="press" onClick="{{l.pick}}" aria-current="{{l.aria}}" style="font-family: inherit; width: 100%; display: flex; align-items: center; text-align: right; border-radius: 26px; font-weight: 800; letter-spacing: -0.3px; box-sizing: border-box; min-height: {{l.h}}; padding: 0 {{l.px}}; font-size: {{l.size}}; background: {{l.bg}}; color: {{l.fg}}; border: {{l.border}}">{{l.key}}</button>
+      </sc-for>
+    </div>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 22px">
+
+    <section style="display: flex; align-items: center; gap: 24px; flex-wrap: wrap; background: {{L.tint}}; border-radius: 32px; padding: 26px 30px">
+      <div class="pop" style="flex: none; width: 96px; height: 96px; border-radius: 30px; background: #FFFFFF; display: flex; align-items: center; justify-content: center">
+        <svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="{{L.deep}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{L.icon}}"></path></svg>
+      </div>
+      <div style="flex: 1 1 280px; display: flex; flex-direction: column; gap: 6px">
+        <h1 style="margin: 0; font-size: 50px; font-weight: 900; line-height: 1.05; letter-spacing: -1.7px">מפתח ה{{L.key}}<span aria-hidden="true" style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #FFA45D; margin-inline-start: 5px"></span></h1>
+        <p style="margin: 0; font-size: 19px; font-weight: 500; color: #315D7D">{{L.tag}}</p>
+      </div>
+      <div role="meter" aria-label="דיוק בתרגול" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{meterPct}}" style="flex: 0 1 220px; position: relative; height: 14px; border-radius: 999px; background: #FFFFFF">
+        <div style="height: 100%; border-radius: 999px; background: #176FBE; width: {{meterW}}"></div>
+        <div aria-hidden="true" style="position: absolute; top: -8px; bottom: -8px; left: 10%; width: 4px; border-radius: 2px; background: #FFA45D"></div>
+      </div>
+    </section>
+
+    <div role="tablist" aria-label="שלבי השיעור" style="display: flex; align-items: center; gap: 0; flex-wrap: wrap">
+      <sc-for list="{{stages}}" as="s" hint-placeholder-count="5">
+        <div style="display: flex; align-items: center; flex: 1 1 auto">
+          <button class="press" role="tab" onClick="{{s.pick}}" aria-selected="{{s.here}}" style="font-family: inherit; border-radius: 999px; white-space: nowrap; font-weight: 800; min-height: {{s.h}}; padding: 0 {{s.px}}; font-size: {{s.fs}}; background: {{s.bg}}; color: {{s.fg}}; border: {{s.border}}">{{s.label}}</button>
+          <sc-if value="{{s.notLast}}" hint-placeholder-val="{{true}}">
+            <span aria-hidden="true" style="flex: 1 1 16px; min-width: 12px; height: 0; border-top: 2px solid #D6E3ED; margin: 0 6px"></span>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+
+    <section style="background: #FFFFFF; border: 1px solid #E1EDF1; border-radius: 32px; overflow: hidden">
+
+      <sc-if value="{{st0}}" hint-placeholder-val="{{false}}">
+        <div class="panel-in" style="position: relative; aspect-ratio: 16 / 8; min-height: 300px; background: {{L.tint}}; display: flex; align-items: center; justify-content: center">
+          <svg width="100%" height="100%" viewBox="0 0 800 400" preserveAspectRatio="xMidYMax slice" aria-hidden="true" style="position: absolute; inset: 0">
+            <rect x="380" y="300" width="380" height="100" rx="14" fill="#FFFFFF"></rect>
+            <rect x="460" y="220" width="300" height="90" rx="14" fill="#FFFFFF" opacity=".8"></rect>
+            <rect x="540" y="140" width="220" height="90" rx="14" fill="#FFFFFF" opacity=".6"></rect>
+            <rect x="620" y="60" width="140" height="90" rx="14" fill="#FFA45D"></rect>
+          </svg>
+          <button class="press" aria-label="נגן את סרטון ההסבר" style="position: relative; width: 96px; height: 96px; border-radius: 50%; background: #FFFFFF; border: 0; display: flex; align-items: center; justify-content: center; padding-left: 6px">
+            <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14l12-7z" fill="#176FBE" stroke="#176FBE" stroke-width="2" stroke-linejoin="round"></path></svg>
+          </button>
+          <div style="position: absolute; right: 26px; left: 26px; bottom: 22px; height: 6px; border-radius: 999px; background: rgba(255,255,255,.8)"></div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{st1}}" hint-placeholder-val="{{true}}">
+        <div class="panel-in" style="position: relative; aspect-ratio: 16 / 8; min-height: 340px; background: #164D78; display: flex; align-items: center; justify-content: center; padding: 24px; box-sizing: border-box">
+          <svg width="100%" height="100%" viewBox="0 0 800 400" preserveAspectRatio="xMidYMax slice" aria-hidden="true" style="position: absolute; inset: 0; opacity: .14">
+            <rect x="380" y="300" width="380" height="100" rx="14" fill="#FFFFFF"></rect>
+            <rect x="460" y="220" width="300" height="90" rx="14" fill="#FFFFFF"></rect>
+            <rect x="540" y="140" width="220" height="90" rx="14" fill="#FFFFFF"></rect>
+            <rect x="620" y="60" width="140" height="90" rx="14" fill="#FFFFFF"></rect>
+          </svg>
+          <div class="pop" style="position: relative; width: 100%; max-width: 500px; background: #FFFFFF; border-radius: 28px; padding: 30px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px">
+            <p style="margin: 0; font-size: 28px; font-weight: 900; line-height: 1.2; letter-spacing: -0.6px">עומדים על מדרגה 7. כמה צעדים עד 10?</p>
+            <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+              <sc-for list="{{answers}}" as="a" hint-placeholder-count="3">
+                <button class="press ans" onClick="{{a.pick}}" style="font-family: inherit; font-size: 40px; font-weight: 900; min-height: 84px; border-radius: 22px; color: #163E6B; border: 2px solid {{a.ring}}; background: {{a.bg}}">{{a.v}}</button>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{st2}}" hint-placeholder-val="{{false}}">
+        <div class="panel-in" style="position: relative; aspect-ratio: 16 / 8; min-height: 300px; background: {{L.tint}}; display: flex; align-items: center; justify-content: center">
+          <svg width="100%" height="100%" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet" aria-hidden="true" style="position: absolute; inset: 0">
+            <rect x="170" y="250" width="80" height="80" rx="16" fill="#FFFFFF"></rect>
+            <rect x="270" y="190" width="80" height="140" rx="16" fill="#FFFFFF"></rect>
+            <rect x="450" y="130" width="80" height="200" rx="16" fill="#176FBE"></rect>
+            <rect x="550" y="70" width="80" height="260" rx="16" fill="none" stroke="#176FBE" stroke-width="4" stroke-dasharray="10 9"></rect>
+          </svg>
+          <a class="press primary" href="#" aria-label="לשחק במשחק התרגול" style="position: relative; width: 96px; height: 96px; border-radius: 50%; background: #176FBE; display: flex; align-items: center; justify-content: center; padding-left: 6px; box-sizing: border-box">
+            <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14l12-7z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"></path></svg>
+          </a>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{st3}}" hint-placeholder-val="{{false}}">
+        <div class="panel-in" style="position: relative; aspect-ratio: 16 / 8; min-height: 300px; background: #FFF0B8; display: flex; align-items: center; justify-content: center">
+          <svg width="100%" height="100%" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet" aria-hidden="true" style="position: absolute; inset: 0">
+            <circle cx="180" cy="270" r="70" fill="#FFFFFF"></circle>
+            <circle cx="590" cy="250" r="52" fill="#58C9AD"></circle>
+            <circle cx="660" cy="130" r="30" fill="#FFFFFF"></circle>
+            <circle cx="250" cy="110" r="18" fill="#FFA45D"></circle>
+          </svg>
+          <a class="press primary" href="#" aria-label="לשחק במשחק ההעשרה" style="position: relative; width: 96px; height: 96px; border-radius: 50%; background: #176FBE; display: flex; align-items: center; justify-content: center; padding-left: 6px; box-sizing: border-box">
+            <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14l12-7z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"></path></svg>
+          </a>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{st4}}" hint-placeholder-val="{{false}}">
+        <div class="panel-in" style="display: flex; flex-direction: column; align-items: center; gap: 28px; padding: 44px 28px 48px">
+          <div aria-label="שאלה 4 מתוך 10" role="img" style="display: flex; gap: 6px">
+            <sc-for list="{{testDots}}" as="t" hint-placeholder-count="10"><span style="width: 12px; height: 12px; border-radius: 50%; background: {{t.bg}}"></span></sc-for>
+          </div>
+          <p style="margin: 0; font-size: 72px; font-weight: 900; direction: ltr; letter-spacing: -1px">6 + 4 = <span style="display: inline-block; min-width: 84px; border-bottom: 6px solid #FFA45D">&#8203;</span></p>
+          <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; width: 100%; max-width: 560px">
+            <sc-for list="{{testAnswers}}" as="a" hint-placeholder-count="4">
+              <button class="press ans" onClick="{{a.pick}}" style="font-family: inherit; font-size: 36px; font-weight: 900; min-height: 80px; border-radius: 22px; border: 2px solid {{a.ring}}; background: {{a.bg}}; color: {{a.fg}}">{{a.v}}</button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+    </section>
+
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <button class="press light" aria-label="השלב הקודם" onClick="{{prev}}" style="width: 58px; height: 58px; padding: 0; border-radius: 50%; background: #DFF6EE; border: 1px solid #B7E8D7; display: flex; align-items: center; justify-content: center">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#164D78" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+      </button>
+      <button class="press primary" aria-label="השלב הבא" onClick="{{next}}" style="width: 58px; height: 58px; padding: 0; border-radius: 50%; background: #176FBE; border: 0; display: flex; align-items: center; justify-content: center">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg>
+      </button>
+    </div>
+  </main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":980}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { sel: 2, stage: 1, ans: null, tp: null }; }
+  renderVals() {
+    var PRI = '#176FBE', NAVY = '#164D78';
+    var tones = [['#DFF3FF', '#176FBE', '#55ADFB', '#163E6B'], ['#DFF6EE', '#23866E', '#0BC2BE', '#163E6B'], ['#FFF0B8', '#9B6A00', '#FDBD22', '#163E6B'], ['#E9DFFF', '#7656B4', '#7F6AE3', '#FFFFFF']];
+    var data = [
+      ['פירוק', 'כל מספר אפשר לפרק לחלקים', 'M3 8h6v8H3z M15 8h6v8h-6z M12 4v16'],
+      ['השלמה', 'כמה חסר כדי להגיע ל־10', 'M3 7h18v10H3z M9 7v10 M15 7v10 M17 12h1'],
+      ['מדרגות', 'עולים צעד אחר צעד עד 10', 'M3 20h5v-5h5v-5h5V5h3'],
+      ['מעלית', 'קופצים בבת אחת לעשר', 'M6 3h12v18H6z M9.5 9l2.5-2.5L14.5 9 M9.5 15l2.5 2.5 2.5-2.5'],
+      ['הקטנה', 'מחשבים בקטן ומגדילים', 'M10.5 4.5a6 6 0 1 0 0 12a6 6 0 1 0 0-12z M15 15l5.5 5.5 M7.5 10.5h6'],
+      ['טיפוס', 'בחיסור, עולים מהקטן לגדול', 'M3 20l6-10 4 6 2-3 6 7z M15 13V4l4 2-4 2'],
+      ['גלישה', 'בחיסור, גולשים למטה עד 10', 'M5 4v16 M5 4h3c0 9 4 14 12 14'],
+      ['הדבקה', '10 ו־4 זה 14', 'M9 15l6-6 M10.5 6l1.5-1.5a4 4 0 0 1 5.66 5.66L16 11.8 M13.5 18L12 19.5a4 4 0 0 1-5.66-5.66L8 12.2'],
+      ['גנב', 'לוקחים מהשכן כדי להשלים לעשר', 'M3 10c4-3 14-3 18 0v3c-4 3-14 3-18 0z M8.5 10.5v2 M15.5 10.5v2'],
+      ['שודד', 'פורצים עשרת כדי לחסר', 'M4 7h16v11H4z M12.5 7l-2 4 3 2-2 5']
+    ];
+    var current = 2;
+    var doneStages = [5, 5, 1, 0, 0, 0, 0, 0, 0, 0];
+    var s = this.state, self = this;
+    var lessons = data.map(function (d, i) {
+      var t = tones[i % 4];
+      var isDone = i < current, isCur = i === current, isSel = i === s.sel;
+      return {
+        key: d[0], tag: d[1], icon: d[2], tint: t[0], deep: t[1],
+        aria: isSel ? 'page' : 'false',
+        h: isSel ? '112px' : '80px',
+        px: isSel ? '32px' : '26px',
+        size: isSel ? '30px' : '22px',
+        bg: isSel ? t[0] : (isDone ? t[0] : (isCur ? '#FFFFFF' : '#F3F8FB')),
+        fg: isSel ? '#163E6B' : (isDone || isCur ? '#163E6B' : '#56718E'),
+        border: isSel ? '2px solid ' + t[0] : (isCur ? '2px solid ' + t[0] : '2px solid transparent'),
+        pick: function () { self.setState({ sel: i, stage: i < current ? 4 : (i === current ? 1 : 0), ans: null, tp: null }); }
+      };
+    });
+    var L = lessons[s.sel];
+    var labels = ['סרטון', 'התנסות', 'משחק', 'העשרה', 'מבחן'];
+    var stages = labels.map(function (lb, k) {
+      var done = k < doneStages[s.sel], here = k === s.stage;
+      return {
+        label: lb, notLast: k < 4, here: here ? 'true' : 'false',
+        h: here ? '62px' : '46px', px: here ? '34px' : '20px', fs: here ? '21px' : '16px',
+        bg: here ? PRI : (done ? '#DFF6EE' : '#FFFFFF'),
+        fg: here ? '#FFFFFF' : '#163E6B',
+        border: here ? '1px solid ' + PRI : (done ? '1px solid #B7E8D7' : '1px solid #D6E3ED'),
+        pick: function () { self.setState({ stage: k, ans: null, tp: null }); }
+      };
+    });
+    var answers = [2, 3, 4].map(function (v) {
+      var p = s.ans === v, ok = v === 3;
+      return { v: v, bg: p ? (ok ? '#DFF6EE' : '#FFF0B8') : '#FFFFFF', ring: p ? (ok ? '#58C9AD' : '#FDBD22') : '#D6E3ED', pick: function () { self.setState({ ans: v }); } };
+    });
+    var testAnswers = [9, 10, 11, 12].map(function (v) {
+      var p = s.tp === v;
+      return { v: v, bg: p ? PRI : '#FFFFFF', fg: p ? '#FFFFFF' : '#163E6B', ring: p ? PRI : '#D6E3ED', pick: function () { self.setState({ tp: v }); } };
+    });
+    var testDots = [];
+    for (var j = 0; j < 10; j++) testDots.push({ bg: j < 3 ? '#58C9AD' : (j === 3 ? PRI : '#D6E3ED') });
+    var pct = s.sel < current ? 96 : (s.sel === current ? 84 : 0);
+    function go(lesson, stage) { self.setState({ sel: lesson, stage: stage, ans: null, tp: null }); }
+    return {
+      lessons: lessons, L: L, stages: stages, answers: answers, testAnswers: testAnswers, testDots: testDots,
+      st0: s.stage === 0, st1: s.stage === 1, st2: s.stage === 2, st3: s.stage === 3, st4: s.stage === 4,
+      meterPct: pct, meterW: pct + '%',
+      next: function () { if (s.stage < 4) go(s.sel, s.stage + 1); else if (s.sel < 9) go(s.sel + 1, 0); },
+      prev: function () { if (s.stage > 0) go(s.sel, s.stage - 1); else if (s.sel > 0) go(s.sel - 1, 4); }
+    };
+  }
+}
+</script>
+</body>
+</html>
