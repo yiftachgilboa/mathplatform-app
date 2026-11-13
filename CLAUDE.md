@@ -44,14 +44,25 @@ mathplatform-app/
 │   │       └── SignOutButton.tsx
 │   ├── games/
 │   │   └── math-writing-board-001/       ✅ לוח כתיבה
+│   ├── course/                           ✅ אתר הקורס kidodo (ראו "אתר הקורס" למטה)
+│   │   ├── layout.tsx + course.css       Heebo + טוקנים
+│   │   ├── page.tsx                      הרשאות → welcome / שיעור נוכחי / "הקורסים שלי"
+│   │   ├── no-access/page.tsx
+│   │   ├── [courseId]/welcome/           כניסה ראשונה: ילד → שם → דמות
+│   │   └── [courseId]/[lessonId]/        עמוד השיעור (Server + CourseClient)
 │   └── api/
-│       ├── sdk/event/route.ts
+│       ├── course/{enroll,progress,answer,test}/route.ts  ✅ API של הקורס
+│       ├── sdk/event/route.ts            + העברת אירועי משחק מתוך הקורס לטבלאות הקורס
 │       ├── child/session/route.ts
 │       ├── child-login/route.ts          ✅ כניסת ילד — שם + קוד → session הורה
 │       ├── children/[id]/route.ts        ✅ DELETE — מחיקת ילד + רשומות תלויות
 │       ├── children/[id]/lessons/route.ts
 │       └── children/[id]/theme/route.ts
+├── components/course/                 ✅ קומפוננטות הקורס (Header, LessonMenu, LessonHero, StageStepper, StageNav, 4 שלבים)
+├── lib/course/                        ✅ content.ts (טעינת JSON) · progress.ts (לוגיקה טהורה) · admin.ts + record.ts (שרת בלבד)
+├── content/courses/kidodo-g1.json     ✅ כל התוכן של הקורס · הוראות: content/README-course.md
 └── public/
+    ├── course/                        ✅ לוגו + דודו של kidodo
     ├── mascot-croc.png
     ├── mascot-default.png
     ├── sdk/mathplatform-sdk-v1.js
@@ -196,6 +207,17 @@ mathplatform-app/
 | image_url | text | nullable |
 | emoji | text | placeholder כשאין תמונה |
 
+### טבלאות הקורס (מיגרציה `supabase/migrations/20261113_course.sql`)
+| טבלה | מפתח | תוכן |
+|------|------|------|
+| course_enrollments | id · ייחודי (child_id, course_id) | איזה ילד בקורס + `avatar` (דמות הקורס — **לא** `children.avatar`, שמשמש את הדשבורד לאימוג׳י) |
+| course_progress | (child_id, course_id, lesson_id, stage) | `completed_at` (✓), `stars`, `score` (מבחן, %) |
+| course_answers | id (identity) | כל תשובה: lesson_id, stage, correct — לחישוב דיוק |
+| course_mastery | (child_id, course_id, lesson_id) | `via` = practice / test |
+
+כולן `ON DELETE CASCADE` מ-children. RLS: הורה קורא רק את ילדיו; כתיבה רק דרך service role.
+הרשאת קורס: `parent_access.access_key = 'course:<courseId>'` (שורה לכל רכישה = ילד אחד).
+
 ### wrong_answers — קיימת, ריקה
 
 ---
@@ -210,6 +232,7 @@ mathplatform-app/
 | child_lessons | ✅ הורה מנהל רק ילדים שלו |
 | wrong_answers | ✅ |
 | sessions | ✅ |
+| course_* (4 טבלאות) | ✅ SELECT להורה לילדיו בלבד |
 
 ---
 
@@ -313,6 +336,41 @@ MathPlatformSDK.emit('GAME_OVER', { score, maxScore, stars, correctAnswers, tota
 
 ---
 
+## אתר הקורס kidodo — `/course`
+
+אפיון: `docs/course/course-spec.md` · עיצוב: `docs/course/course-design.md` · מוקאפים: `docs/course/*.dc.html`.
+
+### זרימה
+`/login?next=/course` → `/course`: אין הרשאה → `no-access` · רכישה בלי ילד משויך → `welcome` · קורס אחד → השיעור הנוכחי · כמה → "הקורסים שלי".
+כתובת שיעור: `/course/<courseId>/<lessonId>?child=<id>&stage=<1-5>`. הכתובת מתעדכנת (replaceState) בכל מעבר שלב/שיעור.
+
+### כללים
+- **שום טקסט בקוד** — הכל ב-`content/courses/<courseId>.json` (ui, שיעורים, צבעים, אייקונים, סרטונים, משחקים, שאלות, ספי שליטה). קורס חדש = קובץ + שורה ב-`COURSES` ב-`lib/course/content.ts`.
+- אין נעילות. "השיעור הנוכחי" = הראשון בלי שליטה. שליטה = ≥90% ב-30 תשובות התרגול האחרונות (מינימום 20) **או** ≥90% במבחן → חגיגה + מעבר אוטומטי.
+- עיצוב: שטוח (אין box-shadow), Heebo, RTL, מובייל פירסט (שבירה ב-700px), כפתורים ≥ 44px, `prefers-reduced-motion`. טוקנים ב-`app/course/course.css`; מצבי כרטיסיות ב-`data-state`/`data-sel`.
+- סרטונים: נתיבים יחסיים ל-bucket `kidodo-media` (`mediaUrl()`); אם הקובץ חסר — "יעלה בקרוב". התנסות בלי סרטון → השאלות ברצף.
+
+### משחקים מתוך הקורס
+- `GameStage` פותח `/games/<id>` (או `href` מה-JSON) עם `childId, courseId, lessonId, courseStage`. המשחק חוזר ב-`router.back()` — לא צריך `returnTo`.
+- ה-SDK קורא את הפרמטרים ושולח `course` ב-body; `api/sdk/event` רושם ANSWER → `course_answers` (+בדיקת שליטה) ו-GAME_OVER → `course_progress` (תרגול: ✓ מכוכב אחד, העשרה: ✓ תמיד).
+- ⚠️ משחק תרגול חייב לשלוח `ANSWER` — אחרת אין דיוק ואין שליטה דרך תרגול. `math-addition-subtraction-001` **לא** שולח ANSWER (לכן הוא העשרה בשיעור 1, ו-`math-drill-001` הוא התרגול).
+- בחזרה ממשחק Next משחזר את העמוד מה-cache — `CourseClient` קורא את השלב מהכתובת ומרענן מ-`GET /api/course/progress` בעלייה.
+
+### פיתוח מקומי (Windows)
+- `next.config.ts`: `turbopackUseSystemTlsCerts: true` — בלי זה הורדת Google Fonts נכשלת ב-build מקומי.
+- שרת ה-preview (`.claude/launch.json` בתיקיית האב) רץ עם `NODE_OPTIONS=--use-system-ca` — בלי זה הקריאות ל-Supabase נכשלות בשגיאת תעודה.
+
+### יומן החלטות — קורס (2026-11-13/14)
+- הקורס בתוך mathplatform-app (לא אתר נפרד). 4 טבלאות חדשות, כל השאר קיים.
+- דמות הקורס ב-`course_enrollments.avatar` ולא ב-`children.avatar` (שם יש אימוג׳י של הדשבורד).
+- ✓ התנסות רק אם כל השאלות נענו נכון (גם בניסיון שני); אחרי 2 טעויות מוצג הפתרון והשאלה לא נספרת.
+- מבחן: שאלות **ותשובות** מעורבבות; תוצאה מוצגת בנקודות (ירוק/צהוב) בלי אחוזים, לפי עקרון "מינימום טקסט".
+- `?next=` נתמך ב-login, ב-`auth/callback` וב-proxy (`lib/safe-next.ts` — רק נתיב פנימי).
+- דמויות: עד שיגיעו קבצים — דמות אחת (הדודו).
+- קישור no-access: `https://kidodo.vercel.app` (ב-JSON, לעדכן כשיהיה דומיין).
+
+---
+
 ## פקודות שימושיות
 ```bash
 cd mathplatform-app
@@ -372,6 +430,8 @@ s.from('TABLE_NAME').select('*').limit(3).then(r => console.log(JSON.stringify(r
 | ✅ | באג: אחרי הוספת ילד — redirect תוקן ל-`/select-child` |
 | ✅ | SPEECH_RECOGNITION_LESSONS.md — תיעוד ניסיון זיהוי דיבור עברי בילדים |
 | ✅ | תיקון SDK — כותב dailyStars + weekProgress ב-GAME_OVER; וי וכוכבים מתעדכנים אחרי חזרה ממשחק |
+| ✅ | אתר הקורס kidodo — `/course`: welcome, 5 שלבים, שליטה ב-90%, מעבר אוטומטי |
+| 🟠 | קורס: סרטונים ודמויות אמיתיים, תוכן שיעורים 2–10 |
 | 🛠 | debug shortcut קיים ב-ChildDashboardClient.tsx — פעיל רק ב-development. מפתחות: 1/2/3 = כוכבים, 4 = הפתעה |
 | 🟠 | עיצוב מסך הכניסה המפוצל — לא תואם את הפלטה |
 | 🟠 | באג: בתהליך הוספת ילד אין כפתור חזרה |

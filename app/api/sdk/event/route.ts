@@ -1,5 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { authorizeChild } from '@/lib/course/admin'
+import { completeStage, recordAnswer, validLesson } from '@/lib/course/record'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,6 +12,12 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   console.log('[SDK event] body:', JSON.stringify(body))
   const { event, childId, gameId, data, timestamp } = body
+
+  // משחק מתוך אתר הקורס → רישום גם בטבלאות הקורס (תשובות, השלמת שלב, שליטה)
+  if (body.course && childId && (event === 'ANSWER' || event === 'GAME_OVER')) {
+    try { await recordCourseEvent(event, childId, body.course, data) }
+    catch (e) { console.error('[SDK] course event error:', e) }
+  }
 
   if (!event || !childId) {
     return NextResponse.json({ error: 'Missing event or childId' }, { status: 400 })
@@ -81,4 +89,24 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ ok: true })
+}
+
+async function recordCourseEvent(
+  event: string, childId: string,
+  c: { courseId?: string; lessonId?: string; stage?: number },
+  data: { correct?: boolean; stars?: number } | undefined,
+) {
+  const stage = Number(c.stage)
+  if (stage !== 3 && stage !== 4) return
+  const auth = await authorizeChild(childId, String(c.courseId ?? ''))
+  if (!auth || !validLesson(auth.course, String(c.lessonId))) return
+  const ctx = { childId, course: auth.course, lessonId: String(c.lessonId) }
+  if (event === 'ANSWER' && typeof data?.correct === 'boolean') {
+    await recordAnswer(ctx, stage, data.correct)
+  }
+  if (event === 'GAME_OVER') {
+    const stars = Number(data?.stars ?? 0)
+    // תרגול: ✓ עם כוכב אחד לפחות · העשרה: ✓ בכל ציון
+    if (stage === 4 || stars >= 1) await completeStage(ctx, stage, { stars })
+  }
 }

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { safeNext } from '@/lib/safe-next'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -8,5 +9,5 @@ export async function GET(request: Request) {
     const supabase = await createClient()
     await supabase.auth.exchangeCodeForSession(code)
   }
-  return NextResponse.redirect(`${origin}/select-child`)
+  return NextResponse.redirect(`${origin}${safeNext(searchParams.get('next'))}`)
 }

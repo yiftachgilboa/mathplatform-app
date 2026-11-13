@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { safeNext } from '@/lib/safe-next'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -30,7 +31,7 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   if (user && pathname === '/login') {
-    return NextResponse.redirect(new URL('/select-child', request.url))
+    return NextResponse.redirect(new URL(safeNext(request.nextUrl.searchParams.get('next')), request.url))
   }
 
   return supabaseResponse

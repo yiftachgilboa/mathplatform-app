@@ -3,6 +3,16 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { safeNext } from '@/lib/safe-next'
+
+/** לאן ממשיכים אחרי כניסה (?next=/course) */
+function nextPath() {
+  return safeNext(new URLSearchParams(window.location.search).get('next'))
+}
+
+function callbackUrl() {
+  return `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath())}`
+}
 
 type Star = { id: number; top: string; left: string; size: string; delay: string; duration: string }
 
@@ -44,7 +54,7 @@ export default function LoginPage() {
     const supabase = createClient()
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: callbackUrl() },
     })
     setLoading(false)
   }
@@ -56,7 +66,7 @@ export default function LoginPage() {
     const supabase = createClient()
     await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      options: { emailRedirectTo: callbackUrl() },
     })
     setLoading(false)
     alert('שלחנו לך אימייל — בדוק את תיבת הדואר')
@@ -72,7 +82,7 @@ export default function LoginPage() {
     if (error) {
       setPwError(error.message)
     } else {
-      router.push('/select-child')
+      router.push(nextPath())
     }
   }
 
@@ -138,7 +148,7 @@ export default function LoginPage() {
       return
     }
 
-    router.push('/select-child')
+    router.push(nextPath())
   }
 
   return (

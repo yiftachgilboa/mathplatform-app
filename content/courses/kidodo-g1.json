@@ -1,0 +1,134 @@
+{
+  "ui": {
+    "welcome": "שלום, {name}!",
+    "logout": "יציאה",
+    "lessonTitle": "מפתח ה{key}",
+    "next": "השלב הבא",
+    "prev": "השלב הקודם",
+    "meter": "דיוק בתרגול",
+    "mastered": "שלטת במפתח ה{key}! ממשיכים",
+    "myCourses": "הקורסים שלי",
+    "lessonsNav": "המפתחות שלי",
+    "stagesNav": "שלבי השיעור",
+    "stages": ["סרטון", "התנסות", "משחק", "העשרה", "מבחן"],
+    "playVideo": "נגן את הסרטון",
+    "playPractice": "לשחק במשחק התרגול",
+    "playEnrichment": "לשחק במשחק ההעשרה",
+    "comingSoon": "הסרטון יעלה בקרוב",
+    "testProgress": "שאלה {n} מתוך {total}",
+    "testPass": "עברת! ממשיכים למפתח הבא",
+    "testFail": "כמעט! עוד קצת תרגול ונסה שוב",
+    "retry": "לנסות שוב",
+    "backToPractice": "חזרה למשחק התרגול",
+    "continue": "ממשיכים",
+    "yourAvatar": "הדמות שלך",
+    "onboarding": {
+      "pickChild": "מי לומד בקורס?",
+      "newChild": "ילד חדש",
+      "askName": "איך קוראים לך?",
+      "namePlaceholder": "השם שלך",
+      "askAvatar": "בחר את הדמות שלך",
+      "start": "יוצאים לדרך!",
+      "back": "חזרה",
+      "nameTaken": "כבר יש ילד בשם הזה",
+      "error": "משהו השתבש, נסו שוב"
+    },
+    "noAccess": "הקורס עוד לא פתוח בחשבון הזה",
+    "noAccessLink": "לעמוד הקורס",
+    "noAccessUrl": "https://kidodo.vercel.app",
+    "allEnrolled": "כל הקורסים כבר משויכים"
+  },
+  "courseId": "kidodo-g1",
+  "courseTitle": "מפתחות החשבון — כיתה א׳",
+  "grade": 1,
+  "mastery": {
+    "practice": { "accuracy": 0.9, "minAnswers": 20, "window": 30 },
+    "test": { "passScore": 0.9, "questions": 10 }
+  },
+  "avatars": [
+    { "id": "char-01", "img": "/course/kidodo-mascot.webp", "name": "דודו" }
+  ],
+  "lessons": [
+    {
+      "id": "lesson-01",
+      "key": "פירוק",
+      "tagline": "כל מספר אפשר לפרק לחלקים",
+      "range": "עד 10",
+      "tint": "#DFF3FF",
+      "deep": "#176FBE",
+      "icon": "M3 8h6v8H3z M15 8h6v8h-6z M12 4v16",
+      "stages": {
+        "video": { "src": "lessons/01/explain.mp4", "poster": "lessons/01/explain.webp" },
+        "interactive": {
+          "src": "lessons/01/interactive.mp4",
+          "cues": [
+            { "t": 12, "q": "את 5 פירקנו ל־3 ועוד…?", "answers": ["2", "1", "3"], "correct": 0, "hint": "ספרו את הקוביות שנשארו" },
+            { "t": 28, "q": "7 זה 4 ועוד…?", "answers": ["2", "4", "3"], "correct": 2, "hint": "מ־4 סופרים עד 7" },
+            { "t": 45, "q": "איזה פירוק של 6 נכון?", "answers": ["2 ו־3", "4 ו־2", "5 ו־2"], "correct": 1, "hint": "מחברים את שני החלקים — יוצא 6?" }
+          ]
+        },
+        "practice": { "gameId": "math-drill-001", "href": "/games/math-drill?gameId=math-drill-001" },
+        "enrichment": { "gameId": "math-addition-subtraction-001" },
+        "test": {
+          "questions": [
+            { "q": "5 = 2 + ?", "answers": ["2", "3", "4", "5"], "correct": 1 },
+            { "q": "6 = 4 + ?", "answers": ["1", "2", "3", "4"], "correct": 1 },
+            { "q": "7 = 3 + ?", "answers": ["3", "4", "5", "6"], "correct": 1 },
+            { "q": "8 = 5 + ?", "answers": ["2", "3", "4", "5"], "correct": 1 },
+            { "q": "9 = 6 + ?", "answers": ["2", "3", "4", "5"], "correct": 1 },
+            { "q": "10 = 7 + ?", "answers": ["2", "3", "4", "5"], "correct": 1 },
+            { "q": "4 = 1 + ?", "answers": ["2", "3", "4", "5"], "correct": 1 },
+            { "q": "8 = 2 + ?", "answers": ["5", "6", "7", "8"], "correct": 1 },
+            { "q": "9 = 4 + ?", "answers": ["4", "5", "6", "7"], "correct": 1 },
+            { "q": "10 = 6 + ?", "answers": ["3", "4", "5", "6"], "correct": 1 }
+          ]
+        }
+      }
+    },
+    {
+      "id": "lesson-02", "key": "השלמה", "tagline": "כמה חסר כדי להגיע ל־10", "range": "לעשר",
+      "tint": "#DFF6EE", "deep": "#23866E", "icon": "M3 7h18v10H3z M9 7v10 M15 7v10 M17 12h1",
+      "stages": {}
+    },
+    {
+      "id": "lesson-03", "key": "מדרגות", "tagline": "עולים צעד אחר צעד עד 10", "range": "עד 10",
+      "tint": "#FFF0B8", "deep": "#9B6A00", "icon": "M3 20h5v-5h5v-5h5V5h3",
+      "stages": {}
+    },
+    {
+      "id": "lesson-04", "key": "מעלית", "tagline": "קופצים בבת אחת לעשר", "range": "עד 10 ועד 20",
+      "tint": "#E9DFFF", "deep": "#7656B4", "icon": "M6 3h12v18H6z M9.5 9l2.5-2.5L14.5 9 M9.5 15l2.5 2.5 2.5-2.5",
+      "stages": {}
+    },
+    {
+      "id": "lesson-05", "key": "הקטנה", "tagline": "מחשבים בקטן ומגדילים", "range": "עשרת שנייה, עשרות",
+      "tint": "#DFF3FF", "deep": "#176FBE", "icon": "M10.5 4.5a6 6 0 1 0 0 12a6 6 0 1 0 0-12z M15 15l5.5 5.5 M7.5 10.5h6",
+      "stages": {}
+    },
+    {
+      "id": "lesson-06", "key": "טיפוס", "tagline": "בחיסור, עולים מהקטן לגדול", "range": "עד 10",
+      "tint": "#DFF6EE", "deep": "#23866E", "icon": "M3 20l6-10 4 6 2-3 6 7z M15 13V4l4 2-4 2",
+      "stages": {}
+    },
+    {
+      "id": "lesson-07", "key": "גלישה", "tagline": "בחיסור, גולשים למטה עד 10", "range": "עד 10",
+      "tint": "#FFF0B8", "deep": "#9B6A00", "icon": "M5 4v16 M5 4h3c0 9 4 14 12 14",
+      "stages": {}
+    },
+    {
+      "id": "lesson-08", "key": "הדבקה", "tagline": "10 ו־4 זה 14", "range": "10 + מספר בודד",
+      "tint": "#E9DFFF", "deep": "#7656B4", "icon": "M9 15l6-6 M10.5 6l1.5-1.5a4 4 0 0 1 5.66 5.66L16 11.8 M13.5 18L12 19.5a4 4 0 0 1-5.66-5.66L8 12.2",
+      "stages": {}
+    },
+    {
+      "id": "lesson-09", "key": "גנב", "tagline": "לוקחים מהשכן כדי להשלים לעשר", "range": "שבירת עשרת בחיבור",
+      "tint": "#DFF3FF", "deep": "#176FBE", "icon": "M3 10c4-3 14-3 18 0v3c-4 3-14 3-18 0z M8.5 10.5v2 M15.5 10.5v2",
+      "stages": {}
+    },
+    {
+      "id": "lesson-10", "key": "שודד", "tagline": "פורצים עשרת כדי לחסר", "range": "שבירת עשרת בחיסור",
+      "tint": "#DFF6EE", "deep": "#23866E", "icon": "M4 7h16v11H4z M12.5 7l-2 4 3 2-2 5",
+      "stages": {}
+    }
+  ]
+}

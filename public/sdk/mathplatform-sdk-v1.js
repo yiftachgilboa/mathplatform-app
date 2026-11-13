@@ -2,10 +2,16 @@
   const SDK = {
     childId: null,
     gameId: null,
+    course: null,
 
     init: function() {
       const params = new URLSearchParams(window.location.search);
       this.childId = params.get('childId');
+      // משחק שנפתח מתוך אתר הקורס: ?courseId=&lessonId=&courseStage=
+      const courseId = params.get('courseId');
+      const lessonId = params.get('lessonId');
+      const stage = parseInt(params.get('courseStage') || '0');
+      this.course = courseId && lessonId && stage ? { courseId: courseId, lessonId: lessonId, stage: stage } : null;
     },
 
     emit: function(event, data) {
@@ -57,6 +63,7 @@
           childId: this.childId,
           gameId: this.gameId,
           data,
+          course: this.course,
           timestamp: new Date().toISOString()
         })
       }).catch(err => console.error('[MathPlatformSDK] Error:', err));
