@@ -67,7 +67,7 @@ export default function TestStage({ questions, count, mascot, ui, onAnswer, onFi
 
   if (idx >= total) {
     return (
-      <div className="panel-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 22, padding: '40px 20px 44px', textAlign: 'center' }}>
+      <div className="panel-in test" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 22, padding: '40px 20px 44px', textAlign: 'center' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={mascot} alt="" className={result?.passed ? 'pop bob' : 'pop'} style={{ width: 140, height: 140, objectFit: 'contain', opacity: result ? 1 : 0.4 }} />
         {result && (
@@ -89,9 +89,9 @@ export default function TestStage({ questions, count, mascot, ui, onAnswer, onFi
   }
 
   return (
-    <div key={`${round}-${idx}`} className="panel-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 28, padding: 'clamp(28px, 5vw, 44px) 20px 48px' }}>
+    <div key={`${round}-${idx}`} className="panel-in test" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 28, padding: 'clamp(28px, 5vw, 44px) 20px 48px' }}>
       {dots}
-      <p style={{ margin: 0, fontSize: 'clamp(44px, 9vw, 72px)', fontWeight: 900, direction: 'ltr', letterSpacing: '-1px', textAlign: 'center' }}>
+      <p className="tq" style={{ margin: 0, fontSize: 'clamp(44px, 9vw, 72px)', fontWeight: 900, direction: 'ltr', letterSpacing: '-1px', textAlign: 'center' }}>
         {q.q.includes('?') ? (
           <>
             {q.q.split('?')[0]}
@@ -104,7 +104,7 @@ export default function TestStage({ questions, count, mascot, ui, onAnswer, onFi
         {q.answers.map((a, i) => {
           const on = picked === i
           return (
-            <button key={i} type="button" className="press c-ans" onClick={() => pick(i)}
+            <button key={i} type="button" className="press c-ans ta" onClick={() => pick(i)}
               style={{ fontSize: 'clamp(28px, 5vw, 36px)', fontWeight: 900, minHeight: 80, borderRadius: 22, border: `2px solid ${on ? 'var(--primary)' : 'var(--line-2)'}`, background: on ? 'var(--primary)' : '#fff', color: on ? '#fff' : 'var(--ink)' }}>
               {a}
             </button>
