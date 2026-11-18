@@ -88,7 +88,7 @@
 .c-start .c-play{width:96px;height:96px;box-shadow:0 8px 22px rgba(22,62,107,.16),0 2px 6px rgba(22,62,107,.08)}
 .c-start .c-play svg{width:52px;height:52px}
 .c-start .breathe{display:flex}
-/* איור מסך הפתיחה: 3 אובייקטים נכנסים מכיוונים אקראיים */
+/* איור מסך הפתיחה: כל האובייקטים נכנסים מכיוונים אקראיים */
 .fly-in{animation:flyIn 1s cubic-bezier(.2,.85,.3,1.12) both}
 @keyframes flyIn{from{transform:translate(var(--dx),var(--dy));opacity:0}35%{opacity:1}to{transform:none;opacity:1}}
 .breathe{animation:breathe 2.8s ease-in-out infinite}

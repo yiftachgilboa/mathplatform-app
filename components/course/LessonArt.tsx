@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 /*
  * איורי מסך הפתיחה של הסרטון — אחד לכל שיעור, באותו סגנון שטוח (לבן בשקיפויות + נגיעה כתומה).
  * מצוירים ב-800×600, כולם נראים במלואם (meet), והמרכז נשאר פנוי לכותרת ולכפתור.
- * כל שיעור הוא רשימת "אובייקטים"; בכל כניסה 3 מהם (אקראיים) עפים פנימה מכיוון אקראי.
+ * כל שיעור הוא רשימת "אובייקטים"; בכל כניסה כולם עפים פנימה, בסדר אקראי ומכיוונים אקראיים.
  */
 const W = '#FFFFFF', O = '#FFA45D'
 const dash = { fill: 'none', stroke: W, strokeWidth: 4, strokeDasharray: '10 9', strokeLinecap: 'round' } as const
@@ -114,12 +114,12 @@ const LESSON_ART: Record<string, React.ReactNode[]> = {
 
 type Fly = { dx: number; dy: number; delay: number }
 
-/** בוחר 3 אובייקטים אקראיים ונותן לכל אחד כיוון כניסה אקראי */
+/** כל האובייקטים נכנסים, בסדר אקראי, כל אחד מכיוון אקראי */
 function pickFlights(count: number): Record<number, Fly> {
-  const idx = Array.from({ length: count }, (_, i) => i).sort(() => Math.random() - 0.5).slice(0, 3)
+  const idx = Array.from({ length: count }, (_, i) => i).sort(() => Math.random() - 0.5)
   return Object.fromEntries(idx.map((i, n) => {
     const a = Math.random() * Math.PI * 2, d = 650 + Math.random() * 250
-    return [i, { dx: Math.round(Math.cos(a) * d), dy: Math.round(Math.sin(a) * d), delay: 0.15 + n * 0.28 }]
+    return [i, { dx: Math.round(Math.cos(a) * d), dy: Math.round(Math.sin(a) * d), delay: 0.12 + n * 0.2 }]
   }))
 }
 
