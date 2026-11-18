@@ -6,7 +6,7 @@ export default function StageNav({ prevLabel, nextLabel, onPrev, onNext, hidePre
   return (
     <div className="c-nav">
       <button type="button" className="press c-light" aria-label={prevLabel} onClick={onPrev} disabled={hidePrev}>
-        <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="#164D78" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="#3A3F44" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12h14M13 6l6 6-6 6" /></svg>
       </button>
       {children}
       <button type="button" className="press c-primary" aria-label={nextLabel} onClick={onNext} disabled={hideNext}>

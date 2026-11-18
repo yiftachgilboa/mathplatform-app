@@ -1,15 +1,15 @@
 import type { Metadata } from 'next'
-import { Heebo } from 'next/font/google'
+import { Fredoka } from 'next/font/google'
 import './course.css'
 
-const heebo = Heebo({
-  variable: '--font-heebo',
+// גופן עגול (Fredoka, משקלים 300–700). משקלים 800/900 בקוד מוצגים כ-700.
+const fredoka = Fredoka({
+  variable: '--font-fredoka',
   subsets: ['latin', 'hebrew'],
-  weight: ['400', '500', '600', '700', '800', '900'],
 })
 
 export const metadata: Metadata = { title: 'kidodo' }
 
 export default function CourseLayout({ children }: { children: React.ReactNode }) {
-  return <div className={`course ${heebo.variable}`}>{children}</div>
+  return <div className={`course ${fredoka.variable}`}>{children}</div>
 }

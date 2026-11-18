@@ -1,8 +1,8 @@
 /* עמוד הקורס kidodo — טוקנים ותנועה (course-design.md §9) */
-.course{--bg:#FFFEFA;--surface:#FFF;--ink:#163E6B;--ink-soft:#315D7D;--muted:#56718E;--navy:#164D78;
+.course{--bg:#FFFEFA;--surface:#FFF;--ink:#33373B;--ink-soft:#4A4F54;--muted:#6B7177;--navy:#3A3F44;
   --primary:#176FBE;--primary-hover:#0B5FA9;--light:#DFF6EE;--light-border:#B7E8D7;--light-hover:#CDEFE2;
   --line:#E1EDF1;--line-2:#D6E3ED;--future:#F3F8FB;--dot:#FFA45D;--success:#58C9AD;--warn:#FDBD22;
-  font-family:var(--font-heebo),'Heebo',Arial,sans-serif;color:var(--ink);background:var(--bg);direction:rtl;
+  font-family:var(--font-fredoka),'Fredoka',Arial,sans-serif;color:var(--ink);background:var(--bg);direction:rtl;
   min-height:100vh;min-height:100dvh;font-size:17px;line-height:1.4;box-sizing:border-box}
 .course *,.course *::before,.course *::after{box-sizing:border-box}
 .course button,.course input{font-family:inherit;color:inherit}
@@ -34,7 +34,7 @@
 .c-menu::-webkit-scrollbar-thumb{background:#C9D8E0;border-radius:4px}
 
 @media (prefers-reduced-motion:reduce){
-  .panel-in,.pop,.bob,.breathe,.fly-in{animation:none}
+  .panel-in,.pop,.bob,.breathe,.fly-in,.art-hop.hop{animation:none}
   .press{transition:none}
   .press:hover,.press:active{transform:none}
 }
@@ -166,3 +166,7 @@
   .c-play svg{width:calc(38*var(--u));height:calc(38*var(--u))}
   .c-nav > button{width:calc(58*var(--u));height:calc(58*var(--u));min-width:44px;min-height:44px}
 }
+/* איור מסך הפתיחה: מעבר עכבר על אובייקט = קפיצה קטנה (תמיד מסתיימת עד הסוף) */
+.art-hop{transform-box:fill-box;transform-origin:50% 100%}
+.art-hop.hop{animation:hop .6s cubic-bezier(.3,.7,.4,1)}
+@keyframes hop{0%{transform:none}18%{transform:scale(1.07,.9)}48%{transform:translateY(-26px) scale(.96,1.05)}78%{transform:scale(1.04,.96)}100%{transform:none}}

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
  * איורי מסך הפתיחה של הסרטון — אחד לכל שיעור, באותו סגנון שטוח (לבן בשקיפויות + נגיעה כתומה).
  * מצוירים ב-800×600, כולם נראים במלואם (meet), והמרכז נשאר פנוי לכותרת ולכפתור.
  * כל שיעור הוא רשימת "אובייקטים"; בכל כניסה כולם עפים פנימה, בסדר אקראי ומכיוונים אקראיים.
+ * מעבר עכבר על אובייקט — קפיצה קטנה (`.art-hop` ב-course.css).
  */
 const W = '#FFFFFF', O = '#FFA45D'
 const dash = { fill: 'none', stroke: W, strokeWidth: 4, strokeDasharray: '10 9', strokeLinecap: 'round' } as const
@@ -78,7 +79,7 @@ const LESSON_ART: Record<string, React.ReactNode[]> = {
   'lesson-08': [
     <g key="a">
       <rect x="80" y="480" width="430" height="64" rx="18" fill={W} />
-      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => <line key={i} x1={80 + i * 43} x2={80 + i * 43} y1="492" y2="532" stroke="#163E6B" strokeOpacity={0.08} strokeWidth="3" />)}
+      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => <line key={i} x1={80 + i * 43} x2={80 + i * 43} y1="492" y2="532" stroke="#33373B" strokeOpacity={0.08} strokeWidth="3" />)}
     </g>,
     <g key="b">
       <rect x="520" y="480" width="172" height="64" rx="18" fill={O} />
@@ -112,6 +113,14 @@ const LESSON_ART: Record<string, React.ReactNode[]> = {
   ],
 }
 
+/** מעבר עכבר: מפעיל קפיצה; לא מתחיל קפיצה חדשה באמצע קפיצה */
+function hop(e: React.MouseEvent<SVGGElement>) {
+  e.currentTarget.classList.add('hop')
+}
+function hopEnd(e: React.AnimationEvent<SVGGElement>) {
+  if (e.animationName === 'hop') e.currentTarget.classList.remove('hop')
+}
+
 type Fly = { dx: number; dy: number; delay: number }
 
 /** כל האובייקטים נכנסים, בסדר אקראי, כל אחד מכיוון אקראי */
@@ -135,9 +144,10 @@ export default function LessonArt({ lessonId }: { lessonId: string }) {
       style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}>
       {objects.map((o, i) => {
         const f = flights[i]
+        const inner = <g className="art-hop" onMouseEnter={hop} onAnimationEnd={hopEnd}>{o}</g>
         return f
-          ? <g key={i} className="fly-in" style={{ '--dx': `${f.dx}px`, '--dy': `${f.dy}px`, animationDelay: `${f.delay}s` } as React.CSSProperties}>{o}</g>
-          : <g key={i}>{o}</g>
+          ? <g key={i} className="fly-in" style={{ '--dx': `${f.dx}px`, '--dy': `${f.dy}px`, animationDelay: `${f.delay}s` } as React.CSSProperties}>{inner}</g>
+          : <g key={i}>{inner}</g>
       })}
     </svg>
   )

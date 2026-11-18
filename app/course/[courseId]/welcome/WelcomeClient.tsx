@@ -46,7 +46,7 @@ export default function WelcomeClient({ courseId, ui, avatars, existing }: Props
   const back = (to: Step) => (
     <button type="button" onClick={() => { setError(''); setStep(to) }} className="press c-light" aria-label={o.back}
       style={{ width: 52, height: 52, borderRadius: '50%', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' }}>
-      <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#164D78" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+      <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#3A3F44" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12h14M13 6l6 6-6 6" /></svg>
     </button>
   )
 
