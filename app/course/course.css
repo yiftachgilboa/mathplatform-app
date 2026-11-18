@@ -34,7 +34,7 @@
 .c-menu::-webkit-scrollbar-thumb{background:#C9D8E0;border-radius:4px}
 
 @media (prefers-reduced-motion:reduce){
-  .panel-in,.pop,.bob,.breathe{animation:none}
+  .panel-in,.pop,.bob,.breathe,.fly-in{animation:none}
   .press{transition:none}
   .press:hover,.press:active{transform:none}
 }
@@ -51,7 +51,7 @@
 
 /* תפריט שיעורים — טלפון: פס אופקי */
 .c-menu{display:flex;gap:10px;overflow-x:auto;padding:4px 16px 6px;align-items:center;scroll-behavior:smooth}
-.c-lesson{flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;text-align:center;
+.c-lesson{flex:none;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px;text-align:right;
   border-radius:22px;font-weight:800;letter-spacing:-.3px;min-height:58px;padding:8px 18px;font-size:16px;
   background:var(--future);color:var(--muted);border:2px solid transparent;white-space:nowrap}
 .c-lesson[data-state=done]{background:var(--tint);color:var(--ink)}
@@ -88,6 +88,9 @@
 .c-start .c-play{width:96px;height:96px;box-shadow:0 8px 22px rgba(22,62,107,.16),0 2px 6px rgba(22,62,107,.08)}
 .c-start .c-play svg{width:52px;height:52px}
 .c-start .breathe{display:flex}
+/* איור מסך הפתיחה: 3 אובייקטים נכנסים מכיוונים אקראיים */
+.fly-in{animation:flyIn 1s cubic-bezier(.2,.85,.3,1.12) both}
+@keyframes flyIn{from{transform:translate(var(--dx),var(--dy));opacity:0}35%{opacity:1}to{transform:none;opacity:1}}
 .breathe{animation:breathe 2.8s ease-in-out infinite}
 @keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
 /* התנסות בתוך השלב: כפתור הגדלה בפינה */

@@ -1,6 +1,7 @@
 'use client'
 import { useRef, useState } from 'react'
-import { LessonArt, PlayIcon } from './art'
+import { PlayIcon } from './art'
+import LessonArt from './LessonArt'
 
 /**
  * שלב 1 — סרטון הסבר. מסך פתיחה: איור לפי השיעור, ״בואו נתחיל״ וכפתור Play (המשולש פועם לאט).

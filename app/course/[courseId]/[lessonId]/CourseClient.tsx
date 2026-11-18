@@ -176,8 +176,9 @@ export default function CourseClient({ course, childId, childName, avatar, initi
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [celebrate])
 
-  const next = () => { if (stage < 5) toStage(stage + 1); else if (lessonIdx < course.lessons.length - 1) go(lessonIdx + 1, 1) }
-  const prev = () => { if (stage > 1) toStage(stage - 1); else if (lessonIdx > 0) go(lessonIdx - 1, 5) }
+  // החצים זזים רק בתוך השיעור; בקצוות הם מושבתים (ועדיין מוצגים)
+  const next = () => { if (stage < 5) toStage(stage + 1) }
+  const prev = () => { if (stage > 1) toStage(stage - 1) }
 
   const goal = Math.round(course.mastery.practice.accuracy * 100)
   const meters = course.lessons.map(l => meterValue(state, l.id))
@@ -223,7 +224,7 @@ export default function CourseClient({ course, childId, childName, avatar, initi
           </section>
 
           <StageNav prevLabel={ui.prev} nextLabel={ui.next} onPrev={prev} onNext={next}
-            hidePrev={lessonIdx === 0 && stage === 1} hideNext={lessonIdx === course.lessons.length - 1 && stage === 5}>
+            hidePrev={stage === 1} hideNext={stage === 5}>
             <StageStepper labels={ui.stages} stage={stage} done={state.done[lesson.id] ?? []} label={ui.stagesNav} onPick={toStage} />
           </StageNav>
         </main>
