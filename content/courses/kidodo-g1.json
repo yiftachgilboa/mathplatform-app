@@ -3,6 +3,7 @@
     "welcome": "שלום, {name}!",
     "logout": "יציאה",
     "lessonTitle": "מפתח ה{key}",
+    "lessonNumber": "שיעור {n}",
     "next": "השלב הבא",
     "prev": "השלב הקודם",
     "meter": "דיוק בתרגול",

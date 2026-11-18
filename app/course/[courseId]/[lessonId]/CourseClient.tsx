@@ -5,7 +5,6 @@ import { fill, mediaUrl, type Course, type Lesson } from '@/lib/course/content'
 import { currentLessonIndex, meterValue, PRACTICE_STAGE, type CourseState } from '@/lib/course/progress'
 import CourseHeader from '@/components/course/CourseHeader'
 import LessonMenu, { type LessonState } from '@/components/course/LessonMenu'
-import LessonHero from '@/components/course/LessonHero'
 import StageStepper from '@/components/course/StageStepper'
 import StageNav from '@/components/course/StageNav'
 import VideoStage from '@/components/course/VideoStage'
@@ -174,12 +173,11 @@ export default function CourseClient({ course, childId, childName, avatar, initi
     <>
       <CourseHeader hello={fill(ui.welcome, { name: childName })} avatar={avatar} avatarLabel={ui.yourAvatar} logoutLabel={ui.logout} />
       <div className="c-wrap">
-        <LessonMenu lessons={course.lessons} states={lessonStates} selected={lessonIdx} label={ui.lessonsNav} onPick={i => go(i)} />
+        <LessonMenu lessons={course.lessons} states={lessonStates} selected={lessonIdx} label={ui.lessonsNav}
+          meter={meterValue(state, lesson.id)} goal={Math.round(course.mastery.practice.accuracy * 100)} meterLabel={ui.meter}
+          titleOf={l => fill(ui.lessonTitle, { key: l.key })} numberOf={n => fill(ui.lessonNumber, { n: String(n) })}
+          onPick={i => go(i)} />
         <main className="c-main">
-          <LessonHero lesson={lesson} title={fill(ui.lessonTitle, { key: lesson.key })}
-            meter={meterValue(state, lesson.id)} goal={Math.round(course.mastery.practice.accuracy * 100)} meterLabel={ui.meter} />
-          <StageStepper labels={ui.stages} stage={stage} done={state.done[lesson.id] ?? []} label={ui.stagesNav} onPick={toStage} />
-
           <section className="c-stage" key={`${lesson.id}-${stage}`}>
             {stage === 1 && (
               <VideoStage src={mediaUrl(st.video?.src)} poster={mediaUrl(st.video?.poster)} tint={tint}
@@ -209,7 +207,9 @@ export default function CourseClient({ course, childId, childName, avatar, initi
           </section>
 
           <StageNav prevLabel={ui.prev} nextLabel={ui.next} onPrev={prev} onNext={next}
-            hidePrev={lessonIdx === 0 && stage === 1} hideNext={lessonIdx === course.lessons.length - 1 && stage === 5} />
+            hidePrev={lessonIdx === 0 && stage === 1} hideNext={lessonIdx === course.lessons.length - 1 && stage === 5}>
+            <StageStepper labels={ui.stages} stage={stage} done={state.done[lesson.id] ?? []} label={ui.stagesNav} onPick={toStage} />
+          </StageNav>
         </main>
       </div>
 
