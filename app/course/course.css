@@ -55,7 +55,6 @@
   border-radius:22px;font-weight:800;letter-spacing:-.3px;min-height:58px;padding:8px 18px;font-size:16px;
   background:var(--future);color:var(--muted);border:2px solid transparent;white-space:nowrap}
 .c-lesson[data-state=done]{background:var(--tint);color:var(--ink)}
-.c-lesson[data-state=cur]{background:#fff;color:var(--ink);border-color:var(--tint)}
 .c-lesson .nm{line-height:1.1}
 .c-lesson .sub{font-size:.68em;font-weight:600;letter-spacing:0;color:var(--muted);line-height:1}
 /* בר אפור קטן (לא נבחר) */
@@ -85,10 +84,12 @@
 .c-play{position:relative;width:84px;height:84px;border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;padding:0 0 0 6px}
 /* מסך פתיחה של הסרטון */
 .c-start{position:relative;display:flex;flex-direction:column;align-items:center;gap:18px}
-.c-start p{margin:0;padding:10px 26px;border-radius:999px;background:#fff;font-size:24px;font-weight:900;letter-spacing:-.5px}
+.c-start p{margin:0;font-size:30px;font-weight:900;letter-spacing:-.8px;color:var(--ink)}
+.c-start .c-play{width:96px;height:96px;box-shadow:0 8px 22px rgba(22,62,107,.16),0 2px 6px rgba(22,62,107,.08)}
+.c-start .c-play svg{width:52px;height:52px}
+.c-start .breathe{display:flex}
 .breathe{animation:breathe 2.8s ease-in-out infinite}
-.breathe:hover{animation-play-state:paused}
-@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.14)}}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
 /* התנסות בתוך השלב: כפתור הגדלה בפינה */
 .c-practice-btn{position:absolute;left:12px;bottom:12px;z-index:2;width:52px;height:52px;border-radius:16px;border:0;
   display:flex;align-items:center;justify-content:center;background:var(--primary);color:#fff;box-shadow:0 4px 14px rgba(22,62,107,.28)}
@@ -156,7 +157,9 @@
   .c-stage .qcard .a{min-height:calc(84*var(--u))!important}
   .c-play{width:calc(96*var(--u));height:calc(96*var(--u))}
   .c-start{gap:calc(24*var(--u))}
-  .c-start p{font-size:calc(32*var(--u));padding:calc(12*var(--u)) calc(32*var(--u))}
+  .c-start p{font-size:calc(42*var(--u))}
+  .c-start .c-play{width:calc(116*var(--u));height:calc(116*var(--u));min-width:80px;min-height:80px}
+  .c-start .c-play svg{width:calc(60*var(--u));height:calc(60*var(--u));min-width:42px;min-height:42px}
   .c-play svg{width:calc(38*var(--u));height:calc(38*var(--u))}
   .c-nav > button{width:calc(58*var(--u));height:calc(58*var(--u));min-width:44px;min-height:44px}
 }

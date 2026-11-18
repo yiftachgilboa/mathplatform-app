@@ -1,13 +1,13 @@
 'use client'
 import { useRef, useState } from 'react'
-import { PlayIcon, Stairs } from './art'
+import { LessonArt, PlayIcon } from './art'
 
 /**
- * שלב 1 — סרטון הסבר. מסך פתיחה: איור השלב, ״בואו נתחיל״ וכפתור Play שפועם לאט.
+ * שלב 1 — סרטון הסבר. מסך פתיחה: איור לפי השיעור, ״בואו נתחיל״ וכפתור Play (המשולש פועם לאט).
  * הסרטון נטען רק בלחיצה. ✓ בצפייה ב-90%.
  */
-export default function VideoStage({ src, poster, tint, playLabel, startLabel, soonLabel, onComplete }: {
-  src?: string; poster?: string; tint: string; playLabel: string; startLabel: string; soonLabel: string; onComplete: () => void
+export default function VideoStage({ lessonId, src, poster, tint, playLabel, startLabel, soonLabel, onComplete }: {
+  lessonId: string; src?: string; poster?: string; tint: string; playLabel: string; startLabel: string; soonLabel: string; onComplete: () => void
 }) {
   const [playing, setPlaying] = useState(false)
   const [failed, setFailed] = useState(!src)
@@ -29,14 +29,14 @@ export default function VideoStage({ src, poster, tint, playLabel, startLabel, s
 
   return (
     <div className="box panel-in" style={{ background: tint }}>
-      <Stairs />
+      <LessonArt lessonId={lessonId} />
       {failed ? (
         <p style={{ position: 'relative', margin: 0, padding: '14px 26px', borderRadius: 999, background: '#fff', fontSize: 20, fontWeight: 800 }}>{soonLabel}</p>
       ) : (
         <div className="c-start">
           <p>{startLabel}</p>
-          <button type="button" className="press c-play breathe" aria-label={playLabel} onClick={() => setPlaying(true)} style={{ background: '#fff' }}>
-            <PlayIcon color="var(--primary)" />
+          <button type="button" className="press c-play" aria-label={playLabel} onClick={() => setPlaying(true)} style={{ background: '#fff' }}>
+            <span className="breathe"><PlayIcon color="var(--primary)" /></span>
           </button>
         </div>
       )}

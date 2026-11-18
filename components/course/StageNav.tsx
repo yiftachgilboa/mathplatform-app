@@ -1,11 +1,11 @@
-/** קודם (ימין, light) / הבא (שמאל, primary) — תמיד פעילים, אייקון בלבד. ביניהם: שורת השלבים (children). */
+/** קודם (ימין, light) / הבא (שמאל, primary) — אייקון בלבד. קודם תמיד מוצג (מושבת בתחילת הקורס), לשמירת הסימטריה. ביניהם: שורת השלבים (children). */
 export default function StageNav({ prevLabel, nextLabel, onPrev, onNext, hidePrev, hideNext, children }: {
   prevLabel: string; nextLabel: string; onPrev: () => void; onNext: () => void; hidePrev?: boolean; hideNext?: boolean
   children?: React.ReactNode
 }) {
   return (
     <div className="c-nav">
-      <button type="button" className="press c-light" aria-label={prevLabel} onClick={onPrev} style={{ visibility: hidePrev ? 'hidden' : undefined }}>
+      <button type="button" className="press c-light" aria-label={prevLabel} onClick={onPrev} disabled={hidePrev}>
         <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="#164D78" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12h14M13 6l6 6-6 6" /></svg>
       </button>
       {children}

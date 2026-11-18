@@ -196,7 +196,7 @@ export default function CourseClient({ course, childId, childName, avatar, initi
         <main className="c-main">
           <section className="c-stage" key={`${lesson.id}-${stage}`}>
             {stage === 1 && (
-              <VideoStage src={mediaUrl(st.video?.src)} poster={mediaUrl(st.video?.poster)} tint={tint}
+              <VideoStage lessonId={lesson.id} src={mediaUrl(st.video?.src)} poster={mediaUrl(st.video?.poster)} tint={tint}
                 playLabel={ui.playVideo} startLabel={ui.letsStart} soonLabel={ui.comingSoon} onComplete={() => completeStage(1, false)} />
             )}
             {stage === 2 && (practiceSrc ? (
