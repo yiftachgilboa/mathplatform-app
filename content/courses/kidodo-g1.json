@@ -4,6 +4,8 @@
     "logout": "יציאה",
     "lessonTitle": "מפתח ה{key}",
     "lessonNumber": "שיעור {n}",
+    "lessonDone": "הושלם",
+    "letsStart": "בואו נתחיל",
     "next": "השלב הבא",
     "prev": "השלב הקודם",
     "meter": "דיוק בתרגול",

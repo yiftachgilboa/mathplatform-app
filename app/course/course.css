@@ -34,7 +34,7 @@
 .c-menu::-webkit-scrollbar-thumb{background:#C9D8E0;border-radius:4px}
 
 @media (prefers-reduced-motion:reduce){
-  .panel-in,.pop,.bob{animation:none}
+  .panel-in,.pop,.bob,.breathe{animation:none}
   .press{transition:none}
   .press:hover,.press:active{transform:none}
 }
@@ -51,21 +51,25 @@
 
 /* תפריט שיעורים — טלפון: פס אופקי */
 .c-menu{display:flex;gap:10px;overflow-x:auto;padding:4px 16px 6px;align-items:center;scroll-behavior:smooth}
-.c-lesson{flex:none;display:flex;align-items:center;gap:10px;text-align:right;border-radius:22px;font-weight:800;letter-spacing:-.3px;
-  min-height:58px;padding:0 20px;font-size:17px;background:var(--future);color:var(--muted);border:2px solid transparent;white-space:nowrap}
+.c-lesson{flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;text-align:center;
+  border-radius:22px;font-weight:800;letter-spacing:-.3px;min-height:58px;padding:8px 18px;font-size:16px;
+  background:var(--future);color:var(--muted);border:2px solid transparent;white-space:nowrap}
 .c-lesson[data-state=done]{background:var(--tint);color:var(--ink)}
 .c-lesson[data-state=cur]{background:#fff;color:var(--ink);border-color:var(--tint)}
-.c-lesson .txt{display:flex;flex-direction:column;align-items:flex-start;line-height:1.1;min-width:0}
-.c-lesson .sub{font-size:.62em;font-weight:600;letter-spacing:0;color:var(--muted);margin-top:2px}
-.c-lesson .lock{flex:none;width:.9em;height:.9em;color:#A9BBC8;margin-inline-start:auto}
-/* הנבחר: בר רמזור, ״מפתח ה...״, המשפט */
-.c-lesson[data-sel=true]{flex-direction:column;align-items:stretch;justify-content:center;gap:6px;min-height:74px;padding:10px 24px;
-  font-size:21px;background:var(--tint);color:var(--ink);border-color:var(--tint)}
 .c-lesson .nm{line-height:1.1}
+.c-lesson .sub{font-size:.68em;font-weight:600;letter-spacing:0;color:var(--muted);line-height:1}
+/* בר אפור קטן (לא נבחר) */
+.c-meter{display:block;width:100%;height:6px;border-radius:999px;background:#E2EAF0;overflow:hidden}
+.c-meter .fill{display:block;height:100%;border-radius:999px;background:#B3C3CF;transition:width .5s,background-color .5s}
+.c-lesson .check{flex:none;width:22px;height:22px;border-radius:50%;background:var(--success);display:flex;align-items:center;justify-content:center}
+.c-lesson .check svg{width:62%;height:62%}
+/* הנבחר: בר רמזור, ״מפתח ה...״, המשפט — מיושר לימין */
+.c-lesson[data-sel=true]{align-items:stretch;text-align:right;gap:6px;min-height:74px;padding:10px 24px;
+  font-size:21px;background:var(--tint);color:var(--ink);border-color:var(--tint)}
 .c-lesson[data-sel=true] .nm{font-weight:900;letter-spacing:-.6px}
+.c-lesson[data-sel=true] .c-meter{height:8px;background:#fff}
+.c-lesson[data-sel=true] .check{align-self:flex-start;width:28px;height:28px}
 .c-lesson .tag{display:none;font-size:.56em;font-weight:500;letter-spacing:0;line-height:1.3;color:var(--ink-soft);white-space:normal}
-.c-meter{display:block;height:8px;border-radius:999px;background:#fff;overflow:hidden}
-.c-meter .fill{display:block;height:100%;border-radius:999px;transition:width .5s,background-color .5s}
 
 /* שורת שלבים */
 .c-tabs{display:flex;align-items:center;gap:8px;overflow-x:auto;margin:0 -16px;padding:0 16px}
@@ -79,6 +83,12 @@
 .c-stage{background:var(--surface);border:1px solid var(--line);border-radius:28px;overflow:hidden}
 .c-stage .box{position:relative;min-height:340px;display:flex;align-items:center;justify-content:center}
 .c-play{position:relative;width:84px;height:84px;border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;padding:0 0 0 6px}
+/* מסך פתיחה של הסרטון */
+.c-start{position:relative;display:flex;flex-direction:column;align-items:center;gap:18px}
+.c-start p{margin:0;padding:10px 26px;border-radius:999px;background:#fff;font-size:24px;font-weight:900;letter-spacing:-.5px}
+.breathe{animation:breathe 2.8s ease-in-out infinite}
+.breathe:hover{animation-play-state:paused}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.14)}}
 /* התנסות בתוך השלב: כפתור הגדלה בפינה */
 .c-practice-btn{position:absolute;left:12px;bottom:12px;z-index:2;width:52px;height:52px;border-radius:16px;border:0;
   display:flex;align-items:center;justify-content:center;background:var(--primary);color:#fff;box-shadow:0 4px 14px rgba(22,62,107,.28)}
@@ -87,7 +97,7 @@
 .c-nav{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .c-nav > button{flex:none}
 .c-nav .c-tabs{flex:1 1 auto;min-width:0;margin:0;padding:4px 2px}
-.c-nav button{width:56px;height:56px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.c-nav > button{width:56px;height:56px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center}
 
 /* ---------- דסקטופ ----------
    כל המידות מוכפלות ב---u: ‎1px במסך גדול (≥1500×950), יורד עד 0.62px במסך קטן,
@@ -112,18 +122,21 @@
     border-radius:calc(32*var(--u));padding:calc(22*var(--u));position:sticky;top:calc(24*var(--u))}
   /* פס הגלילה מימין: המיכל ltr, הכרטיסים rtl */
   .c-menu{direction:ltr}
-  .c-lesson{direction:rtl;width:100%;border-radius:calc(26*var(--u));min-height:calc(80*var(--u));padding:0 calc(26*var(--u));font-size:calc(22*var(--u))}
-  .c-lesson[data-state=future]:not([data-sel=true]){width:50%;align-self:flex-end;padding:0 calc(18*var(--u))}
-  .c-lesson[data-sel=true]{gap:calc(10*var(--u));min-height:calc(112*var(--u));padding:calc(20*var(--u)) calc(30*var(--u));font-size:calc(30*var(--u))}
+  .c-lesson{direction:rtl;width:50%;align-self:flex-end;border-radius:calc(24*var(--u));min-height:calc(88*var(--u));
+    gap:calc(7*var(--u));padding:calc(12*var(--u)) calc(18*var(--u));font-size:calc(19*var(--u))}
+  .c-meter{height:calc(7*var(--u));min-height:5px}
+  .c-lesson .check{width:calc(26*var(--u));height:calc(26*var(--u));min-width:18px;min-height:18px}
+  .c-lesson[data-sel=true]{width:100%;gap:calc(10*var(--u));min-height:calc(112*var(--u));padding:calc(20*var(--u)) calc(30*var(--u));font-size:calc(30*var(--u))}
+  .c-lesson[data-sel=true] .c-meter{height:calc(12*var(--u));min-height:8px}
+  .c-lesson[data-sel=true] .check{width:calc(36*var(--u));height:calc(36*var(--u))}
   .c-lesson .tag{display:block}
-  .c-meter{height:calc(12*var(--u));min-height:8px}
 
   .c-tabs{gap:0;overflow:visible;margin:0;padding:0;flex-wrap:nowrap}
-  .c-tabs .seg{flex:1 1 auto}
-  .c-tabs .seg:last-child{flex:0 0 auto}
-  .c-tabs .line{display:block;flex:1 1 16px;min-width:8px;border-top:2px solid var(--line-2);margin:0 6px}
-  .c-tab{min-height:44px;padding:0 calc(18*var(--u));font-size:calc(16*var(--u))}
-  .c-tab[aria-selected=true]{min-height:max(48px,calc(56*var(--u)));padding:0 calc(28*var(--u));font-size:calc(19*var(--u))}
+  .c-tabs{justify-content:center}
+  .c-tabs .seg{flex:0 1 auto;min-width:0}
+  .c-tabs .line{display:block;width:calc(34*var(--u));min-width:10px;border-top:2px solid var(--line-2);margin:0 calc(8*var(--u))}
+  .c-tab{min-height:max(44px,calc(52*var(--u)));padding:0 calc(28*var(--u));font-size:calc(19*var(--u))}
+  .c-tab[aria-selected=true]{min-height:max(50px,calc(62*var(--u)));padding:0 calc(36*var(--u));font-size:calc(22*var(--u))}
   .c-nav{gap:calc(28*var(--u))}
   .c-nav .c-tabs{padding:0}
 
@@ -138,6 +151,8 @@
   .c-stage .qcard .q{font-size:calc(28*var(--u))!important}
   .c-stage .qcard .a{min-height:calc(84*var(--u))!important}
   .c-play{width:calc(96*var(--u));height:calc(96*var(--u))}
+  .c-start{gap:calc(24*var(--u))}
+  .c-start p{font-size:calc(32*var(--u));padding:calc(12*var(--u)) calc(32*var(--u))}
   .c-play svg{width:calc(38*var(--u));height:calc(38*var(--u))}
-  .c-nav button{width:calc(58*var(--u));height:calc(58*var(--u));min-width:44px;min-height:44px}
+  .c-nav > button{width:calc(58*var(--u));height:calc(58*var(--u));min-width:44px;min-height:44px}
 }

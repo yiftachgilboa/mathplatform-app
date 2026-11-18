@@ -166,6 +166,8 @@ export default function CourseClient({ course, childId, childName, avatar, initi
   const next = () => { if (stage < 5) toStage(stage + 1); else if (lessonIdx < course.lessons.length - 1) go(lessonIdx + 1, 1) }
   const prev = () => { if (stage > 1) toStage(stage - 1); else if (lessonIdx > 0) go(lessonIdx - 1, 5) }
 
+  const goal = Math.round(course.mastery.practice.accuracy * 100)
+  const meters = course.lessons.map(l => meterValue(state, l.id))
   const st = lesson.stages
   const tint = lesson.tint
 
@@ -174,14 +176,15 @@ export default function CourseClient({ course, childId, childName, avatar, initi
       <CourseHeader hello={fill(ui.welcome, { name: childName })} avatar={avatar} avatarLabel={ui.yourAvatar} logoutLabel={ui.logout} />
       <div className="c-wrap">
         <LessonMenu lessons={course.lessons} states={lessonStates} selected={lessonIdx} label={ui.lessonsNav}
-          meter={meterValue(state, lesson.id)} goal={Math.round(course.mastery.practice.accuracy * 100)} meterLabel={ui.meter}
+          meters={meters} achieved={course.lessons.map((l, i) => state.mastered.includes(l.id) || meters[i] >= goal)}
+          goal={goal} meterLabel={ui.meter} doneLabel={ui.lessonDone}
           titleOf={l => fill(ui.lessonTitle, { key: l.key })} numberOf={n => fill(ui.lessonNumber, { n: String(n) })}
           onPick={i => go(i)} />
         <main className="c-main">
           <section className="c-stage" key={`${lesson.id}-${stage}`}>
             {stage === 1 && (
               <VideoStage src={mediaUrl(st.video?.src)} poster={mediaUrl(st.video?.poster)} tint={tint}
-                playLabel={ui.playVideo} soonLabel={ui.comingSoon} onComplete={() => completeStage(1, false)} />
+                playLabel={ui.playVideo} startLabel={ui.letsStart} soonLabel={ui.comingSoon} onComplete={() => completeStage(1, false)} />
             )}
             {stage === 2 && (practiceSrc ? (
               <PracticeStage src={practiceSrc} enlargeLabel={ui.enlarge}
