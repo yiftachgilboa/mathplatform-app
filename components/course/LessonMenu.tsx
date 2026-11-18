@@ -24,11 +24,13 @@ function Check() {
  * נבחר: בר רמזור, ״מפתח ה...״ והמשפט.
  * שיעור שהושג (מבחן עבר או 90% בתרגול): וי ירוק במקום הבר.
  */
-export default function LessonMenu({ lessons, states, selected, label, meters, achieved, meterLabel, doneLabel, goal, titleOf, numberOf, onPick }: {
+export default function LessonMenu({ lessons, states, selected, label, meters, achieved, meterLabel, doneLabel, goal, titleOf, numberOf, onPick, onReset }: {
   lessons: Lesson[]; states: LessonState[]; selected: number; label: string
   meters: number[]; achieved: boolean[]; meterLabel: string; doneLabel: string; goal: number
   titleOf: (l: Lesson) => string; numberOf: (n: number) => string
   onPick: (i: number) => void
+  /** זמני, לבדיקות: דאבל-קליק מאפס את ההתקדמות בשיעור */
+  onReset?: (i: number) => void
 }) {
   const navRef = useRef<HTMLElement>(null)
   const btnRefs = useRef<(HTMLButtonElement | null)[]>([])
@@ -61,7 +63,7 @@ export default function LessonMenu({ lessons, states, selected, label, meters, a
           <button key={l.id} ref={el => { btnRefs.current[i] = el }} type="button" className="press c-lesson"
             data-state={states[i]} data-sel={sel} aria-current={sel ? 'page' : undefined}
             aria-label={achieved[i] ? `${sel ? titleOf(l) : l.key} — ${doneLabel}` : undefined}
-            onClick={() => onPick(i)} style={{ '--tint': l.tint } as React.CSSProperties}>
+            onClick={() => onPick(i)} onDoubleClick={() => onReset?.(i)} style={{ '--tint': l.tint } as React.CSSProperties}>
             {status}
             {sel ? (
               <>

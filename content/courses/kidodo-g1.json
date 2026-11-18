@@ -55,6 +55,11 @@
   ],
   "lessons": [
     {
+      "id": "lesson-03", "key": "מדרגות", "tagline": "עולים צעד אחר צעד עד 10", "range": "עד 10",
+      "tint": "#FFF0B8", "deep": "#9B6A00", "icon": "M3 20h5v-5h5v-5h5V5h3",
+      "stages": {}
+    },
+    {
       "id": "lesson-01",
       "key": "פירוק",
       "tagline": "כל מספר אפשר לפרק לחלקים",
@@ -86,11 +91,6 @@
     {
       "id": "lesson-02", "key": "השלמה", "tagline": "כמה חסר כדי להגיע ל־10", "range": "לעשר",
       "tint": "#DFF6EE", "deep": "#23866E", "icon": "M3 7h18v10H3z M9 7v10 M15 7v10 M17 12h1",
-      "stages": {}
-    },
-    {
-      "id": "lesson-03", "key": "מדרגות", "tagline": "עולים צעד אחר צעד עד 10", "range": "עד 10",
-      "tint": "#FFF0B8", "deep": "#9B6A00", "icon": "M3 20h5v-5h5v-5h5V5h3",
       "stages": {}
     },
     {

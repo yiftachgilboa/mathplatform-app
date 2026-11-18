@@ -141,8 +141,12 @@
   .c-nav .c-tabs{padding:0}
 
   /* אזור התוכן ממלא את הגובה שנשאר (בלי לחתוך את שורת השלבים והחצים) */
-  .c-stage{border-radius:calc(32*var(--u))}
-  .c-stage .box{width:100%;aspect-ratio:4/3;min-height:240px;max-height:calc(100dvh - 220*var(--u))}
+  /* גובה קבוע לכל השלבים, כך ששורת השלבים והחצים לא זזה בין סרטון/התנסות/מבחן */
+  .c-stage{border-radius:calc(32*var(--u));width:100%;aspect-ratio:4/3;min-height:240px;max-height:calc(100dvh - 220*var(--u));
+    display:flex;flex-direction:column;overflow-x:hidden;overflow-y:auto}
+  .c-stage > *{flex:1 0 auto}
+  .c-stage .box{width:100%;min-height:0}
+  .c-stage .test{justify-content:center}
   .c-stage .test{padding:calc(32*var(--u)) 20px calc(34*var(--u))!important;gap:calc(22*var(--u))!important}
   .c-stage .test > img{width:calc(140*var(--u))!important;height:calc(140*var(--u))!important}
   .c-stage .test .tq{font-size:calc(72*var(--u))!important}

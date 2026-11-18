@@ -138,6 +138,19 @@ export default function CourseClient({ course, childId, childName, avatar, initi
     setStage(s)
   }
 
+  /** זמני, לבדיקות: דאבל-קליק על שיעור בתפריט מאפס את ההתקדמות שלו */
+  async function resetLesson(i: number) {
+    const id = course.lessons[i].id
+    const res = await fetch('/api/course/progress', { method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ childId, courseId: course.courseId, lessonId: id }) })
+    if (!res.ok) return
+    knownMastered.current.delete(id)
+    setState(s => {
+      const rest = <T,>(r: Record<string, T>) => Object.fromEntries(Object.entries(r).filter(([k]) => k !== id)) as Record<string, T>
+      return { done: rest(s.done), mastered: s.mastered.filter(m => m !== id), accuracy: rest(s.accuracy), testScore: rest(s.testScore) }
+    })
+  }
+
   async function finishTest(correct: number, total: number) {
     const res = await fetch('/api/course/test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...ctx, correct, total }) })
     const out = res.ok ? await res.json() : { passed: false, score: 0 }
@@ -179,7 +192,7 @@ export default function CourseClient({ course, childId, childName, avatar, initi
           meters={meters} achieved={course.lessons.map((l, i) => state.mastered.includes(l.id) || meters[i] >= goal)}
           goal={goal} meterLabel={ui.meter} doneLabel={ui.lessonDone}
           titleOf={l => fill(ui.lessonTitle, { key: l.key })} numberOf={n => fill(ui.lessonNumber, { n: String(n) })}
-          onPick={i => go(i)} />
+          onPick={i => go(i)} onReset={resetLesson} />
         <main className="c-main">
           <section className="c-stage" key={`${lesson.id}-${stage}`}>
             {stage === 1 && (
