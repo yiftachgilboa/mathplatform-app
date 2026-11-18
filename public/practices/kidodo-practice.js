@@ -9,12 +9,22 @@
  *   KidodoPractice.next()            — back to the course, on the next stage (3)
  *   KidodoPractice.exit()            — back to the course, on this stage (2)
  * Opened alone (no params), nothing is saved, and next/exit go to /course.
+ *
+ * Embedded: the course normally shows the practice inside its stage, in an
+ * <iframe> (small, with an enlarge button). Then next/exit/complete do not
+ * navigate – they tell the course page through postMessage({ kidodo: … }).
  */
 (function () {
   var STAGE = 2
   var p = new URLSearchParams(location.search)
   var ctx = { childId: p.get('childId'), courseId: p.get('courseId'), lessonId: p.get('lessonId') }
   var inCourse = !!(ctx.childId && ctx.courseId && ctx.lessonId)
+  var embedded = false
+  try { embedded = window.parent !== window && window.parent.location.origin === location.origin } catch (e) {}
+
+  function tell(action) {
+    try { window.parent.postMessage({ kidodo: action }, location.origin) } catch (e) {}
+  }
 
   function post(path, body) {
     if (!inCourse) return Promise.resolve(null)
@@ -33,10 +43,15 @@
 
   window.KidodoPractice = {
     inCourse: inCourse,
+    embedded: embedded,
     ctx: ctx,
     answer: function (correct) { post('/api/course/answer', { correct: !!correct }) },
-    complete: function (extra) { return post('/api/course/progress', extra) },
-    next: function () { location.replace(courseUrl(STAGE + 1)) },
-    exit: function () { location.replace(courseUrl(STAGE)) },
+    complete: function (extra) {
+      var r = post('/api/course/progress', extra)
+      if (embedded) r.then(function () { tell('complete') })
+      return r
+    },
+    next: function () { if (embedded) tell('next'); else location.replace(courseUrl(STAGE + 1)) },
+    exit: function () { if (embedded) tell('exit'); else location.replace(courseUrl(STAGE)) },
   }
 })()

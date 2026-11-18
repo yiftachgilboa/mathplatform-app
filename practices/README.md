@@ -12,7 +12,17 @@
 
 ## החיבור לקורס — `public/practices/kidodo-practice.js`
 
-הקורס פותח את ההתנסות כעמוד מלא עם `?childId=&courseId=&lessonId=`. בקובץ ההתנסות:
+הקורס מציג את ההתנסות **בתוך שלב 2, ב-iframe** (`components/course/PracticeStage.tsx`), עם `?childId=&courseId=&lessonId=`:
+
+- היא נטענת מיד כשנכנסים לשלב 2, ומוצגת מוקטנת: ההתנסות "רואה" מסך בגובה 640px, מוקטן לגודל התיבה. אפשר כבר לשחק בה בקטן.
+- כפתור בפינה מגדיל למסך מלא (באייפון: שכבה על כל המסך). ה-✕ של ההתנסות או Esc מחזירים לקטן.
+- טעינה מוקדמת: כשהשיעור פתוח, הקורס מוריד ברקע את קובץ ההתנסות ואת הספריות (`PRACTICE_ASSETS` ב-`lib/course/practice.ts` — אם משנים את הספריות בתבנית, מעדכנים גם שם).
+- הקול מתחמם בלחיצה שמביאה לשלב 2 (`warmSpeech`), כדי שההקראה הראשונה לא תהיה איטית.
+- ההתנסות מעוצבת למסך מלא (`100dvh`) — בתוך ה-iframe זה הגובה של ה-iframe.
+
+בתוך iframe הקריאות `next/exit/complete` לא מנווטות, אלא שולחות לעמוד הקורס `postMessage({ kidodo: 'next' | 'exit' | 'complete' })`. כשפותחים את הקובץ לבד או בעמוד מלא — הן מנווטות כמו קודם.
+
+בקובץ ההתנסות:
 
 ```html
 <script src="/practices/kidodo-practice.js"></script>
@@ -22,8 +32,9 @@
 |---|---|
 | `KidodoPractice.answer(correct)` | שומר תשובה (שלב 2, לא נספר לשליטה) |
 | `KidodoPractice.complete(extra)` | מסמן ✓ לשלב 2 (Promise, אף פעם לא נכשל, עד 2.5 שניות) |
-| `KidodoPractice.next()` | חוזר לקורס, לשלב 3 |
-| `KidodoPractice.exit()` | חוזר לקורס, לשלב 2 |
+| `KidodoPractice.next()` | עובר לשלב 3 (ומקטין אם היה במסך מלא) |
+| `KidodoPractice.exit()` | מקטין חזרה לתוך השלב (בעמוד מלא: חוזר לקורס, לשלב 2) |
+| `KidodoPractice.embedded` | `true` כשההתנסות בתוך הקורס (iframe) |
 | `KidodoPractice.inCourse` | `false` כשפותחים את הקובץ לבד — אז לא נשמר כלום |
 
 ## מה כבר קבוע ב-`decomposition.html` (בסיס לתבנית)

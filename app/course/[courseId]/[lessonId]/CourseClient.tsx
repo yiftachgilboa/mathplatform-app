@@ -11,7 +11,9 @@ import StageNav from '@/components/course/StageNav'
 import VideoStage from '@/components/course/VideoStage'
 import InteractiveVideoStage from '@/components/course/InteractiveVideoStage'
 import GameStage from '@/components/course/GameStage'
+import PracticeStage from '@/components/course/PracticeStage'
 import TestStage from '@/components/course/TestStage'
+import { practiceUrl, prefetch, PRACTICE_ASSETS, warmSpeech } from '@/lib/course/practice'
 
 type Props = {
   course: Course
@@ -121,15 +123,20 @@ export default function CourseClient({ course, childId, childName, avatar, initi
     router.push(url.pathname + url.search)
   }
 
-  // התנסות כעמוד HTML סטטי (public/practices). היא מסמנת את שלב 2 בעצמה וחוזרת לכאן עם stage=3.
-  function openPractice() {
-    const page = lesson.stages.interactive?.page
-    if (!page) return
-    const url = new URL(page, window.location.origin)
-    url.searchParams.set('childId', childId)
-    url.searchParams.set('courseId', course.courseId)
-    url.searchParams.set('lessonId', lesson.id)
-    window.location.assign(url.pathname + url.search)
+  // התנסות כעמוד HTML סטטי (public/practices), מוצגת בתוך שלב 2 (PracticeStage).
+  // היא שומרת את שלב 2 בעצמה ומודיעה לכאן (complete / next).
+  const practicePage = lesson.stages.interactive?.page
+  const practiceSrc = practicePage ? practiceUrl(practicePage, childId, course.courseId, lesson.id) : null
+
+  // טעינה מוקדמת: כבר כשהשיעור פתוח מורידים ברקע את ההתנסות והספריות שלה
+  useEffect(() => {
+    if (practiceSrc) prefetch([practiceSrc, ...PRACTICE_ASSETS])
+  }, [practiceSrc])
+
+  // מעבר לשלב בלחיצה. בדרך להתנסות מחממים את הקול (רק בלחיצה הדפדפן מרשה)
+  const toStage = (s: number) => {
+    if (s === 2 && practiceSrc) warmSpeech()
+    setStage(s)
   }
 
   async function finishTest(correct: number, total: number) {
@@ -157,8 +164,8 @@ export default function CourseClient({ course, childId, childName, avatar, initi
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [celebrate])
 
-  const next = () => { if (stage < 5) setStage(stage + 1); else if (lessonIdx < course.lessons.length - 1) go(lessonIdx + 1, 1) }
-  const prev = () => { if (stage > 1) setStage(stage - 1); else if (lessonIdx > 0) go(lessonIdx - 1, 5) }
+  const next = () => { if (stage < 5) toStage(stage + 1); else if (lessonIdx < course.lessons.length - 1) go(lessonIdx + 1, 1) }
+  const prev = () => { if (stage > 1) toStage(stage - 1); else if (lessonIdx > 0) go(lessonIdx - 1, 5) }
 
   const st = lesson.stages
   const tint = lesson.tint
@@ -171,15 +178,16 @@ export default function CourseClient({ course, childId, childName, avatar, initi
         <main className="c-main">
           <LessonHero lesson={lesson} title={fill(ui.lessonTitle, { key: lesson.key })}
             meter={meterValue(state, lesson.id)} goal={Math.round(course.mastery.practice.accuracy * 100)} meterLabel={ui.meter} />
-          <StageStepper labels={ui.stages} stage={stage} done={state.done[lesson.id] ?? []} label={ui.stagesNav} onPick={setStage} />
+          <StageStepper labels={ui.stages} stage={stage} done={state.done[lesson.id] ?? []} label={ui.stagesNav} onPick={toStage} />
 
           <section className="c-stage" key={`${lesson.id}-${stage}`}>
             {stage === 1 && (
               <VideoStage src={mediaUrl(st.video?.src)} poster={mediaUrl(st.video?.poster)} tint={tint}
                 playLabel={ui.playVideo} soonLabel={ui.comingSoon} onComplete={() => completeStage(1, false)} />
             )}
-            {stage === 2 && (st.interactive?.page ? (
-              <GameStage kind="interactive" tint={tint} label={ui.playInteractive} soonLabel={ui.comingSoon} available onPlay={openPractice} />
+            {stage === 2 && (practiceSrc ? (
+              <PracticeStage src={practiceSrc} enlargeLabel={ui.enlarge}
+                onComplete={() => markDone(2)} onNext={() => setStage(3)} />
             ) : st.interactive?.cues?.length ? (
               <InteractiveVideoStage src={mediaUrl(st.interactive.src)} cues={st.interactive.cues} playLabel={ui.playVideo} retryLabel={ui.retry}
                 onAnswer={c => sendAnswer(2, c)} onComplete={() => completeStage(2, true)} />
