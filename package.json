@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "sync-games": "dotenv -e .env.local -- ts-node scripts/sync-games.ts",
-    "sync-stories": "node scripts/sync-stories.js"
+    "sync-stories": "node scripts/sync-stories.js",
+    "build-practices": "node scripts/build-practices.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

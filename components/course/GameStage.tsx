@@ -1,13 +1,16 @@
 'use client'
-import { Bars, Bubbles, PlayIcon } from './art'
+import { Bars, Bubbles, PlayIcon, Stairs } from './art'
 
-/** שלבים 3–4 — משחק תרגול / העשרה. איור שטוח + כפתור Play. המשחק נפתח בעמוד מלא וחוזר לכאן (router.back). */
+/**
+ * שלבים 2–4 — התנסות (עמוד מלא) / משחק תרגול / העשרה. איור שטוח + כפתור Play.
+ * המשחק או ההתנסות נפתחים בעמוד מלא וחוזרים לכאן.
+ */
 export default function GameStage({ kind, tint, label, soonLabel, available, onPlay }: {
-  kind: 'practice' | 'enrichment'; tint: string; label: string; soonLabel: string; available: boolean; onPlay: () => void
+  kind: 'interactive' | 'practice' | 'enrichment'; tint: string; label: string; soonLabel: string; available: boolean; onPlay: () => void
 }) {
   return (
     <div className="box panel-in" style={{ background: kind === 'enrichment' ? '#FFF0B8' : tint }}>
-      {kind === 'enrichment' ? <Bubbles /> : <Bars />}
+      {kind === 'enrichment' ? <Bubbles /> : kind === 'interactive' ? <Stairs /> : <Bars />}
       {available ? (
         <button type="button" className="press c-play c-primary" aria-label={label} onClick={onPlay}>
           <PlayIcon color="#FFFFFF" />

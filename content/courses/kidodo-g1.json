@@ -14,6 +14,7 @@
     "playVideo": "נגן את הסרטון",
     "playPractice": "לשחק במשחק התרגול",
     "playEnrichment": "לשחק במשחק ההעשרה",
+    "playInteractive": "להתחיל את ההתנסות",
     "comingSoon": "הסרטון יעלה בקרוב",
     "testProgress": "שאלה {n} מתוך {total}",
     "testPass": "עברת! ממשיכים למפתח הבא",
@@ -59,14 +60,7 @@
       "icon": "M3 8h6v8H3z M15 8h6v8h-6z M12 4v16",
       "stages": {
         "video": { "src": "lessons/01/explain.mp4", "poster": "lessons/01/explain.webp" },
-        "interactive": {
-          "src": "lessons/01/interactive.mp4",
-          "cues": [
-            { "t": 12, "q": "את 5 פירקנו ל־3 ועוד…?", "answers": ["2", "1", "3"], "correct": 0, "hint": "ספרו את הקוביות שנשארו" },
-            { "t": 28, "q": "7 זה 4 ועוד…?", "answers": ["2", "4", "3"], "correct": 2, "hint": "מ־4 סופרים עד 7" },
-            { "t": 45, "q": "איזה פירוק של 6 נכון?", "answers": ["2 ו־3", "4 ו־2", "5 ו־2"], "correct": 1, "hint": "מחברים את שני החלקים — יוצא 6?" }
-          ]
-        },
+        "interactive": { "page": "/practices/decomposition.html" },
         "practice": { "gameId": "math-drill-001", "href": "/games/math-drill?gameId=math-drill-001" },
         "enrichment": { "gameId": "math-addition-subtraction-001" },
         "test": {

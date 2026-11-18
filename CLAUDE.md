@@ -360,6 +360,12 @@ MathPlatformSDK.emit('GAME_OVER', { score, maxScore, stars, correctAnswers, tota
 - `next.config.ts`: `turbopackUseSystemTlsCerts: true` — בלי זה הורדת Google Fonts נכשלת ב-build מקומי.
 - שרת ה-preview (`.claude/launch.json` בתיקיית האב) רץ עם `NODE_OPTIONS=--use-system-ca` — בלי זה הקריאות ל-Supabase נכשלות בשגיאת תעודה.
 
+### התנסויות כעמוד מלא (שלב 2)
+- `"interactive": { "page": "/practices/<name>.html" }` ← `GameStage kind="interactive"` פותח את העמוד עם `childId, courseId, lessonId`.
+- מקור: `practices/<name>.html` (JSX + Babel בדפדפן). `npm run build-practices` ← `public/practices/<name>.html` (מקומפל, בלי Babel). commit לשניהם.
+- חיבור לקורס: `public/practices/kidodo-practice.js` (`answer` / `complete` / `next` / `exit`). "המשך" מסמן ✓ לשלב 2 וחוזר עם `stage=3`. הוראות: `practices/README.md`.
+- שיעור 1: `decomposition.html` (פירוק מספרים) — בסיס לתבנית ההתנסויות.
+
 ### יומן החלטות — קורס (2026-11-13/14)
 - הקורס בתוך mathplatform-app (לא אתר נפרד). 4 טבלאות חדשות, כל השאר קיים.
 - דמות הקורס ב-`course_enrollments.avatar` ולא ב-`children.avatar` (שם יש אימוג׳י של הדשבורד).
@@ -368,6 +374,7 @@ MathPlatformSDK.emit('GAME_OVER', { score, maxScore, stars, correctAnswers, tota
 - `?next=` נתמך ב-login, ב-`auth/callback` וב-proxy (`lib/safe-next.ts` — רק נתיב פנימי).
 - דמויות: עד שיגיעו קבצים — דמות אחת (הדודו).
 - קישור no-access: `https://kidodo.vercel.app` (ב-JSON, לעדכן כשיהיה דומיין).
+- 2026-11-18 — התנסות שיעור 1 = עמוד HTML מלא (`practices/decomposition.html`) במקום סרטון עם שאלות. מסך סיום: תיבת אוצר שנפתחת ומעיפה מטבעות, "המשך" ← שלב 3.
 
 ---
 

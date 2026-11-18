@@ -121,6 +121,17 @@ export default function CourseClient({ course, childId, childName, avatar, initi
     router.push(url.pathname + url.search)
   }
 
+  // התנסות כעמוד HTML סטטי (public/practices). היא מסמנת את שלב 2 בעצמה וחוזרת לכאן עם stage=3.
+  function openPractice() {
+    const page = lesson.stages.interactive?.page
+    if (!page) return
+    const url = new URL(page, window.location.origin)
+    url.searchParams.set('childId', childId)
+    url.searchParams.set('courseId', course.courseId)
+    url.searchParams.set('lessonId', lesson.id)
+    window.location.assign(url.pathname + url.search)
+  }
+
   async function finishTest(correct: number, total: number) {
     const res = await fetch('/api/course/test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...ctx, correct, total }) })
     const out = res.ok ? await res.json() : { passed: false, score: 0 }
@@ -167,7 +178,9 @@ export default function CourseClient({ course, childId, childName, avatar, initi
               <VideoStage src={mediaUrl(st.video?.src)} poster={mediaUrl(st.video?.poster)} tint={tint}
                 playLabel={ui.playVideo} soonLabel={ui.comingSoon} onComplete={() => completeStage(1, false)} />
             )}
-            {stage === 2 && (st.interactive?.cues.length ? (
+            {stage === 2 && (st.interactive?.page ? (
+              <GameStage kind="interactive" tint={tint} label={ui.playInteractive} soonLabel={ui.comingSoon} available onPlay={openPractice} />
+            ) : st.interactive?.cues?.length ? (
               <InteractiveVideoStage src={mediaUrl(st.interactive.src)} cues={st.interactive.cues} playLabel={ui.playVideo} retryLabel={ui.retry}
                 onAnswer={c => sendAnswer(2, c)} onComplete={() => completeStage(2, true)} />
             ) : (

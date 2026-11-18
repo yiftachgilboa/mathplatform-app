@@ -8,7 +8,8 @@ export type GameRef = { gameId: string; href?: string }
 
 export type LessonStages = {
   video?: { src: string; poster?: string }
-  interactive?: { src?: string; cues: Cue[] }
+  /** page = התנסות כעמוד מלא (public/practices/…), אחרת סרטון + cues */
+  interactive?: { src?: string; cues?: Cue[]; page?: string }
   practice?: GameRef
   enrichment?: GameRef
   test?: { questions: Question[] }
