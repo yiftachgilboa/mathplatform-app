@@ -43,22 +43,22 @@ header{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align
 /* board: the whole lower screen. Ground + river at the bottom, edge to edge; planks lie anywhere above */
 .board{position:relative;flex:1;min-height:0;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
 .board>*{position:absolute}
-.rcliff{transition:left .9s cubic-bezier(.5,0,.3,1)}
-.cells{display:flex;transition:width .9s cubic-bezier(.5,0,.3,1);pointer-events:none}
-.cells i{flex:none;border:2.5px dashed rgba(255,255,255,.85);border-left-width:0;background:rgba(255,255,255,.18)}
-.cells i:first-child{border-left-width:2.5px}
-.cells.hot i{background:rgba(255,229,120,.5);border-color:#fff}
+.world{will-change:transform}
+.world>*{position:absolute}
+.measure.hot::before{background:#FFE27A}.measure.hot::after{border-color:#FFE27A}.measure.hot .mnum{transform:scale(1.2);color:#fff;background:var(--coral)}
+.hand{position:absolute;left:0;top:0;z-index:60;pointer-events:none;opacity:0;filter:drop-shadow(0 4px 4px rgba(23,80,130,.3))}
+.demoline{position:absolute;left:0;top:0;width:5px;border-radius:3px;background:#fff;transform-origin:top;z-index:59;pointer-events:none;opacity:0;box-shadow:0 0 8px #fff}
+.ghost{position:absolute;left:0;top:0;z-index:58;pointer-events:none;opacity:0}
 .measure{display:flex;align-items:center;justify-content:center;transition:width .9s cubic-bezier(.5,0,.3,1),opacity .3s;pointer-events:none}
 .measure::before{content:"";position:absolute;left:0;right:0;top:50%;height:3px;margin-top:-1.5px;background:#fff;border-radius:2px}
 .measure::after{content:"";position:absolute;left:0;right:0;top:50%;height:14px;margin-top:-7px;border-left:3px solid #fff;border-right:3px solid #fff}
-.mnum{position:relative;z-index:1;min-width:44px;height:36px;padding:0 10px;border-radius:18px;background:#fff;color:var(--coral);font-weight:700;font-size:24px;line-height:36px;text-align:center;box-shadow:0 4px 0 rgba(23,111,190,.22)}
+.mnum{transition:transform .2s,background .2s,color .2s;position:relative;z-index:1;min-width:44px;height:36px;padding:0 10px;border-radius:18px;background:#fff;color:var(--coral);font-weight:700;font-size:24px;line-height:36px;text-align:center;box-shadow:0 4px 0 rgba(23,111,190,.22)}
 .mnum.pop{animation:mpop .6s}
 @keyframes mpop{40%{transform:scale(1.35)}}
-.hero{transition:left 1.9s linear;z-index:3;pointer-events:none}
-.hero.snap{transition:none}
+.hero{z-index:3;pointer-events:none}
 .hero .in.show{animation:heroIn .6s both}
 @keyframes heroIn{from{transform:translateY(-140px)}60%{transform:translateY(0) scale(1.06,.92)}to{transform:none}}
-.coin2{z-index:2;animation:bob 1.4s ease-in-out infinite alternate;transition:left .9s cubic-bezier(.5,0,.3,1);pointer-events:none}
+.coin2{z-index:2;animation:bob 1.4s ease-in-out infinite alternate;pointer-events:none}
 @keyframes bob{to{transform:translateY(-8px)}}
 .wave{animation:wave 3s ease-in-out infinite alternate}
 @keyframes wave{to{transform:translateX(14px)}}
@@ -339,32 +339,38 @@ const LowPolyBG=React.memo(function LowPolyBG(){
   return <svg className="bg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice">{els}</svg>;
 });
 
-/* cliff (low-poly rock with a grass cap). w×h, grass on top, facets shaded from the left */
-function Cliff({w,h,side}){
-  const r=rng(side==='l'?7:13), j=()=>Math.round((r()-.5)*10), el=[];let k=0;
+/* cliff (low-poly rock with a grass cap). edgeL/edgeR = a river on that side (jagged edge) */
+function Cliff({w,h,seed=1,edgeL=true,edgeR=true}){
+  const r=rng(seed*7+3), el=[];let k=0;
   const poly=(p,f)=>el.push(<polygon key={k++} points={pts(p)} fill={f}/>);
-  const e=side==='l'?w:0, o=side==='l'?0:w;           // e = the edge facing the river
-  const dir=side==='l'?-1:1;
-  poly([[o,0],[e,0],[e+dir*6,h*.35],[e-dir*4,h*.7],[e+dir*8,h],[o,h]],'#E7A15A');
-  poly([[e,0],[e+dir*6,h*.35],[e-dir*4,h*.7],[e+dir*8,h],[e+dir*(w*.45),h],[e+dir*(w*.35),h*.5],[e+dir*(w*.4),0]],'#C97B36');
-  poly([[e+dir*(w*.4),0],[e+dir*(w*.35),h*.5],[e+dir*(w*.55),h*.62],[e+dir*(w*.7),0]],'#D98C45');
-  poly([[e+dir*(w*.35),h*.5],[e+dir*(w*.45),h],[e+dir*(w*.75),h],[e+dir*(w*.55),h*.62]],'#B86A2A');
-  for(let i=0;i<3;i++){const x=e+dir*(w*(.2+i*.25))+j(),y=h*(.3+i*.2)+j();poly([[x,y],[x+dir*10,y-6],[x+dir*16,y+4],[x+dir*6,y+9]],'rgba(255,255,255,.18)')}
+  const L=edgeL?[[0,0],[6,h*.35],[-4,h*.7],[8,h]]:[[0,0],[0,h]];
+  const Rr=edgeR?[[w,0],[w-6,h*.35],[w+4,h*.7],[w-8,h]]:[[w,0],[w,h]];
+  poly([...L,...Rr.slice().reverse()],'#E7A15A');
+  // facets across the rock, every ~80px
+  for(let x=22;x<w-60;x+=70+Math.round(r()*30)){
+    const a=24+r()*26, m=h*(.45+r()*.2);
+    poly([[x,0],[x+a,0],[x+a*.7,m],[x+a*.1,m-8]],'#D98C45');
+    poly([[x+a*.1,m-8],[x+a*.7,m],[x+a*1.2,h],[x-6,h]],r()<.5?'#C97B36':'#D48540');
+    poly([[x+a*.3,m*.4],[x+a*.3+10,m*.4-6],[x+a*.3+16,m*.4+4],[x+a*.3+6,m*.4+9]],'rgba(255,255,255,.18)');
+  }
+  if(edgeL)poly([[0,0],[6,h*.35],[-4,h*.7],[8,h],[26,h],[16,h*.6],[22,0]],'#C97B36');
+  if(edgeR)poly([[w,0],[w-6,h*.35],[w+4,h*.7],[w-8,h],[w-28,h],[w-18,h*.55],[w-24,0]],'#B86A2A');
   // grass cap
-  poly([[o,-4],[e+dir*3,-4],[e,10],[e+dir*(w*.3),14],[e+dir*(w*.6),9],[o,12]],'#5BBE6A');
-  poly([[o,-4],[e+dir*3,-4],[e+dir*(w*.4),-4],[e+dir*(w*.3),6]],'#93DA7F');
+  poly([[-2,-4],[w+2,-4],[w,10],[w*.7,13],[w*.35,9],[0,12]],'#5BBE6A');
+  poly([[-2,-4],[w+2,-4],[w*.6,4],[w*.2,5]],'#93DA7F');
   return <svg width={w+24} height={h+6} viewBox={`-12 -6 ${w+24} ${h+6}`} style={{display:'block',margin:'-6px 0 0 -12px'}}>{el}</svg>;
 }
+/* river: low-poly water, tiled every 60px so it can be as long as the world */
 function River({w,h}){
   const el=[];let k=0;const poly=(p,f,cls)=>el.push(<polygon key={k++} className={cls} points={pts(p)} fill={f}/>);
   poly([[0,0],[w,0],[w,h],[0,h]],'#5AB3E6');
-  for(let i=0;i<8;i++){const x=i*w/8;poly([[x,0],[x+w/8,0],[x+w/16,h*.5]],i%2?'#7FC8F0':'#6ABEEC')}
-  for(let i=0;i<8;i++){const x=i*w/8+w/16;poly([[x,h*.5],[x+w/8,h],[x-w/16+w/8*0,h]],i%2?'#3D9BD6':'#4AA6DE')}
-  for(let i=0;i<6;i++){const x=(i+.3)*w/6,y=h*(.25+(i%3)*.2);poly([[x,y],[x+16,y-4],[x+30,y]],'rgba(255,255,255,.7)','wave')}
+  const t=60, n=Math.ceil(w/t);
+  for(let i=0;i<n;i++){const x=i*t;poly([[x,0],[x+t,0],[x+t/2,h*.5]],i%2?'#7FC8F0':'#6ABEEC');poly([[x+t/2,h*.5],[x+t*1.5,h*.5],[x+t,h]],i%2?'#3D9BD6':'#4AA6DE')}
+  for(let i=0;i<n;i+=2){const x=i*t+20,y=h*(.25+(i%3)*.2);poly([[x,y],[x+16,y-4],[x+30,y]],'rgba(255,255,255,.7)','wave')}
   return <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{display:'block'}}>{el}</svg>;
 }
 
-/* a number plank: flat, one segment per original plank, unit lines every U px */
+/* a number plank: flat, one segment per colour, unit lines every U px */
 function Plank({p,U,T,cls='',showSum=true}){
   const n=total(p), fs=Math.max(15,Math.min(26,T*.72));
   return (<div className={'plank '+cls} style={{'--U':U+'px','--T':T+'px',width:n*U}}>
@@ -374,23 +380,77 @@ function Plank({p,U,T,cls='',showSum=true}){
   </div>);
 }
 
+/* low-poly hand, fingertip at (14,0) */
+const HandIcon=()=>(<svg width="44" height="62" viewBox="0 0 44 62" style={{display:'block'}}>
+  <polygon points="10,4 14,0 18,4 18,28 10,28" fill="#FFDDB8"/><polygon points="14,0 18,4 18,28 14,28" fill="#F6C99A"/>
+  <polygon points="18,16 25,15 26,28 18,28" fill="#F6C99A"/><polygon points="26,18 32,18 33,30 26,30" fill="#EBB585"/>
+  <polygon points="4,26 34,26 36,46 8,48" fill="#FFDDB8"/><polygon points="20,26 34,26 36,46 22,47" fill="#F6C99A"/>
+  <polygon points="0,30 6,27 9,38 3,39" fill="#FFDDB8"/>
+  <polygon points="7,47 36,45 37,60 8,62" fill="#3D6FE0"/><polygon points="22,46 36,45 37,60 23,61" fill="#2D57C2"/></svg>);
+
+/* the teaching hand: 'cut' = a quick stroke down through a plank, 'join' = drag one plank onto another */
+function HandDemo({demo,U,T}){
+  const handRef=useRef(null), lineRef=useRef(null), ghostRef=useRef(null);
+  useEffect(()=>{
+    const anims=[], opt={duration:2200,iterations:Infinity,easing:'ease-in-out'};
+    if(demo.kind==='cut'){
+      const {x,y0,y1}=demo;
+      anims.push(handRef.current.animate([
+        {transform:`translate(${x-14}px,${y0-40}px)`,opacity:0},
+        {transform:`translate(${x-14}px,${y0}px)`,opacity:1,offset:.2},
+        {transform:`translate(${x-14}px,${y0}px)`,opacity:1,offset:.35},
+        {transform:`translate(${x-18}px,${y1}px)`,opacity:1,offset:.5},
+        {transform:`translate(${x-18}px,${y1}px)`,opacity:1,offset:.75},
+        {transform:`translate(${x-18}px,${y1+20}px)`,opacity:0}],opt));
+      anims.push(lineRef.current.animate([
+        {transform:`translate(${x-2}px,${y0}px) scaleY(0)`,opacity:0},
+        {transform:`translate(${x-2}px,${y0}px) scaleY(0)`,opacity:1,offset:.35},
+        {transform:`translate(${x-2}px,${y0}px) scaleY(1)`,opacity:1,offset:.5},
+        {transform:`translate(${x-2}px,${y0}px) scaleY(1)`,opacity:0,offset:.75},
+        {transform:`translate(${x-2}px,${y0}px) scaleY(1)`,opacity:0}],opt));
+    }else{
+      const {a,b}=demo;     // centres
+      const hk=[{transform:`translate(${a.x-14}px,${a.y}px)`,opacity:0},
+        {transform:`translate(${a.x-14}px,${a.y}px)`,opacity:1,offset:.15},
+        {transform:`translate(${a.x-14}px,${a.y}px)`,opacity:1,offset:.25},
+        {transform:`translate(${b.x-14}px,${b.y}px)`,opacity:1,offset:.7},
+        {transform:`translate(${b.x-14}px,${b.y}px)`,opacity:0}];
+      anims.push(handRef.current.animate(hk,opt));
+      const gw=demo.w;
+      anims.push(ghostRef.current.animate([
+        {transform:`translate(${a.x-gw/2}px,${a.y-T/2}px)`,opacity:0},
+        {transform:`translate(${a.x-gw/2}px,${a.y-T/2}px)`,opacity:.6,offset:.25},
+        {transform:`translate(${b.x-gw/2}px,${b.y-T/2}px)`,opacity:.6,offset:.7},
+        {transform:`translate(${b.x-gw/2}px,${b.y-T/2}px)`,opacity:0}],opt));
+    }
+    return()=>anims.forEach(a=>a.cancel());
+  },[demo]);
+  return (<>
+    {demo.kind==='cut'&&<i ref={lineRef} className="demoline" style={{height:demo.y1-demo.y0}}/>}
+    {demo.kind==='join'&&<div ref={ghostRef} className="ghost"><Plank p={demo.p} U={U} T={T} showSum={false}/></div>}
+    <div ref={handRef} className="hand"><HandIcon/></div>
+  </>);
+}
+
 /* ---------- app ---------- */
 function App(){
   const [screen,setScreen]=useState('start');      // start | play | end
   const [ri,setRi]=useState(0);
-  const [round,setRound]=useState(null);           // {gap, planks, wrong}
+  const [rounds,setRounds]=useState([]);           // all 5 made at the start, so the next pit is already there
   const [planks,setPlanks]=useState([]);           // [{id,segs,key,x,y,z}] x,y = top-left on the board
-  const [fallN,setFallN]=useState(0);              // planks fall in when this changes
-  const [drag,setDrag]=useState(null);             // id of the plank being dragged
+  const [fallN,setFallN]=useState(0);
+  const [drag,setDrag]=useState(null);
   const [phase,setPhase]=useState('busy');         // build | busy
-  const [bridge,setBridge]=useState(null);         // {p, state:'fit'|'short'|'long'}
-  const [hero,setHero]=useState({at:'left',walk:false,vis:false,snap:true,cheer:false});
-  const [coinVis,setCoinVis]=useState(false);
+  const [bridge,setBridge]=useState(null);         // {p, state:'fit'|'short'|'long'} the try in the current pit
+  const [built,setBuilt]=useState([]);             // bridges that stay behind: [{i,p}]
+  const [worldI,setWorldI]=useState(0),[walkDur,setWalkDur]=useState(0);   // the world scrolls to pit worldI
+  const [hero,setHero]=useState({walk:false,vis:false,cheer:false});
+  const [coinTaken,setCoinTaken]=useState(-1);
   const [hl,setHl]=useState([]);
-  const [fx,setFx]=useState({});                   // {id: 'merged'|'split'|'nope'} one-shot plank animations
-  const [fxN,setFxN]=useState(0);
+  const [fx,setFx]=useState({}),[fxN,setFxN]=useState(0);
   const [hot,setHot]=useState(false);
-  const [trail,setTrail]=useState(null);           // {pts, fade} the white "knife" line
+  const [trail,setTrail]=useState(null);
+  const [demo,setDemo]=useState(null);             // teaching hand
   const [measurePop,setMeasurePop]=useState(0);
   const [caption,setCaption]=useState(''),[capN,setCapN]=useState(0),[talking,setTalking]=useState(false);
   const [progress,setProgress]=useState(0),[bumpN,setBumpN]=useState(0);
@@ -399,29 +459,31 @@ function App(){
   const [size,setSize]=useState({w:360,h:560});
 
   const boardRef=useRef(null), chestRef=useRef(null), coinRef=useRef(null), bigChestRef=useRef(null);
-  const R=useRef({}); R.current={...R.current,round,planks,phase,ri};
+  const R=useRef({}); R.current={...R.current,rounds,planks,phase,ri,round:rounds[ri]};
   const flow=useRef(0), finRef=useRef(null), lastSay=useRef(''), nudges=useRef([]), stats=useRef([]);
   const dragRef=useRef(null), strokeRef=useRef(null), zTop=useRef(10), idN=useRef(0);
+  const teach=useRef('cut'), teachTimer=useRef(null);      // cut → join → done
 
   useEffect(()=>{const el=boardRef.current;if(!el)return;const m=()=>setSize({w:el.clientWidth,h:el.clientHeight});m();
     if(typeof ResizeObserver==='undefined'){window.addEventListener('resize',m);return()=>window.removeEventListener('resize',m)}
     const ro=new ResizeObserver(m);ro.observe(el);return()=>ro.disconnect()},[screen]);
 
-  /* geometry: one unit U for the river and the planks (so lengths can be compared by eye).
-     U also lets the longest possible plank (4+9+4=17) fit across the screen. */
+  /* geometry: one unit U for the river and the planks (lengths can be compared by eye) */
   const W=size.w, H=size.h;
   const U=Math.max(16,Math.min(46,Math.floor((Math.min(W,1000)-80)/MAXLEN),Math.floor((W-24)/17)));
   const T=Math.max(28,Math.round(U*1.3));            // thick enough for a finger
-  const Lx=Math.round((W-MAXLEN*U)/2);
+  const Lx=Math.round((W-MAXLEN*U)/2);               // the edge the hero stands at, on screen
   const groundH=Math.round(Math.max(110,Math.min(230,H*.3)));
   const groundY=H-groundH;
-  const gap=round?round.gap:7;
-  const Rx=Lx+gap*U;
   const hs=Math.max(46,Math.min(76,Math.round(H*.12))), hw=hs*.75;
-  const heroX=hero.at==='left'?Lx-hw-6:Rx+6;
-  const topY=60;                                    // planks never go above this (reset button)
-  const maxY=groundY-hs-T-8;                        // ...or onto the ground line
-  R.current.geo={U,T,Lx,groundY,W,H,topY,maxY};
+  const heroX=Lx-hw-6;                               // the hero never moves; the world does
+  const C=Math.max(hw+70,Math.round(U*5));           // the land between two pits
+  // world x of each pit: E[i] = left edge, S[i] = right edge (start of the next land)
+  const E=[],S=[];{let e=Lx;rounds.forEach((r,i)=>{E[i]=e;S[i]=e+r.gap*U;e=S[i]+C})}
+  const gap=rounds[ri]?rounds[ri].gap:7;
+  const offset=(E[worldI]??Lx)-Lx;
+  const topY=60, maxY=groundY-hs-T-8;
+  R.current.geo={U,T,Lx,groundY,W,H,topY,maxY,C,hw};
 
   const tts=()=>soundOn&&hasTTS&&heVoice;
   const newFlow=()=>{const f=++flow.current;return()=>f===flow.current};
@@ -444,12 +506,37 @@ function App(){
   const clearNudges=()=>{nudges.current.forEach(clearTimeout);nudges.current=[]};
   function armNudges(alive){
     clearNudges();
+    if(teach.current!=='done')return;               // the hand teaches first
     nudges.current=[
-      later(alive,14000,()=>say('רמז: אפשר לחבר שני קרשים. גוררים קרש אחד ומשחררים אותו על קרש אחר.')),
-      later(alive,30000,()=>{const r=R.current.round;setHl(R.current.planks.filter(p=>p.key).map(p=>p.id));say(`נסו את שני הקרשים שקופצים. ביחד הם יוצרים ${r.gap}?`)}),
+      later(alive,16000,()=>say('רמז: אפשר לחבר שני קרשים, ואפשר לחתוך קרש בכל מקום.')),
+      later(alive,32000,()=>{const r=R.current.round;setHl(R.current.planks.filter(p=>p.key).map(p=>p.id));say(`נסו את שני הקרשים שקופצים. ביחד הם יוצרים ${r.gap}?`)}),
     ];
   }
   const bump=(id,kind)=>{setFx({[id]:kind});setFxN(n=>n+1)};
+
+  /* ---------- the teaching hand: if the child waits, show how to cut; after the first cut, how to join ---------- */
+  function armTeach(ms){
+    clearTimeout(teachTimer.current);
+    if(teach.current==='done')return;
+    teachTimer.current=setTimeout(showTeach,ms);
+  }
+  function showTeach(){
+    const {planks,phase}=R.current, {U,T}=R.current.geo;
+    if(phase!=='build'||teach.current==='done')return;
+    if(teach.current==='cut'){
+      const p=[...planks].filter(x=>total(x)>=2).sort((a,b)=>total(b)-total(a))[0]; if(!p)return;
+      const k=Math.max(1,Math.floor(total(p)/2));
+      setDemo({kind:'cut',x:p.x+k*U,y0:p.y-34,y1:p.y+T+30});
+      say('אפשר לחתוך קרש: מעבירים אצבע מהר מלמעלה למטה דרך הקרש, כמו סכין.');
+    }else{
+      const ps=[...planks].sort((a,b)=>a.x-b.x); if(ps.length<2)return;
+      const r=R.current.round, keys=ps.filter(x=>x.key);
+      const [a,b]=keys.length===2?keys:[ps[0],ps[1]];
+      setDemo({kind:'join',p:a,w:total(a)*U,a:{x:a.x+total(a)*U/2,y:a.y+T/2},b:{x:b.x+total(b)*U/2,y:b.y+T/2}});
+      say('ואפשר לחבר: גוררים קרש ומשחררים אותו על קרש אחר.');
+    }
+  }
+  function touchedBoard(){ if(demo)setDemo(null); armTeach(6000) }
 
   /* lay the planks out in rows, centred, in the free sky area */
   function layout(list){
@@ -466,30 +553,31 @@ function App(){
 
   async function start(){
     audio();
-    stats.current=[];setProgress(0);setScreen('play');
+    lastGap=null;const rs=Array.from({length:ROUNDS},(_,i)=>genRound(i));
+    stats.current=[];setRounds(rs);R.current.rounds=rs;setBuilt([]);setWorldI(0);setWalkDur(0);setCoinTaken(-1);setProgress(0);
+    teach.current='cut';setScreen('play');
     await sleep(250);
     playRound(0,true);
   }
 
   async function playRound(i,first){
-    const alive=newFlow(), r=genRound(i);
-    clearNudges();
+    const alive=newFlow(), r=R.current.rounds[i];
+    clearNudges();setDemo(null);
     const laid=layout(r.planks);
-    setRi(i);setRound(r);setPlanks(laid);setFallN(n=>n+1);setBridge(null);setHl([]);setFx({});
-    setPhase('busy');setHero({at:'left',walk:false,vis:false,snap:true,cheer:false});setCoinVis(false);
-    R.current.round=r;R.current.planks=laid;
+    setRi(i);R.current.ri=i;R.current.round=r;setPlanks(laid);R.current.planks=laid;setFallN(n=>n+1);setBridge(null);setHl([]);setFx({});
+    setPhase('busy');R.current.phase='busy';
     stats.current[i]={gap:r.gap,wrong:0,merges:0,cuts:0};
     log('round_start',{gap:r.gap,planks:r.planks.map(total)});
-    await sleep(950); if(!alive())return;
-    setHero(h=>({...h,vis:true}));setCoinVis(true);setMeasurePop(n=>n+1);sfx.thud();
-    await sleep(500); if(!alive())return;
-    setPhase('build');
+    if(first){await sleep(800); if(!alive())return; setHero({walk:false,vis:true,cheer:false});sfx.thud()}
+    await sleep(700); if(!alive())return;
+    setMeasurePop(n=>n+1);
+    setPhase('build');R.current.phase='build';
     if(first){
-      await say(`החבר שלנו רוצה להגיע למטבע, אבל יש נהר בדרך. הנהר ברוחב ${r.gap}. בואו נבנה לו גשר!`); if(!alive())return;
-      await say('גוררים קרש ומשחררים אותו על קרש אחר, והם מתחברים. רוצים לפרק? מעבירים אצבע מהר דרך הקרש, כמו סכין.'); if(!alive())return;
+      await say(`החבר שלנו רוצה להגיע למטבע, אבל יש בור עם מים בדרך. הבור ברוחב ${r.gap}. בואו נבנה לו גשר!`); if(!alive())return;
     }else{
-      await say(i===ROUNDS-1?`גשר אחרון! הנהר ברוחב ${r.gap}.`:`הפעם הנהר ברוחב ${r.gap}. בונים גשר!`); if(!alive())return;
+      await say(i===ROUNDS-1?`בור אחרון! הוא ברוחב ${r.gap}.`:`הנה עוד בור, ברוחב ${r.gap}. בונים גשר!`); if(!alive())return;
     }
+    armTeach(first?2500:5000);
     armNudges(alive);
   }
 
@@ -507,7 +595,7 @@ function App(){
   }
   function plankDown(e,p){
     if(R.current.phase!=='build')return;
-    e.stopPropagation();e.preventDefault();audio();
+    e.stopPropagation();e.preventDefault();audio();touchedBoard();
     const q=boardXY(e);
     dragRef.current={id:p.id,dx:q.x-p.x,dy:q.y-p.y,start:{x:p.x,y:p.y},moved:false};
     try{e.currentTarget.setPointerCapture(e.pointerId)}catch(_){}
@@ -529,16 +617,15 @@ function App(){
     const q=boardXY(e), {U,T}=R.current.geo, w=total(p)*U;
     if(!d.moved){sfx.drop();return}
     if(overRiver(p.x,p.y,w,q.y)){tryBridge(p,d.start);return}
-    // dropped on another plank → add them up
     const t=[...planks].sort((a,b)=>b.z-a.z).find(o=>o.id!==p.id&&q.x>o.x-10&&q.x<o.x+total(o)*U+10&&q.y>o.y-14&&q.y<o.y+T+14);
     if(t){mergeInto(p,t);return}
-    // anywhere else: it stays there
     const c=clampPos(p.x,p.y,w), ps=planks.map(x=>x.id===p.id?{...x,...c}:x);
     R.current.planks=ps;setPlanks(ps);sfx.drop();
   }
 
   function boardDown(e){
     if(R.current.phase!=='build'||screen!=='play')return;
+    touchedBoard();
     const q=boardXY(e);strokeRef.current={pts:[q]};
     try{e.currentTarget.setPointerCapture(e.pointerId)}catch(_){}
     setTrail({pts:[q],fade:false});
@@ -563,22 +650,26 @@ function App(){
     }
   }
 
+  /* cut anywhere: at the unit line nearest to the stroke (a colour segment can be cut too) */
   function cutPlank(p,atX){
-    const alive=newFlow(), {U}=R.current.geo, orig=R.current.round.planks;
-    if(p.segs.length<2){bump(p.id,'nope');sfx.nope();say(`הקרש ${total(p)} שלם. אפשר לחתוך רק קרש שחיברנו.`);armNudges(alive);return}
+    const alive=newFlow(), {U}=R.current.geo, orig=R.current.round.planks, n=total(p);
+    if(n<2){bump(p.id,'nope');sfx.nope();say('אי אפשר לחתוך את 1. הוא הכי קטן.');armNudges(alive);return}
     clearNudges();hush();
-    // cut at the joint nearest to the stroke
-    let best=1,bd=1e9,acc=0;
-    p.segs.forEach((s,i)=>{acc+=s.n*U;if(i<p.segs.length-1){const d=Math.abs(acc-atX);if(d<bd){bd=d;best=i+1}}});
+    const k=Math.max(1,Math.min(n-1,Math.round(atX/U)));
+    const Ls=[],Rs=[];let acc=0;
+    p.segs.forEach(s=>{
+      if(acc+s.n<=k)Ls.push(s);else if(acc>=k)Rs.push(s);else{Ls.push({...s,n:k-acc});Rs.push({...s,n:acc+s.n-k})}
+      acc+=s.n});
     const part=segs=>{const o=segs.length===1&&orig.find(x=>x.segs[0].c===segs[0].c&&x.segs[0].n===segs[0].n);
-      return {id:o?o.id:'c'+(++idN.current),segs,key:!!(o&&o.key)}};
-    const L=part(p.segs.slice(0,best)), Rt=part(p.segs.slice(best));
+      return {id:'c'+(++idN.current),segs,key:!!(o&&o.key)}};
+    const L=part(Ls), Rt=part(Rs);
     const lw=total(L)*U, cl=clampPos(p.x-12,p.y,lw), cr=clampPos(p.x+lw+12,p.y,total(Rt)*U);
     const next=R.current.planks.flatMap(x=>x.id!==p.id?[x]:[{...L,...cl,z:++zTop.current},{...Rt,...cr,z:++zTop.current}]);
-    R.current.planks=next;setPlanks(next);setFx({[L.id]:'split',[Rt.id]:'split'});setFxN(n=>n+1);sfx.chop();
+    R.current.planks=next;setPlanks(next);setFx({[L.id]:'split',[Rt.id]:'split'});setFxN(x=>x+1);sfx.chop();
     stats.current[R.current.ri].cuts++;
-    log('cut',{from:total(p),into:[total(L),total(Rt)]});
-    say(`⁦${total(p)}⁩ זה ⁦${total(L)}+${total(Rt)}⁩`).then(()=>{if(alive())armNudges(alive)});
+    log('cut',{from:n,into:[total(L),total(Rt)]});
+    if(teach.current==='cut'){teach.current='join';armTeach(3500)}
+    say(`⁦${n}⁩ זה ⁦${total(L)}+${total(Rt)}⁩`).then(()=>{if(alive())armNudges(alive)});
   }
 
   function mergeInto(p,t){
@@ -592,18 +683,18 @@ function App(){
     R.current.planks=next;setPlanks(next);bump(m.id,'merged');setHl([]);sfx.merge();
     stats.current[R.current.ri].merges++;
     log('merge',{a,b,sum:a+b});
+    if(teach.current==='join'){teach.current='done';clearTimeout(teachTimer.current)}
     (async()=>{
       await say(`⁦${a}+${b}⁩ זה ${a+b}!`); if(!alive())return;   // LTR isolate, so "1+4" is not shown as "4+1"
-      if(!reachable(next.map(total),round.gap)) await say(`עם הקרשים האלה אי אפשר להגיע ל־${round.gap}. אפשר לחתוך קרש: מעבירים אצבע מהר דרך הקרש.`);
       if(alive())armNudges(alive);
     })();
   }
 
   async function tryBridge(p,home){
-    const alive=newFlow(); clearNudges();hush();
-    const {round,ri}=R.current, n=total(p), g=round.gap;
+    const alive=newFlow(); clearNudges();hush();clearTimeout(teachTimer.current);setDemo(null);
+    const {round,ri}=R.current, n=total(p), g=round.gap, geo=R.current.geo;
     const state=n===g?'fit':n<g?'short':'long';
-    setPhase('busy');setBridge({p,state});setHl([]);
+    setPhase('busy');R.current.phase='busy';setBridge({p,state});setHl([]);
     const rest=R.current.planks.filter(x=>x.id!==p.id);R.current.planks=rest;setPlanks(rest);
     KP.answer(state==='fit');log('bridge_attempt',{gap:g,plank:n,correct:state==='fit'});
     await sleep(160); if(!alive())return;
@@ -611,18 +702,25 @@ function App(){
       sfx.thud();setHot(true);
       await sleep(350);setHot(false);
       sfx.win();
-      await say(`${n}! בדיוק ברוחב הנהר. הגשר מוכן!`); if(!alive())return;
-      setHero({at:'right',walk:true,vis:true,snap:false,cheer:false});
-      for(let k=0;k<14;k++)later(alive,k*135,()=>sfx.step(k));
-      await sleep(1900); if(!alive())return;
-      setHero(h=>({...h,walk:false,cheer:true}));
-      sfx.coin();setCoinVis(false);
-      await flyCoin(coinRef.current,chestRef.current); if(!alive())return;
-      setProgress(ri+1);setBumpN(b=>b+1);tone(988,.25,'sine');setTimeout(()=>tone(1319,.3,'sine'),120);
+      await say(`${n}! בדיוק ברוחב הבור. הגשר מוכן!`); if(!alive())return;
+      // walk: the hero walks on the spot, the world slides left to the next pit
+      const dist=g*geo.U+geo.C, speed=120, dur=Math.max(1.8,dist/speed);
+      setWalkDur(dur);setWorldI(ri+1);setHero({walk:true,vis:true,cheer:false});
+      const steps=Math.floor(dur/.135);for(let k=0;k<steps;k++)later(alive,k*135,()=>sfx.step(k));
+      // the coin reaches the hero when the bridge has passed under him
+      later(alive,((g*geo.U+22)/speed)*1000,async()=>{
+        sfx.coin();setCoinTaken(ri);
+        await flyCoin(coinRef.current,chestRef.current);
+        setProgress(ri+1);setBumpN(b=>b+1);tone(988,.25,'sine');setTimeout(()=>tone(1319,.3,'sine'),120);
+      });
+      await sleep(dur*1000+60); if(!alive())return;
+      setBuilt(b=>[...b,{i:ri,p}]);setBridge(null);setWalkDur(0);
+      setHero({walk:false,vis:true,cheer:true});
       log('round_done',stats.current[ri]);
-      await sleep(500); if(!alive())return;
+      await sleep(700); if(!alive())return;
+      setHero({walk:false,vis:true,cheer:false});
       if(ri+1<ROUNDS){
-        if(ri===0) await say('יש! עוד ארבעה גשרים, ותיבת האוצר תתמלא.');
+        if(ri===0) await say('יש! עוד ארבעה בורות, ותיבת האוצר תתמלא.');
         if(!alive())return;
         playRound(ri+1);return;
       }
@@ -633,17 +731,17 @@ function App(){
       await say('כל הכבוד! בנינו חמישה גשרים, וחיברנו מספרים עד 10. מילאנו את תיבת האוצר! לחצו עליה.');
       return;
     }
-    // wrong: too short falls into the river, too long does not fit; then it comes back where it was
+    // wrong: too short falls into the water, too long does not fit; then it comes back where it was
     round.wrong++;stats.current[ri].wrong++;
     if(state==='short'){
-      const b=boardRef.current.getBoundingClientRect(), {Lx,U,groundY}=R.current.geo;
-      setTimeout(()=>{sfx.splash();burst(b.left+Lx+n*U,b.top+groundY+40,['#7FC8F0','#fff','#3D9BD6'],20,.8)},450);
+      const b=boardRef.current.getBoundingClientRect();
+      setTimeout(()=>{sfx.splash();burst(b.left+geo.Lx+n*geo.U,b.top+geo.groundY+40,['#7FC8F0','#fff','#3D9BD6'],20,.8)},450);
     }else{ sfx.thud();setTimeout(sfx.nope,350) }
     await sleep(1250); if(!alive())return;
     setBridge(null);
-    const back=[...R.current.planks,{...p,...home,z:++zTop.current}];R.current.planks=back;setPlanks(back);setFx({[p.id]:'merged'});setFxN(x=>x+1);
-    const msg=state==='short'?`${n} קצר מדי. הנהר ברוחב ${g}, חסר עוד ${g-n}.`:`${n} ארוך מדי. הנהר ברוחב ${g}.`;
-    setPhase('build');
+    const back=[...R.current.planks,{...p,...home,fall:false,z:++zTop.current}];R.current.planks=back;setPlanks(back);setFx({[p.id]:'merged'});setFxN(x=>x+1);
+    const msg=state==='short'?`${n} קצר מדי. הבור ברוחב ${g}, חסר עוד ${g-n}.`:`${n} ארוך מדי. הבור ברוחב ${g}.`;
+    setPhase('build');R.current.phase='build';
     if(round.wrong>=2){
       const laid=layout(round.planks);R.current.planks=laid;setPlanks(laid);setFallN(x=>x+1);
       setHl(round.planks.filter(x=>x.key).map(x=>x.id));
@@ -651,7 +749,7 @@ function App(){
     }else{
       await say(msg+' ננסה שוב!');
     }
-    if(alive())armNudges(alive);
+    if(alive()){armNudges(alive);armTeach(6000)}
   }
 
   function tapChest(){
@@ -666,7 +764,7 @@ function App(){
     KP.next();
   }
   function toggleSound(){const v=!sound;setSound(v);soundOn=v;if(!v&&hasTTS)try{speechSynthesis.cancel()}catch(e){}}
-  useEffect(()=>()=>{clearNudges();hush()},[]);
+  useEffect(()=>()=>{clearNudges();hush();clearTimeout(teachTimer.current)},[]);
 
   /* ---------- render ---------- */
   const Header=(
@@ -690,24 +788,27 @@ function App(){
     </div>);
 
   const riverTop=groundY+Math.round(T*.6);
-  const touched=round&&(planks.length!==round.planks.length||planks.some(p=>p.segs.length>1));
+  const worldW=(S[ROUNDS-1]??W)+W*3;
+  const cliffs=rounds.length?[{x0:-W*2,x1:E[0],l:false,r:true},...rounds.map((r,i)=>({x0:S[i],x1:i<ROUNDS-1?E[i+1]:S[i]+W*3,l:true,r:i<ROUNDS-1}))]:[];
+  const touched=rounds[ri]&&(planks.length!==rounds[ri].planks.length||planks.some(p=>p.segs.length>1));
+  const showMeasure=rounds[ri]&&!(bridge&&bridge.state==='fit')&&walkDur===0;
   const Board=(
     <div className="board" ref={boardRef} onPointerDown={boardDown} onPointerMove={boardMove} onPointerUp={boardUp} onPointerCancel={boardUp}
       style={screen==='play'?null:{visibility:'hidden'}}>
-      <div style={{left:0,top:riverTop,width:W,height:H-riverTop}}><River w={W} h={Math.max(10,H-riverTop)}/></div>
-      <div style={{left:0,top:groundY,width:Lx,height:groundH}}><Cliff w={Lx} h={groundH} side="l"/></div>
-      <div className="rcliff" style={{left:Rx,top:groundY,width:W-Lx-5*U,height:groundH}}><Cliff w={W-Lx-5*U} h={groundH} side="r"/></div>
-      {round&&<>
-        <div className={'cells'+(hot?' hot':'')} style={{left:Lx,top:groundY,width:gap*U,height:T,opacity:bridge?0:1}}>
-          {Array.from({length:gap},(_,k)=><i key={k} style={{width:U,height:T}}/>)}</div>
-        <div className="measure" style={{left:Lx,top:groundY-T-34,width:gap*U,height:36,opacity:bridge&&bridge.state==='fit'?0:1}}>
-          <span key={measurePop} className="mnum pop">{gap}</span></div>
-      </>}
-      {bridge&&<div style={{left:Lx,top:bridge.state==='long'?groundY-T:groundY,zIndex:2}}>
-        <div className={'bridge '+bridge.state}><Plank p={bridge.p} U={U} T={T} showSum={false}/></div></div>}
-      {coinVis&&<div className="coin2" ref={coinRef} style={{left:Rx+Math.max(10,Math.min(26,(W-Rx)/2-17)),top:groundY-Math.round(hs*.5)-10}}><Coin s={Math.round(hs*.5)}/></div>}
-      <div className={'hero'+(hero.snap?' snap':'')} style={{left:heroX,top:groundY-hs+2,width:hw,height:hs,opacity:hero.vis?1:0}}>
-        <div className={'in'+(hero.vis?' show':'')} key={hero.vis?'v'+ri:'h'}>
+      {/* the world: river, land, bridges, coins. It slides left while the hero walks on the spot */}
+      <div className="world" style={{left:0,top:0,width:worldW,height:H,transform:`translateX(${-offset}px)`,transition:walkDur?`transform ${walkDur}s linear`:'none'}}>
+        <div style={{left:-W*2,top:riverTop,width:worldW+W*2,height:H-riverTop}}><River w={worldW+W*2} h={Math.max(10,H-riverTop)}/></div>
+        {cliffs.map((c,k)=><div key={k} style={{left:c.x0,top:groundY,width:c.x1-c.x0,height:groundH}}><Cliff w={c.x1-c.x0} h={groundH} seed={k+1} edgeL={c.l} edgeR={c.r}/></div>)}
+        {built.map(b=><div key={b.i} style={{left:E[b.i],top:groundY,zIndex:2}}><Plank p={b.p} U={U} T={T} showSum={false}/></div>)}
+        {bridge&&<div style={{left:E[ri],top:bridge.state==='long'?groundY-T:groundY,zIndex:2}}>
+          <div className={'bridge '+bridge.state}><Plank p={bridge.p} U={U} T={T} showSum={false}/></div></div>}
+        {rounds.map((r,i)=>i>=ri&&coinTaken<i&&<div key={'coin'+i} className="coin2" ref={i===ri?coinRef:null}
+          style={{left:S[i]+Math.min(26,C/2-17),top:groundY-Math.round(hs*.5)-10}}><Coin s={Math.round(hs*.5)}/></div>)}
+        {showMeasure&&<div className={'measure'+(hot?' hot':'')} style={{left:E[ri],top:groundY-48,width:gap*U,height:36}}>
+          <span key={measurePop} className="mnum pop">{gap}</span></div>}
+      </div>
+      <div className="hero" style={{left:heroX,top:groundY-hs+2,width:hw,height:hs,opacity:hero.vis?1:0}}>
+        <div className={'in'+(hero.vis?' show':'')} key={hero.vis?'v':'h'}>
           <Player s={hs} view="side" shadow={false} happy walking={hero.walk} cheer={hero.cheer}/></div></div>
       {screen==='play'&&<button className="reset" title="לסדר מחדש" aria-label="לסדר מחדש" disabled={phase!=='build'||!touched}
         onPointerDown={e=>e.stopPropagation()} onClick={()=>{hush();resetPlanks()}}>↺</button>}
@@ -718,6 +819,7 @@ function App(){
             <Plank key={fx[p.id]?fx[p.id]+fxN:'p'} p={p} U={U} T={T} cls={(hl.includes(p.id)?'hl ':'')+(fx[p.id]||'')}/>
           </div>
         </div>)})}
+      {demo&&<HandDemo key={JSON.stringify(demo)} demo={demo} U={U} T={T}/>}
       {trail&&trail.pts.length>1&&<svg className={'trail'+(trail.fade?' fade':'')} width={W} height={H}>
         <polyline points={trail.pts.map(o=>o.x+','+o.y).join(' ')} strokeWidth="6"/></svg>}
     </div>);
@@ -727,7 +829,7 @@ function App(){
     overlay=(<div className="center" key="start">
       <div className="fall"><Player s={130}/></div>
       <div className="h1 fall" style={{animationDelay:'.2s'}}>בונים גשר</div>
-      <div className="note fall" style={{animationDelay:'.35s'}}>מחברים קרשים עד שהם בדיוק ברוחב הנהר, ועוזרים לחבר שלנו להגיע למטבע.</div>
+      <div className="note fall" style={{animationDelay:'.35s'}}>מחברים וחותכים קרשים עד שהם בדיוק ברוחב הבור, ועוזרים לחבר שלנו להגיע למטבעות.</div>
       <div className="fall" style={{animationDelay:'.5s'}}><button className="cta" onClick={start}>מתחילים</button></div>
       {hasTTS&&!heVoice&&<div className="note">לא נמצא קול בעברית בדפדפן הזה, אז הקריינות תופיע ככתוביות.</div>}
     </div>);
