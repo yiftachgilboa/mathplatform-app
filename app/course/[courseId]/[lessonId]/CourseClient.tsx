@@ -187,7 +187,7 @@ export default function CourseClient({ course, childId, childName, avatar, initi
 
   return (
     <>
-      <CourseHeader hello={fill(ui.welcome, { name: childName })} avatar={avatar} avatarLabel={ui.yourAvatar} logoutLabel={ui.logout} />
+      <CourseHeader hello={fill(ui.welcome, { name: childName })} avatar={avatar} avatarLabel={ui.yourAvatar} logoutLabel={ui.logout} platformHref={`/child/${childId}`} platformLabel={ui.toPlatform} />
       <div className="c-wrap">
         <LessonMenu lessons={course.lessons} states={lessonStates} selected={lessonIdx} label={ui.lessonsNav}
           meters={meters} achieved={course.lessons.map((l, i) => state.mastered.includes(l.id) || meters[i] >= goal)}

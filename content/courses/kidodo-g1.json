@@ -2,6 +2,7 @@
   "ui": {
     "welcome": "שלום, {name}!",
     "logout": "יציאה",
+    "toPlatform": "לאפליקציית מתיקה",
     "lessonTitle": "מפתח ה{key}",
     "lessonNumber": "שיעור {n}",
     "lessonDone": "הושלם",

@@ -4,6 +4,9 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import ChildDashboardClient from './ChildDashboardClient'
+import { getCourse } from '@/lib/course/content'
+import { loadCourseState } from '@/lib/course/admin'
+import { currentLessonIndex } from '@/lib/course/progress'
 
 export default async function ChildDashboardPage({
   params,
@@ -82,5 +85,25 @@ export default async function ChildDashboardPage({
     .select('game_id, stars')
     .eq('child_id', id)
 
-  return <ChildDashboardClient child={child} games={games} progress={progressData ?? []} />
+  // הילד רשום לקורס? → כפתור חזרה לשיעור הנוכחי שלו בקורס
+  let courseHref: string | null = null
+  const { data: enrollment } = await serviceClient
+    .from('course_enrollments')
+    .select('course_id')
+    .eq('child_id', id)
+    .order('created_at')
+    .limit(1)
+    .maybeSingle()
+  const course = enrollment ? getCourse(enrollment.course_id) : undefined
+  if (course) {
+    try {
+      const state = await loadCourseState(id, course.courseId, course)
+      const lesson = course.lessons[currentLessonIndex(course, state.mastered)]
+      courseHref = `/course/${course.courseId}/${lesson.id}?child=${id}`
+    } catch {
+      courseHref = '/course'
+    }
+  }
+
+  return <ChildDashboardClient child={child} games={games} progress={progressData ?? []} courseHref={courseHref} />
 }

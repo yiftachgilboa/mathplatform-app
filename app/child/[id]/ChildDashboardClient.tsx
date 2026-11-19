@@ -130,7 +130,7 @@ function readWeekDays(childId: string): number[] {
   try { return JSON.parse(localStorage.getItem(weekKey(childId)) || '[]') } catch { return [] }
 }
 
-export default function ChildDashboardClient({ child, games, progress }: { child: Child; games: Game[]; progress: ProgressEntry[] }) {
+export default function ChildDashboardClient({ child, games, progress, courseHref = null }: { child: Child; games: Game[]; progress: ProgressEntry[]; courseHref?: string | null }) {
   const router = useRouter()
   const stations = buildStations(games)
   const starsForGame = Object.fromEntries(progress.map(p => [p.game_id, p.stars]))
@@ -427,6 +427,18 @@ export default function ChildDashboardClient({ child, games, progress }: { child
               {child.coins.toLocaleString('he-IL')}
             </span>
           </div>
+
+          {/* חזרה לקורס kidodo — רק לילד שרשום לקורס (אותו חשבון, בלי כניסה נוספת) */}
+          {courseHref && (
+            <a href={courseHref} title="חזרה לקורס" style={{
+              ...PILL, height: '48px', padding: '0 18px', gap: '8px', flexShrink: 0,
+              color: 'white', fontSize: '16px', textDecoration: 'none',
+              background: 'rgba(124,255,159,0.18)', border: '1.5px solid rgba(124,255,159,0.45)',
+            }}>
+              <span aria-hidden style={{ fontSize: '20px' }}>🔑</span>
+              <span>חזרה לקורס</span>
+            </a>
+          )}
 
           <Link href="/select-child" style={{
             ...PILL, width: '48px', height: '48px',
