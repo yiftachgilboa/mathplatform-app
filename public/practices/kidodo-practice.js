@@ -13,10 +13,14 @@
  * Embedded: the course normally shows the practice inside its stage, in an
  * <iframe> (small, with an enlarge button). Then next/exit/complete do not
  * navigate – they tell the course page through postMessage({ kidodo: … }).
+ *
+ * A game in stage 3 (practice) or 4 (enrichment) is opened by the course as a
+ * full page with &courseStage=3|4 — then answers, complete and next/exit use
+ * that stage (stage-3 answers count for mastery).
  */
 (function () {
-  var STAGE = 2
   var p = new URLSearchParams(location.search)
+  var STAGE = Number(p.get('courseStage')) || 2
   var ctx = { childId: p.get('childId'), courseId: p.get('courseId'), lessonId: p.get('lessonId') }
   var inCourse = !!(ctx.childId && ctx.courseId && ctx.lessonId)
   var embedded = false

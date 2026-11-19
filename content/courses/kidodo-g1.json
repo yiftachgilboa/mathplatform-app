@@ -63,7 +63,9 @@
     {
       "id": "lesson-04", "key": "מעלית", "tagline": "קופצים בבת אחת לעשר", "range": "עד 10 ועד 20",
       "tint": "#E9DFFF", "deep": "#7656B4", "icon": "M6 3h12v18H6z M9.5 9l2.5-2.5L14.5 9 M9.5 15l2.5 2.5 2.5-2.5",
-      "stages": {}
+      "stages": {
+        "practice": { "gameId": "bridge10", "href": "/practices/bridge10.html" }
+      }
     },
     {
       "id": "lesson-01",
