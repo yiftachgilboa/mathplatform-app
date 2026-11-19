@@ -66,9 +66,24 @@
           course: this.course,
           timestamp: new Date().toISOString()
         })
-      }).catch(err => console.error('[MathPlatformSDK] Error:', err));
+      }).catch(err => console.error('[MathPlatformSDK] Error:', err))
+        .then(() => { if (event === 'GAME_OVER' && this.tell) this.tell('complete') });
+      if (event === 'GAME_OVER') this.over = true;
     }
   };
+
+  // משחק שמוצג בתוך שלב בקורס (iframe מאותו אתר, עם ?courseStage=):
+  // לא מנווטים את העמוד — מודיעים לקורס. "חזרה" (router.back) = exit, ואחרי סוף המשחק = next.
+  // בסוף משחק, אחרי שהשרת שמר, שולחים complete כדי שהקורס יסמן ✓ וירענן.
+  try {
+    const qs = new URLSearchParams(window.location.search);
+    const embedded = window.parent !== window && window.parent.location.origin === window.location.origin;
+    if (embedded && qs.get('courseStage')) {
+      const tell = function(a) { try { window.parent.postMessage({ kidodo: a }, window.location.origin) } catch (e) {} };
+      SDK.tell = tell;
+      window.history.back = function() { tell(SDK.over ? 'next' : 'exit') };
+    }
+  } catch (e) {}
 
   window.MathPlatformSDK = SDK;
 })();

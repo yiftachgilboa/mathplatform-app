@@ -1,6 +1,5 @@
 'use client'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { fill, mediaUrl, type Course, type Lesson } from '@/lib/course/content'
 import { currentLessonIndex, meterValue, PRACTICE_STAGE, type CourseState } from '@/lib/course/progress'
 import CourseHeader from '@/components/course/CourseHeader'
@@ -33,7 +32,6 @@ function defaultStage(state: CourseState, lesson: Lesson) {
 
 export default function CourseClient({ course, childId, childName, avatar, initialLesson, initialStage, initialState }: Props) {
   const ui = course.ui
-  const router = useRouter()
   const [state, setState] = useState(initialState)
   const [lessonIdx, setLessonIdx] = useState(initialLesson)
   const [stage, setStage] = useState(initialStage ?? defaultStage(initialState, course.lessons[initialLesson]))
@@ -111,16 +109,17 @@ export default function CourseClient({ course, childId, childName, avatar, initi
     fetch('/api/course/answer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...ctx, stage: s, correct }) })
   }
 
-  function playGame(kind: 'practice' | 'enrichment') {
+  // משחק תרגול (שלב 3) / העשרה (שלב 4): מוצג בתוך השלב בקטן, כמו ההתנסות (PracticeStage), עם כפתור הגדלה.
+  // משחק SDK מדווח לשרת בעצמו (/api/sdk/event) ושולח לכאן complete / next / exit (mathplatform-sdk-v1.js).
+  function gameSrc(kind: 'practice' | 'enrichment') {
     const g = lesson.stages[kind]
-    if (!g) return
-    const url = new URL(g.href ?? `/games/${g.gameId}`, window.location.origin)
-    url.searchParams.set('childId', childId)
-    url.searchParams.set('courseId', course.courseId)
-    url.searchParams.set('lessonId', lesson.id)
-    url.searchParams.set('courseStage', String(kind === 'practice' ? PRACTICE_STAGE : 4))
-    router.push(url.pathname + url.search)
+    if (!g) return null
+    const base = g.href ?? `/games/${g.gameId}`
+    return practiceUrl(base, childId, course.courseId, lesson.id) + `&courseStage=${kind === 'practice' ? PRACTICE_STAGE : 4}`
   }
+  const practiceGameSrc = gameSrc('practice')
+  const enrichmentGameSrc = gameSrc('enrichment')
+  const gameDone = (s: number) => { markDone(s); refresh() }   // השליטה מחושבת בשרת לפי התשובות → רענון
 
   // התנסות כעמוד HTML סטטי (public/practices), מוצגת בתוך שלב 2 (PracticeStage).
   // היא שומרת את שלב 2 בעצמה ומודיעה לכאן (complete / next).
@@ -130,11 +129,14 @@ export default function CourseClient({ course, childId, childName, avatar, initi
   // טעינה מוקדמת: כבר כשהשיעור פתוח מורידים ברקע את ההתנסות והספריות שלה
   useEffect(() => {
     if (practiceSrc) prefetch([practiceSrc, ...PRACTICE_ASSETS])
-  }, [practiceSrc])
+    // משחק שהוא עמוד HTML (public/practices) נטען מראש גם הוא
+    const pages = [practiceGameSrc, enrichmentGameSrc].filter((s): s is string => !!s && s.startsWith('/practices/'))
+    if (pages.length) prefetch([...pages, ...PRACTICE_ASSETS])
+  }, [practiceSrc, practiceGameSrc, enrichmentGameSrc])
 
   // מעבר לשלב בלחיצה. בדרך להתנסות מחממים את הקול (רק בלחיצה הדפדפן מרשה)
   const toStage = (s: number) => {
-    if (s === 2 && practiceSrc) warmSpeech()
+    if ((s === 2 && practiceSrc) || (s === 3 && practiceGameSrc) || (s === 4 && enrichmentGameSrc)) warmSpeech()
     setStage(s)
   }
 
@@ -209,12 +211,18 @@ export default function CourseClient({ course, childId, childName, avatar, initi
             ) : (
               <GameStage kind="practice" tint={tint} label="" soonLabel={ui.comingSoon} available={false} onPlay={() => {}} />
             ))}
-            {stage === 3 && (
-              <GameStage kind="practice" tint={tint} label={ui.playPractice} soonLabel={ui.comingSoon} available={!!st.practice} onPlay={() => playGame('practice')} />
-            )}
-            {stage === 4 && (
-              <GameStage kind="enrichment" tint={tint} label={ui.playEnrichment} soonLabel={ui.comingSoon} available={!!st.enrichment} onPlay={() => playGame('enrichment')} />
-            )}
+            {stage === 3 && (practiceGameSrc ? (
+              <PracticeStage key={'g3' + lesson.id} src={practiceGameSrc} enlargeLabel={ui.enlarge}
+                onComplete={() => gameDone(3)} onNext={() => setStage(4)} />
+            ) : (
+              <GameStage kind="practice" tint={tint} label="" soonLabel={ui.comingSoon} available={false} onPlay={() => {}} />
+            ))}
+            {stage === 4 && (enrichmentGameSrc ? (
+              <PracticeStage key={'g4' + lesson.id} src={enrichmentGameSrc} enlargeLabel={ui.enlarge}
+                onComplete={() => gameDone(4)} onNext={() => setStage(5)} />
+            ) : (
+              <GameStage kind="enrichment" tint={tint} label="" soonLabel={ui.comingSoon} available={false} onPlay={() => {}} />
+            ))}
             {stage === 5 && (st.test?.questions.length ? (
               <TestStage questions={st.test.questions} count={course.mastery.test.questions} mascot={avatar} ui={ui}
                 onAnswer={c => sendAnswer(5, c)} onFinish={finishTest} onBackToPractice={() => setStage(PRACTICE_STAGE)} />
