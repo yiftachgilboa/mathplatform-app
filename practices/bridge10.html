@@ -88,9 +88,9 @@ header{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align
 .pk{z-index:5;touch-action:none;cursor:grab}
 .pk.dragging{cursor:grabbing;z-index:40}
 .pk.home{transition:left .3s cubic-bezier(.3,1.3,.5,1),top .3s cubic-bezier(.3,1.3,.5,1)}
-.plank{position:relative;display:flex;height:var(--T);direction:ltr;border-radius:4px;overflow:visible}
+.plank{position:relative;display:flex;height:var(--T);direction:ltr;border-radius:calc(var(--T)*.32);overflow:visible}
 .seg{position:relative;height:100%;background:var(--m);background-image:repeating-linear-gradient(90deg,transparent 0 calc(var(--U) - 2px),rgba(0,0,0,.14) calc(var(--U) - 2px) var(--U))}
-.seg:first-child{border-radius:4px 0 0 4px}.seg:last-child{border-radius:0 4px 4px 0}.seg:only-child{border-radius:4px}
+.seg:first-child{border-radius:calc(var(--T)*.32) 0 0 calc(var(--T)*.32)}.seg:last-child{border-radius:0 calc(var(--T)*.32) calc(var(--T)*.32) 0}.seg:only-child{border-radius:calc(var(--T)*.32)}
 .seg+.seg{box-shadow:inset 3px 0 0 #fff}
 .pnum{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.18);pointer-events:none}
 .psum{position:absolute;left:50%;bottom:calc(100% + 5px);transform:translateX(-50%);white-space:nowrap;font-weight:700;font-size:15px;color:var(--ink);background:rgba(255,255,255,.9);padding:1px 9px;border-radius:10px;pointer-events:none}
@@ -130,6 +130,8 @@ header{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align
 .spawn{position:relative;flex:none;display:flex;justify-content:center;padding-bottom:6px}
 .spawn::before{content:"";position:absolute;bottom:0;left:50%;width:70px;height:22px;margin-left:-35px;border-radius:50%;background:#9FD3F2;box-shadow:0 0 0 5px rgba(255,255,255,.7),0 0 0 11px rgba(255,255,255,.3)}
 .spawn svg{position:relative}
+.speechbtn{position:absolute;left:-14px;bottom:-4px;width:44px;height:44px;border-radius:50%;background:#fff;color:var(--kblue);box-shadow:0 3px 0 rgba(23,111,190,.22);display:flex;align-items:center;justify-content:center;z-index:2}
+.speechbtn svg{position:static}
 .mascot{flex:none;overflow:visible}
 .mascot .body{transform-origin:50% 100%;transform-box:fill-box}
 .mascot.talking .body{animation:mbob .32s infinite alternate}
@@ -199,12 +201,12 @@ function genRound(i){
   let gap,g=0; do{gap=rand(lo,hi);g++}while(gap===lastGap&&g<50); lastGap=gap;
   const a=rand(1,Math.min(4,gap-1)), b=gap-a, c=rand(1,4);
   const ids=shuffle([0,1,2]);
-  const planks=[a,b,c].map((n,k)=>({id:`r${i}-${k}`,segs:[{n,c:ids[k]}],key:k<2}));
+  const planks=(i===0?[a,b]:[a,b,c]).map((n,k)=>({id:`r${i}-${k}`,segs:[{n,c:ids[k]}],key:k<2}));   // first scene: just the two that make it
   return {gap,planks:shuffle(planks),wrong:0};
 }
 
 /* ---------- sound: everything made in code (Web Audio), no files ---------- */
-let heVoice=null, actx=null, soundOn=true, noiseBuf=null;
+let heVoice=null, actx=null, soundOn=true, speechOn=true, noiseBuf=null;
 const hasTTS=typeof window!=='undefined'&&'speechSynthesis' in window;
 function loadVoice(){try{const hv=speechSynthesis.getVoices().filter(v=>/^(he|iw)/i.test(v.lang));heVoice=hv.find(v=>/hila|carmit|female|woman/i.test(v.name))||hv.find(v=>!/avri|asaf|male/i.test(v.name))||hv[0]||null}catch(e){}}
 if(hasTTS){loadVoice();try{speechSynthesis.onvoiceschanged=loadVoice}catch(e){}}
@@ -474,6 +476,9 @@ function Plank({p,U,T,cls='',showSum=true}){
   </div>);
 }
 
+const SpeechIcon=({on})=>(<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+  <path d="M4 5h16v10H10l-4 4v-4H4z"/>{on?<path d="M8 10h8"/>:<path d="M3 3l18 18"/>}</svg>);
+
 /* low-poly hand, fingertip at (14,0) */
 const HandIcon=()=>(<svg width="44" height="62" viewBox="0 0 44 62" style={{display:'block'}}>
   <polygon points="10,4 14,0 18,4 18,28 10,28" fill="#FFDDB8"/><polygon points="14,0 18,4 18,28 14,28" fill="#F6C99A"/>
@@ -579,10 +584,10 @@ function App(){
   const topY=60, maxY=groundY-hs-T-8;
   R.current.geo={U,T,Lx,groundY,W,H,topY,maxY,C,hw};
 
-  const tts=()=>soundOn&&hasTTS&&heVoice;
+  const tts=()=>soundOn&&speechOn&&hasTTS&&heVoice;
   const newFlow=()=>{const f=++flow.current;return()=>f===flow.current};
   const later=(alive,ms,fn)=>setTimeout(()=>{if(alive())fn()},ms);
-  function say(text){
+  function say(text,{voice=true}={}){
     return new Promise(res=>{
       if(finRef.current)finRef.current();
       setCaption(text);setCapN(n=>n+1);lastSay.current=text;setTalking(true);
@@ -590,17 +595,18 @@ function App(){
       const fin=()=>{if(done)return;done=true;clearTimeout(timer);if(finRef.current===fin){finRef.current=null;setTalking(false)}res()};
       finRef.current=fin;
       const sp=toSpeech(text);
-      if(tts()){
+      if(voice&&tts()){
         try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(sp);u.voice=heVoice;u.lang=heVoice.lang;u.rate=.95;
           u.onend=fin;u.onerror=fin;timer=setTimeout(fin,sp.length*130+3000);speechSynthesis.speak(u)}catch(e){timer=setTimeout(fin,1500)}
-      }else timer=setTimeout(fin,Math.max(1300,sp.length*62));
+      }else timer=setTimeout(fin,voice?Math.max(1300,sp.length*62):700);
     });
   }
+  const quiet=t=>say(t,{voice:R.current.ri===0});   // after the first obstacle: text in the bubble only
   const hush=()=>{if(hasTTS)try{speechSynthesis.cancel()}catch(e){};if(finRef.current)finRef.current()};
   const clearNudges=()=>{nudges.current.forEach(clearTimeout);nudges.current=[]};
   function armNudges(alive){
     clearNudges();
-    if(teach.current!=='done')return;               // the hand teaches first
+    if(teach.current==='join'||teach.current==='drag')return;   // the hand teaches first
     nudges.current=[
       later(alive,16000,()=>say('רמז: אפשר לחבר שני קרשים, ואפשר לחתוך קרש בכל מקום.')),
       later(alive,32000,()=>{const r=R.current.round;setHl(R.current.planks.filter(p=>p.key).map(p=>p.id));say(`נסו את שני הקרשים שקופצים. ביחד הם יוצרים ${r.gap}?`)}),
@@ -608,7 +614,7 @@ function App(){
   }
   const bump=(id,kind)=>{setFx({[id]:kind});setFxN(n=>n+1)};
 
-  /* ---------- the teaching hand: if the child waits, show how to cut; after the first cut, how to join ---------- */
+  /* ---------- the teaching hand: join two planks → drag the plank of the right size to the pit → later, cut ---------- */
   function armTeach(ms){
     clearTimeout(teachTimer.current);
     if(teach.current==='done')return;
@@ -617,17 +623,25 @@ function App(){
   function showTeach(){
     const {planks,phase}=R.current, {U,T}=R.current.geo;
     if(phase!=='build'||teach.current==='done')return;
-    if(teach.current==='cut'){
+    const g=R.current.round.gap, fit=planks.find(x=>total(x)===g);
+    if(fit&&(teach.current==='drag'||teach.current==='join')){
+      teach.current='drag';
+      const {Lx,groundY}=R.current.geo;
+      setDemo({kind:'join',p:fit,w:g*U,a:{x:fit.x+g*U/2,y:fit.y+T/2},b:{x:Lx+g*U/2,y:groundY+T/2}});
+      say('הקרש בדיוק באורך הנכון! גוררים אותו אל הבור, והוא יהיה גשר.',{voice:R.current.ri===0});
+    }else if(teach.current==='drag'){
+      return;
+    }else if(teach.current==='cut'){
       const p=[...planks].filter(x=>total(x)>=2).sort((a,b)=>total(b)-total(a))[0]; if(!p)return;
       const k=Math.max(1,Math.floor(total(p)/2));
-      setDemo({kind:'cut',x:p.x+k*U,y0:p.y-34,y1:p.y+T+30});
-      say('אפשר לחתוך קרש: מעבירים אצבע מהר מלמעלה למטה דרך הקרש, כמו סכין.');
+      setDemo({kind:'cut',x:p.x+k*U,y0:p.y-50,y1:p.y+T+40});
+      say('אפשר גם לחתוך קרש: מתחילים קצת מעליו, ומעבירים אצבע מהר למטה דרך הקרש, כמו סכין.',{voice:R.current.ri<=1});
     }else{
       const ps=[...planks].sort((a,b)=>a.x-b.x); if(ps.length<2)return;
       const r=R.current.round, keys=ps.filter(x=>x.key);
       const [a,b]=keys.length===2?keys:[ps[0],ps[1]];
       setDemo({kind:'join',p:a,w:total(a)*U,a:{x:a.x+total(a)*U/2,y:a.y+T/2},b:{x:b.x+total(b)*U/2,y:b.y+T/2}});
-      say('ואפשר לחבר: גוררים קרש ומשחררים אותו על קרש אחר.');
+      say('גוררים קרש ומשחררים אותו על הקרש השני, והם מתחברים.',{voice:R.current.ri===0});
     }
   }
   function touchedBoard(){ if(demo)setDemo(null); armTeach(6000) }
@@ -650,7 +664,7 @@ function App(){
     lastGap=null;const types=['water',...shuffle(['fire','thorns','swamp','monster'])];
     const rs=Array.from({length:ROUNDS},(_,i)=>({...genRound(i),type:types[i]}));
     stats.current=[];setRounds(rs);R.current.rounds=rs;setBuilt([]);setWorldI(0);setWalkDur(0);setCoinTaken(-1);setProgress(0);
-    teach.current='cut';setScreen('play');
+    teach.current='join';setScreen('play');
     await sleep(250);
     playRound(0,true);
   }
@@ -670,9 +684,9 @@ function App(){
     if(first){
       await say(`החבר שלנו רוצה להגיע למטבע, אבל יש ${OBST[r.type].name} בדרך. הבור ברוחב ${r.gap}. בואו נבנה לו גשר!`); if(!alive())return;
     }else{
-      await say(i===ROUNDS-1?`${OBST[r.type].name}, המכשול האחרון! הוא ברוחב ${r.gap}.`:`אוי, ${OBST[r.type].name}! הוא ברוחב ${r.gap}. בונים גשר!`); if(!alive())return;
+      say(i===ROUNDS-1?`${OBST[r.type].name}, המכשול האחרון! רוחב ${r.gap}.`:`${OBST[r.type].name}, רוחב ${r.gap}.`,{voice:false});
     }
-    armTeach(first?2500:5000);
+    armTeach(first?2500:teach.current==='cut'?9000:5000);
     armNudges(alive);
   }
 
@@ -712,7 +726,12 @@ function App(){
     const q=boardXY(e), {U,T}=R.current.geo, w=total(p)*U;
     if(!d.moved){sfx.drop();return}
     if(overRiver(p.x,p.y,w,q.y)){tryBridge(p,d.start);return}
-    const t=[...planks].sort((a,b)=>b.z-a.z).find(o=>o.id!==p.id&&q.x>o.x-10&&q.x<o.x+total(o)*U+10&&q.y>o.y-14&&q.y<o.y+T+14);
+    let t=null,best=0;
+    for(const o of planks){if(o.id===p.id)continue;const ow=total(o)*U;
+      const ox=Math.min(p.x+w,o.x+ow)-Math.max(p.x,o.x), oy=Math.min(p.y+T,o.y+T)-Math.max(p.y,o.y);
+      const inside=q.x>o.x-8&&q.x<o.x+ow+8&&q.y>o.y-10&&q.y<o.y+T+10;
+      const score=(ox>=U*.35&&oy>=T*.2)?ox*oy:inside?1:0;
+      if(score>best){best=score;t=o}}
     if(t){mergeInto(p,t);return}
     const c=clampPos(p.x,p.y,w), ps=planks.map(x=>x.id===p.id?{...x,...c}:x);
     R.current.planks=ps;setPlanks(ps);sfx.drop();
@@ -733,7 +752,9 @@ function App(){
   function boardUp(){
     const s=strokeRef.current;if(!s)return;strokeRef.current=null;
     setTrail(t=>t&&{...t,fade:true});setTimeout(()=>setTrail(null),380);
-    const {planks}=R.current, {U,T}=R.current.geo;
+    const {planks}=R.current, {U,T}=R.current.geo, s0=s.pts[0], AWAY=22;
+    const near=planks.some(o=>{const ow=total(o)*U;const dx=Math.max(o.x-s0.x,0,s0.x-(o.x+ow)),dy=Math.max(o.y-s0.y,0,s0.y-(o.y+T));return Math.hypot(dx,dy)<AWAY});
+    if(near)return;
     // a cut = the stroke goes from above a plank to below it (or back), across the plank
     for(const p of [...planks].sort((a,b)=>b.z-a.z)){
       const w=total(p)*U, top=p.y, bot=p.y+T, mid=p.y+T/2;
@@ -763,8 +784,8 @@ function App(){
     R.current.planks=next;setPlanks(next);setFx({[L.id]:'split',[Rt.id]:'split'});setFxN(x=>x+1);sfx.chop();
     stats.current[R.current.ri].cuts++;
     log('cut',{from:n,into:[total(L),total(Rt)]});
-    if(teach.current==='cut'){teach.current='join';armTeach(3500)}
-    say(`⁦${n}⁩ זה ⁦${total(L)}+${total(Rt)}⁩`).then(()=>{if(alive())armNudges(alive)});
+    if(teach.current==='cut')teach.current='done';
+    quiet(`⁦${n}⁩ זה ⁦${total(L)}+${total(Rt)}⁩`).then(()=>{if(alive())armNudges(alive)});
   }
 
   function mergeInto(p,t){
@@ -778,9 +799,10 @@ function App(){
     R.current.planks=next;setPlanks(next);bump(m.id,'merged');setHl([]);sfx.merge();
     stats.current[R.current.ri].merges++;
     log('merge',{a,b,sum:a+b});
-    if(teach.current==='join'){teach.current='done';clearTimeout(teachTimer.current)}
+    if(teach.current==='join')teach.current='drag';
+    if(teach.current==='drag'&&a+b===round.gap)armTeach(1600);
     (async()=>{
-      await say(`⁦${a}+${b}⁩ זה ${a+b}!`); if(!alive())return;   // LTR isolate, so "1+4" is not shown as "4+1"
+      await quiet(`⁦${a}+${b}⁩ זה ${a+b}!`); if(!alive())return;   // LTR isolate, so "1+4" is not shown as "4+1"
       if(alive())armNudges(alive);
     })();
   }
@@ -794,10 +816,10 @@ function App(){
     KP.answer(state==='fit');log('bridge_attempt',{gap:g,plank:n,correct:state==='fit'});
     await sleep(160); if(!alive())return;
     if(state==='fit'){
-      sfx.thud();setHot(true);
-      await sleep(350);setHot(false);
-      sfx.win();
-      await say(`${n}! בדיוק ברוחב הבור. הגשר מוכן!`); if(!alive())return;
+      sfx.thud();sfx.win();
+      if(teach.current==='drag')teach.current='cut';
+      say(`${n}! הגשר מוכן!`,{voice:false});
+      await sleep(380); if(!alive())return;
       // walk: the hero walks on the spot, the world slides left to the next pit
       const dist=g*geo.U+geo.C, dur=Math.max(2.4,Math.min(4,dist/240)), speed=dist/dur;
       setWalkDur(dur);setWorldI(ri+1);setHero({walk:true,vis:true,cheer:false});R.current.planks=[];setPlanks([]);
@@ -815,8 +837,6 @@ function App(){
       await sleep(700); if(!alive())return;
       setHero({walk:false,vis:true,cheer:false});
       if(ri+1<ROUNDS){
-        if(ri===0) await say('יש! עוד ארבעה בורות, ותיבת האוצר תתמלא.');
-        if(!alive())return;
         playRound(ri+1);return;
       }
       log('session_done',stats.current);
@@ -858,6 +878,8 @@ function App(){
     await KP.complete({rounds:ROUNDS,firstTry:stats.current.filter(s=>s&&!s.wrong).length});
     KP.next();
   }
+  const [speech,setSpeech]=useState(true);
+  function toggleSpeech(){const v=!speech;setSpeech(v);speechOn=v;if(!v&&hasTTS)try{speechSynthesis.cancel()}catch(e){}}
   function toggleSound(){const v=!sound;setSound(v);soundOn=v;if(!v&&hasTTS)try{speechSynthesis.cancel()}catch(e){}}
   useEffect(()=>()=>{clearNudges();hush();clearTimeout(teachTimer.current)},[]);
 
@@ -878,7 +900,8 @@ function App(){
 
   const Talk=(
     <div className="talk">
-      <div className="spawn"><Player s={68} talking={!!talking}/></div>
+      <div className="spawn"><Player s={68} talking={!!talking}/>
+        <button className="speechbtn" title={speech?'להשתיק את הדיבור':'להפעיל את הדיבור'} aria-label={speech?'להשתיק את הדיבור':'להפעיל את הדיבור'} onClick={toggleSpeech}><SpeechIcon on={speech}/></button></div>
       <div className="bubble" aria-live="polite"><div className="txt" key={capN}>{caption||'…'}</div></div>
     </div>);
 
@@ -912,12 +935,12 @@ function App(){
         {rounds.length>0&&<button ref={bigChestRef} className={'wchest'+(screen==='end'&&taps===0?' idle':'')} aria-label="לפתוח את תיבת האוצר"
           style={{left:E[ROUNDS]+2,top:groundY-Math.round(cs*.8)+6,width:cs}} onPointerDown={e=>e.stopPropagation()} onClick={()=>{if(screen==='end')tapChest()}}>
           <Chest key={'big'+taps} count={ROUNDS} open={lidOpen} bump={taps>0} s={cs}/></button>}
-        {built.map(b=><div key={b.i} style={{left:E[b.i],top:groundY,zIndex:2}}><Plank p={b.p} U={U} T={T} showSum={false}/></div>)}
-        {bridge&&<div style={{left:E[ri],top:bridge.state==='long'?groundY-T:groundY,zIndex:2}}>
+        {built.map(b=><div key={b.i} style={{left:E[b.i],top:groundY+4,zIndex:2}}><Plank p={b.p} U={U} T={T} showSum={false}/></div>)}
+        {bridge&&<div style={{left:E[ri],top:bridge.state==='long'?groundY-T+4:groundY+4,zIndex:2}}>
           <div className={'bridge '+bridge.state}><Plank p={bridge.p} U={U} T={T} showSum={false}/></div></div>}
         {rounds.map((r,i)=>i>=ri&&coinTaken<i&&<div key={'coin'+i} className="coin2" ref={i===ri?coinRef:null}
           style={{left:S[i]+Math.min(26,C/2-17),top:groundY-Math.round(hs*.5)-10}}><Coin s={Math.round(hs*.5)}/></div>)}
-        {showMeasure&&<div className={'measure'+(hot?' hot':'')} style={{left:E[ri],top:groundY-48,width:gap*U,height:36}}>
+        {showMeasure&&<div className={'measure'+(hot?' hot':'')} style={{left:E[ri],top:groundY+3-18,width:gap*U,height:36}}>
           <span key={measurePop} className="mnum pop">{gap}</span></div>}
       </div>
       <div className="hero" style={{left:heroX,top:groundY-hs+2,width:hw,height:hs,opacity:hero.vis?1:0}}>
