@@ -74,9 +74,15 @@
       },
     },
   };
+  // characters keep their colors in every theme (identity), so they live outside the themes
+  const charMat = {
+    skin: M(['#b9774f', '#dc9b70', '#f2bb92', '#ffd8b4'], .03), hair: M(['#24170f', '#3e2a1d', '#5e4130', '#7f5a42'], .05),
+    shirt: M(['#8f1c22', '#cf3535', '#ef5c55', '#ff8d80'], .04), pants: M(['#1c3768', '#2b5398', '#4776c0', '#78a2dd'], .04),
+    shoe: M(['#25282d', '#3f444c', '#666c75'], .03),
+  };
   const mat = {};
   let theme = themes.day;
-  function useTheme(name) { theme = themes[name] || themes.day; Object.assign(mat, theme.mat); LP.theme = theme; return theme; }
+  function useTheme(name) { theme = themes[name] || themes.day; Object.assign(mat, charMat, theme.mat); LP.theme = theme; return theme; }
 
   // ---------- mesh ----------
   function Mesh(m, seed) { this.v = []; this.f = []; this.mat = m; this.seed = seed || 1; this.center = null; this.snow = null; }
@@ -187,10 +193,17 @@
   // ordered: draw mesh after mesh (for parts that sit on each other, like pine tiers); otherwise one depth sort
   function facets(obj, cam) {
     const out = [], toCam = [0, -Math.cos(cam.a), Math.sin(cam.a)];
-    obj.meshes.forEach(mesh => {
+    const centerOf = mesh => {
+      if (mesh.center) return mesh.center;
+      const c = [0, 0, 0]; mesh.v.forEach(p => { c[0] += p[0]; c[1] += p[1]; c[2] += p[2]; });
+      return c.map(x => x / mesh.v.length);
+    };
+    let meshes = obj.meshes;
+    // 'depth': whole parts sorted by their center (characters: arm behind / in front of the body); bias nudges a part
+    if (obj.ordered === 'depth') meshes = meshes.map(m => ({ m, d: project(centerOf(m), cam)[2] + (m.bias || 0) })).sort((a, b) => a.d - b.d).map(x => x.m);
+    meshes.forEach(mesh => {
       const m = mesh.mat, rand = rng(mesh.seed * 7919 + 17), part = [];
-      let c = mesh.center;
-      if (!c) { c = [0, 0, 0]; mesh.v.forEach(p => { c[0] += p[0]; c[1] += p[1]; c[2] += p[2]; }); c = c.map(x => x / mesh.v.length); }
+      const c = centerOf(mesh);
       mesh.f.forEach(f => {
         const jit = rand(); // drawn for every face so variation stays stable when culling changes
         const p0 = mesh.v[f[0]], p1 = mesh.v[f[1]], p2 = mesh.v[f[2]];
@@ -367,7 +380,139 @@
     },
   };
 
-  const LP = { rng, camera, project, facets, polys, draw, bounds, hull, castShadow, outline, material, mat, themes, useTheme, make, Mesh, icosphere, cone, cylinder, limb, ring, stitch, fan, hex2rgb, rgb2hex };
+  // ---------- characters ----------
+  // a pose = joint angles (radians). leg/arm: swing forward; knee/elbow: bend; side: raise outward (π ≈ straight up); bob: body lift (× height)
+  const poses = {
+    stand: t => ({ bob: .004 * Math.sin(t * 2.2), armL: .05, armR: .05, elbowL: .25, elbowR: .25 }),
+    walk: t => {
+      const p = t * Math.PI * 2 * 1.5, s = Math.sin(p), c = Math.cos(p);
+      return { legL: .5 * s, legR: -.5 * s, kneeL: .65 * Math.max(0, c), kneeR: .65 * Math.max(0, -c),
+        armL: -.5 * s, armR: .5 * s, elbowL: .45, elbowR: .45, bob: .014 * Math.abs(Math.sin(p * 2)) };
+    },
+    jump: t => {
+      const p = (t % 1), up = Math.max(0, Math.sin(p * Math.PI * 2)), crouch = Math.max(0, -Math.sin(p * Math.PI * 2));
+      return { bob: .2 * up, kneeL: .25 + .9 * crouch + .3 * up, kneeR: .25 + .9 * crouch + .3 * up, legL: .2 * up + .4 * crouch, legR: .1 * up + .4 * crouch,
+        sideL: 2.5 * up + .3, sideR: 2.5 * up + .3, armL: .2, armR: .2, elbowL: .2, elbowR: .2 };
+    },
+    cheer: t => {
+      const w = Math.sin(t * 9);
+      return { sideL: 2.55 + .15 * w, sideR: 2.55 - .15 * w, armL: .25, armR: .25, elbowL: .35, elbowR: .35, bob: .03 * Math.abs(Math.sin(t * 4.5)) };
+    },
+    scared: t => {
+      const tr = Math.sin(t * 45) * .015;
+      return { armL: 1.25, armR: 1.25, sideL: .55 + tr, sideR: .55 - tr, elbowL: 1.9, elbowR: 1.9, kneeL: .35, kneeR: .35, legL: .18, legR: .18, bob: -.02 };
+    },
+    wave: t => ({ sideR: 2.25, armR: .3, elbowR: .7 + .5 * Math.sin(t * 8), armL: .05, elbowL: .25, bob: .004 * Math.sin(t * 2.2) }),
+  };
+  const poseExpression = { stand: 'happy', walk: 'happy', jump: 'joy', cheer: 'joy', scared: 'scared', wave: 'happy' };
+
+  // direction of a limb: down, swung forward by `fwd`, raised outward by `side` (sign = which side)
+  function limbEnd(j, fwd, side, sign, L) {
+    const vy = -Math.sin(fwd), vz = -Math.cos(fwd);
+    return [j[0] + sign * (-vz) * Math.sin(side) * L, j[1] + vy * L, j[2] + vz * Math.cos(side) * L];
+  }
+
+  make.kid = function (o) {
+    const H = o.size || 200, seed = o.seed || 1, d = clampD(o.detail == null ? 1 : o.detail);
+    const P = Object.assign({ legL: 0, legR: 0, kneeL: 0, kneeR: 0, armL: 0, armR: 0, elbowL: .2, elbowR: .2, sideL: .12, sideR: .12, bob: 0 },
+      (poses[o.pose || 'stand'] || poses.stand)(o.t || 0));
+    const skin = o.skin || mat.skin, shirt = o.shirt || mat.shirt, pants = o.pants || mat.pants, hair = o.hair || mat.hair;
+    const meshes = [], hipZ = .44 * H + P.bob * H;
+    // legs + shoes
+    [[-1, 'L'], [1, 'R']].forEach(([s, k]) => {
+      const hip = [s * .065 * H, 0, hipZ];
+      const knee = limbEnd(hip, P['leg' + k], .04, s, .2 * H);
+      const ankle = limbEnd(knee, P['leg' + k] - P['knee' + k], .04, s, .2 * H);
+      meshes.push(limb(hip, knee, .05 * H, .042 * H, pants, seed * 31 + s));
+      meshes.push(limb(knee, ankle, .042 * H, .034 * H, pants, seed * 31 + 2 + s));
+      const shoe = icosphere(0, mat.shoe, seed * 31 + 4 + s).scale(.05 * H, .08 * H, .036 * H);
+      shoe.move(ankle[0], ankle[1] - .028 * H, ankle[2] - .006 * H);
+      meshes.push(shoe);
+    });
+    // body: hips (pants) + shirt + neck
+    meshes.push(cylinder(6, 1, pants, seed * 31 + 7).scale(.1 * H, .07 * H, .1 * H).move(0, 0, hipZ - .04 * H));
+    meshes.push(cylinder(6, .88, shirt, seed * 31 + 8).scale(.112 * H, .075 * H, .27 * H).move(0, 0, hipZ + .04 * H));
+    meshes.push(limb([0, 0, hipZ + .29 * H], [0, 0, hipZ + .37 * H], .034 * H, .03 * H, skin, seed * 31 + 9));
+    // arms: sleeve + forearm + hand
+    [[-1, 'L'], [1, 'R']].forEach(([s, k]) => {
+      const sh = [s * .125 * H, 0, hipZ + .28 * H];
+      const el = limbEnd(sh, P['arm' + k], P['side' + k], s, .15 * H);
+      const wr = limbEnd(el, P['arm' + k] + P['elbow' + k], P['side' + k], s, .14 * H);
+      meshes.push(limb(sh, el, .04 * H, .033 * H, shirt, seed * 31 + 10 + s));
+      meshes.push(limb(el, wr, .029 * H, .025 * H, skin, seed * 31 + 12 + s));
+      const hand = icosphere(0, skin, seed * 31 + 14 + s).scale(.036 * H);
+      const hd = norm(sub(wr, el)); hand.move(wr[0] + hd[0] * .02 * H, wr[1] + hd[1] * .02 * H, wr[2] + hd[2] * .02 * H);
+      meshes.push(hand);
+    });
+    // head + hair cap (cut higher at the front so the face stays clear)
+    const hz = hipZ + .5 * H, hr = .145 * H;
+    const head = icosphere(d, skin, seed * 31 + 16).scale(hr, hr * .93, hr * 1.02).move(0, 0, hz);
+    const hairM = icosphere(d, hair, seed * 31 + 17).jitter(.05, rng(seed * 31 + 18));
+    const cut = new Set(); // vertices pushed up to the hairline; faces made only of them (the underside) are dropped
+    hairM.v = hairM.v.map((p, i) => { const z0 = -.28 - .5 * p[1]; if (p[2] < z0) { cut.add(i); return [p[0], p[1], z0]; } return p; });
+    hairM.f = hairM.f.filter(f => !(cut.has(f[0]) && cut.has(f[1]) && cut.has(f[2])));
+    hairM.center = [0, 0, 0];
+    hairM.scale(hr * 1.06, hr * 1.02, hr * 1.05).move(0, hr * .05, hz + hr * .03);
+    hairM.bias = hr * .7; // drawn after the head, but hands in front of the face still win
+    meshes.push(head, hairM);
+    const obj = place(meshes, Object.assign({ rot: 0 }, o), .14 * H, { ordered: 'depth' });
+    const r = o.rot || 0;
+    obj.face = { c: [obj.x, obj.y, obj.z + hz], r: hr, f: [Math.sin(r), -Math.cos(r), 0], u: [Math.cos(r), Math.sin(r), 0],
+      expr: o.expression || poseExpression[o.pose || 'stand'] || 'happy' };
+    return obj;
+  };
+
+  // flat face layer on the low-poly head (eyes, brows, mouth, cheeks)
+  function face(obj, cam) {
+    const F = obj.face; if (!F) return '';
+    const toCam = [0, -Math.cos(cam.a), Math.sin(cam.a)];
+    if (dot(F.f, toCam) < .15) return ''; // facing away
+    // a point on the head surface; .vis = it faces the camera (features on the far side are skipped)
+    const at = (fw, sd, up) => {
+      const n0 = norm([fw, sd, up]), k = [n0[0] * .93, n0[1], n0[2] * 1.02]; // on the head's ellipsoid (it is 7% shallower front-to-back)
+      const v = norm([F.f[0] * fw + F.u[0] * sd, F.f[1] * fw + F.u[1] * sd, up]);
+      const q = project([F.c[0] + (F.f[0] * k[0] + F.u[0] * k[1]) * F.r, F.c[1] + (F.f[1] * k[0] + F.u[1] * k[1]) * F.r, F.c[2] + k[2] * F.r], cam);
+      q.vis = dot(v, toCam) > .25; return q;
+    };
+    const s = F.r * cam.s, E = '#2b2f33', R = '#8a2f35';
+    const both = [at(.93, -.36, .06), at(.93, .36, .06)], m = at(.95, 0, -.36);
+    const eyes = both.filter(e => e.vis);
+    both.forEach((e, i) => { e.inner = Math.sign(both[1 - i][0] - e[0]) || 1; });
+    const f1 = n => n.toFixed(1);
+    const P = (d, w, fill) => `<path d="${d}" fill="${fill || 'none'}" stroke="${fill ? 'none' : E}" stroke-width="${f1(s * (w || .055))}" stroke-linecap="round" stroke-linejoin="round"/>`;
+    const dotEye = (e, k) => `<ellipse cx="${f1(e[0])}" cy="${f1(e[1])}" rx="${f1(s * .085 * k)}" ry="${f1(s * .125 * k)}" fill="${E}"/><circle cx="${f1(e[0] + s * .03 * k)}" cy="${f1(e[1] - s * .045 * k)}" r="${f1(s * .03 * k)}" fill="#fff"/>`;
+    const cheeks = eyes.map(e => `<ellipse cx="${f1(e[0])}" cy="${f1(e[1] + s * .2)}" rx="${f1(s * .1)}" ry="${f1(s * .06)}" fill="#ff7b7b" opacity=".45"/>`).join('');
+    // innerUp > 0: inner end raised (worried/sad); < 0: lowered (angry)
+    const brow = (e, innerUp, lift) => P(`M${f1(e[0] - e.inner * s * .1)},${f1(e[1] - s * (lift - innerUp))} L${f1(e[0] + e.inner * s * .1)},${f1(e[1] - s * (lift + innerUp))}`, .045);
+    if (!m.vis && !eyes.length) return '';
+    let out = '';
+    switch (F.expr) {
+      case 'joy':
+        out += eyes.map(e => P(`M${f1(e[0] - s * .1)},${f1(e[1] + s * .03)} Q${f1(e[0])},${f1(e[1] - s * .13)} ${f1(e[0] + s * .1)},${f1(e[1] + s * .03)}`)).join('');
+        out += P(`M${f1(m[0] - s * .2)},${f1(m[1] - s * .07)} Q${f1(m[0])},${f1(m[1] + s * .32)} ${f1(m[0] + s * .2)},${f1(m[1] - s * .07)} Z`, 0, R);
+        out += `<ellipse cx="${f1(m[0])}" cy="${f1(m[1] + s * .1)}" rx="${f1(s * .08)}" ry="${f1(s * .045)}" fill="#ef7f86"/>` + cheeks;
+        break;
+      case 'surprised':
+        out += eyes.map(e => dotEye(e, 1.3)).join('') + eyes.map(e => brow(e, .02, .26)).join('');
+        out += `<ellipse cx="${f1(m[0])}" cy="${f1(m[1])}" rx="${f1(s * .07)}" ry="${f1(s * .1)}" fill="${R}"/>`;
+        break;
+      case 'scared':
+        out += eyes.map(e => `<ellipse cx="${f1(e[0])}" cy="${f1(e[1])}" rx="${f1(s * .12)}" ry="${f1(s * .16)}" fill="#fff" stroke="${E}" stroke-width="${f1(s * .03)}"/><circle cx="${f1(e[0])}" cy="${f1(e[1] + s * .02)}" r="${f1(s * .045)}" fill="${E}"/>`).join('');
+        out += eyes.map(e => brow(e, .06, .27)).join('');
+        out += P(`M${f1(m[0] - s * .16)},${f1(m[1])} q${f1(s * .04)},${f1(-s * .06)} ${f1(s * .08)},0 t${f1(s * .08)},0 t${f1(s * .08)},0 t${f1(s * .08)},0`, .045);
+        break;
+      case 'sad':
+        out += eyes.map(e => dotEye(e, .9)).join('') + eyes.map(e => brow(e, .06, .22)).join('');
+        out += P(`M${f1(m[0] - s * .14)},${f1(m[1] + s * .06)} Q${f1(m[0])},${f1(m[1] - s * .08)} ${f1(m[0] + s * .14)},${f1(m[1] + s * .06)}`);
+        break;
+      default: // happy
+        out += eyes.map(e => dotEye(e, 1)).join('');
+        out += P(`M${f1(m[0] - s * .18)},${f1(m[1] - s * .03)} Q${f1(m[0])},${f1(m[1] + s * .15)} ${f1(m[0] + s * .18)},${f1(m[1] - s * .03)}`) + cheeks;
+    }
+    return `<g class="face">${out}</g>`;
+  }
+
+  const LP = { rng, camera, poses, face, project, facets, polys, draw, bounds, hull, castShadow, outline, material, mat, themes, useTheme, make, Mesh, icosphere, cone, cylinder, limb, ring, stitch, fan, hex2rgb, rgb2hex };
   root.LP = LP;
   useTheme('day');
 })(typeof window !== 'undefined' ? window : globalThis);

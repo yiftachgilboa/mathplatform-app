@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>דוגמת מופת 2 — דמות</title>
+<style>
+  :root { --ink: #33373b; --muted: #6b7378; --card: #ffffff; --line: #dfe7ea; --accent: #176fbe; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, "Segoe UI", Arial, sans-serif; color: var(--ink); background: #f3f7f8; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+  header { padding: 16px 0 10px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  header p { margin: 0; color: var(--muted); font-size: 14px; }
+  .layout { display: grid; gap: 14px; }
+  .scene { width: 100%; height: auto; display: block; border-radius: 16px; }
+  .panel { display: grid; gap: 12px; align-content: start; }
+  .group b { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips button { min-height: 44px; padding: 0 14px; border-radius: 12px; border: 2px solid var(--line); background: #fff; color: var(--ink); font: inherit; cursor: pointer; }
+  .chips button[aria-pressed=true] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .swatch { width: 44px; padding: 0 !important; }
+  .swatch i { display: block; width: 24px; height: 24px; border-radius: 50%; margin: auto; }
+  label.range { display: grid; grid-template-columns: 70px 1fr 40px; align-items: center; gap: 8px; font-size: 14px; }
+  label.range input { width: 100%; height: 32px; direction: ltr; }
+  label.range output { color: var(--muted); text-align: left; font-variant-numeric: tabular-nums; }
+  h2 { font-size: 16px; margin: 22px 0 8px; }
+  .gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 8px; text-align: center; min-width: 0; }
+  .card svg { width: 100%; height: 140px; display: block; border-radius: 10px; }
+  .card.face svg { height: 100px; }
+  .card b { display: block; font-size: 13px; margin-top: 6px; }
+  .card code { font-size: 11px; color: var(--muted); direction: ltr; display: block; overflow-wrap: anywhere; }
+  .pad { height: 32px; }
+  @media (min-width: 760px) {
+    .layout { grid-template-columns: 1.4fr 1fr; align-items: start; }
+    .gallery { grid-template-columns: repeat(6, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>דוגמת מופת 2 — דמות</h1>
+    <p>דמות במעט פאות, מאותם גופים ואותו אור כמו העולם. הפנים הן שכבה שטוחה מעל הראש, כדי שיהיו הבעות ברורות.</p>
+  </header>
+  <div class="layout">
+    <svg id="scene" class="scene" viewBox="0 0 800 640" role="img" aria-label="דמות low poly"></svg>
+    <div class="panel">
+      <div class="group"><b>תנוחה</b><div class="chips" id="poses"></div></div>
+      <div class="group"><b>הבעה</b><div class="chips" id="exprs"></div></div>
+      <div class="group"><b>חולצה</b><div class="chips" id="shirts"></div></div>
+      <div class="group"><b>עולם</b><div class="chips" id="themes"></div></div>
+      <label class="range">סיבוב <input id="rot" type="range" min="-90" max="90" step="5" value="-30"><output id="rotV"></output></label>
+      <label class="range">פירוט <input id="detail" type="range" min="0" max="2" step="1" value="1"><output id="detailV"></output></label>
+    </div>
+  </div>
+  <h2>תנוחות</h2>
+  <div class="gallery" id="poseGallery"></div>
+  <h2>הבעות</h2>
+  <div class="gallery" id="faceGallery"></div>
+  <div class="pad"></div>
+</div>
+
+<script src="../lowpoly.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const POSES = [['stand', 'עומד'], ['walk', 'הולך'], ['jump', 'קופץ'], ['cheer', 'שמחה'], ['scared', 'מפוחד'], ['wave', 'מנופף']];
+const EXPRS = [['auto', 'לפי התנוחה'], ['happy', 'שמח'], ['joy', 'צוחק'], ['surprised', 'מופתע'], ['scared', 'מפוחד'], ['sad', 'עצוב']];
+const SHIRTS = {
+  red: LP.mat.shirt,
+  blue: LP.material(['#173f73', '#2563b0', '#3f86d6', '#7db4ee'], .04),
+  green: LP.material(['#1f5a2a', '#2f8a3c', '#4cb05a', '#8bd68f'], .04),
+  yellow: LP.material(['#9a6a0c', '#e0a51c', '#f7c63c', '#ffe27a'], .04),
+  purple: LP.material(['#45206e', '#6a35a3', '#8f58c9', '#bb8de6'], .04),
+};
+const SW = { red: '#cf3535', blue: '#2563b0', green: '#2f8a3c', yellow: '#e0a51c', purple: '#6a35a3' };
+const THEMES = [['day', '☀️ יום'], ['sunset', '🌅 שקיעה'], ['ice', '❄️ קרח']];
+const S = { pose: 'walk', expr: 'auto', shirt: 'red', theme: 'day' };
+
+function chips(el, items, key, label) {
+  $(el).innerHTML = items.map(([v, he]) => `<button type="button" data-v="${v}" aria-pressed="${S[key] === v}" ${label ? `class="swatch" aria-label="${he}"` : ''}>${label ? `<i style="background:${SW[v]}"></i>` : he}</button>`).join('');
+  $(el).addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    S[key] = b.dataset.v;
+    $(el).querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+    if (key === 'theme' || key === 'shirt') galleries();
+  });
+}
+chips('poses', POSES, 'pose');
+chips('exprs', EXPRS, 'expr');
+chips('shirts', Object.keys(SHIRTS).map(k => [k, k]), 'shirt', true);
+chips('themes', THEMES, 'theme');
+
+const kid = (o, t) => LP.make.kid(Object.assign({ size: 200, seed: 3, detail: +$('detail').value, shirt: SHIRTS[S.shirt] }, o, { t }));
+
+function mainSVG(t) {
+  const T = LP.useTheme(S.theme);
+  const rot = +$('rot').value * Math.PI / 180;
+  const cam = LP.camera({ a: .3, s: 1.55, ox: 400, oy: 470 });
+  const bg = LP.camera({ a: .12, ox: 400, oy: 560 });
+  let svg = `<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${T.sky[0]}"/><stop offset=".6" stop-color="${T.sky[1]}"/><stop offset="1" stop-color="${T.sky[2]}"/></linearGradient></defs>
+    <rect width="800" height="640" fill="url(#sky)"/><circle cx="130" cy="110" r="46" fill="${T.sun}"/>`;
+  svg += LP.draw(LP.make.ridge({ width: 1100, h: 210, count: 5, seed: 11, fog: .5, snow: .74 }), bg);
+  const island = LP.make.island({ rx: 190, ry: 110, depth: 150, seed: 9 });
+  const k = kid({ pose: S.pose, rot, expression: S.expr === 'auto' ? null : S.expr }, t);
+  const rocks = [LP.make.bush({ x: -140, y: 40, size: 46, seed: 4 }), LP.make.rock({ x: 130, y: 50, size: 50, seed: 6 }), LP.make.pine({ x: 150, y: 70, size: 120, seed: 8 })];
+  const items = rocks.concat([k]).sort((a, b) => b.y - a.y);
+  svg += LP.draw(island, cam);
+  svg += `<clipPath id="top"><polygon points="${LP.outline(island.top, cam)}"/></clipPath><g clip-path="url(#top)" fill="${T.shadow}" opacity=".36">${items.map(o => LP.castShadow(o, cam)).join('')}</g>`;
+  svg += items.map(o => LP.draw(o, cam) + LP.face(o, cam)).join('');
+  return svg;
+}
+
+function fit(obj, cam, pad, box) {
+  const list = LP.facets(obj, cam), b = box || LP.bounds(list), p = Math.max(b.w, b.h) * pad;
+  return `viewBox="${(b.x - p).toFixed(0)} ${(b.y - p).toFixed(0)} ${(b.w + 2 * p).toFixed(0)} ${(b.h + 2 * p).toFixed(0)}"`;
+}
+function galleries() {
+  const T = LP.useTheme(S.theme), bgc = `background:linear-gradient(${T.sky[1]},${T.sky[2]})`;
+  const times = { stand: 0, walk: .1, jump: .25, cheer: .2, scared: 0, wave: .3 };
+  $('poseGallery').innerHTML = POSES.map(([p, he]) => {
+    const cam = LP.camera({ a: .3 }), o = kid({ pose: p, rot: -.5 }, times[p]);
+    return `<div class="card"><svg ${fit(o, cam, .1)} style="${bgc}">${LP.draw(o, cam)}${LP.face(o, cam)}</svg><b>${he}</b><code>pose:'${p}'</code></div>`;
+  }).join('');
+  $('faceGallery').innerHTML = EXPRS.slice(1).concat([['happy', 'מהצד']]).map(([e, he], i) => {
+    const side = i === 5, cam = LP.camera({ a: .2 }), o = kid({ pose: 'stand', rot: side ? -1.2 : -.2, expression: e }, 0);
+    const c = LP.project(o.face.c, cam), r = o.face.r * 1.35;
+    return `<div class="card face"><svg ${fit(o, cam, 0, { x: c[0] - r, y: c[1] - r, w: 2 * r, h: 2 * r })} style="${bgc}">${LP.draw(o, cam)}${LP.face(o, cam)}</svg><b>${he}</b><code>expression:'${e}'</code></div>`;
+  }).join('');
+}
+
+let t0 = performance.now(), last = 0;
+const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function frame(now) {
+  if (now - last > 33) { last = now; $('scene').innerHTML = mainSVG(still ? 0 : (now - t0) / 1000); }
+  requestAnimationFrame(frame);
+}
+['rot', 'detail'].forEach(id => $(id).addEventListener('input', () => { $('rotV').textContent = $('rot').value + '°'; $('detailV').textContent = $('detail').value; galleries(); }));
+$('rotV').textContent = $('rot').value + '°'; $('detailV').textContent = $('detail').value;
+galleries();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
