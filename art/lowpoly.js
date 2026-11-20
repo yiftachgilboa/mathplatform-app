@@ -79,6 +79,12 @@
     skin: M(['#b9774f', '#dc9b70', '#f2bb92', '#ffd8b4'], .03), hair: M(['#24170f', '#3e2a1d', '#5e4130', '#7f5a42'], .05),
     shirt: M(['#8f1c22', '#cf3535', '#ef5c55', '#ff8d80'], .04), pants: M(['#1c3768', '#2b5398', '#4776c0', '#78a2dd'], .04),
     shoe: M(['#25282d', '#3f444c', '#666c75'], .03),
+    // game objects are recognizable things (gold is gold), so they stay fixed too
+    wood: M(['#5a3a1f', '#86582f', '#ad7a45', '#d3a26a'], .06), woodInner: M(['#2e1c0f', '#462c18', '#5f3d22'], .04),
+    metal: M(['#43484f', '#6d757f', '#9fa8b2', '#d3d9df'], .04), gold: M(['#8a5a0a', '#cf981b', '#f1c43e', '#fff0a0'], .03),
+    starOff: M(['#7d858c', '#a6adb3', '#cdd2d6', '#eceff1'], .03),
+    gemBlue: M(['#123c7a', '#2a6fd1', '#5aa2f0', '#bfe3ff'], .04), gemRed: M(['#6e0f24', '#c2223f', '#f0566d', '#ffc2cb'], .04),
+    gemGreen: M(['#0e5a3a', '#1f9a5f', '#4fd08c', '#c4f5d9'], .04),
   };
   const mat = {};
   let theme = themes.day;
@@ -379,6 +385,107 @@
       return obj;
     },
   };
+
+  // ---------- game objects ----------
+  // "pillow" box: every side gets a center point pushed out a little → 4 soft facets per side instead of a flat square
+  function box(w, d, h, m, seed, bulge) {
+    const mesh = new Mesh(m, seed), b = (bulge == null ? .06 : bulge) * Math.min(w, d, h);
+    const X = [-w / 2, w / 2], Y = [-d / 2, d / 2], Z = [0, h], c = {};
+    for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) for (let k = 0; k < 2; k++) c[i + '' + j + k] = mesh.add([X[i], Y[j], Z[k]]);
+    const side = (a, b2, c2, d2, n) => {
+      const ps = [a, b2, c2, d2].map(i => mesh.v[i]);
+      const cc = mesh.add([(ps[0][0] + ps[2][0]) / 2 + n[0] * b, (ps[0][1] + ps[2][1]) / 2 + n[1] * b, (ps[0][2] + ps[2][2]) / 2 + n[2] * b]);
+      [a, b2, c2, d2].forEach((v, i, arr) => mesh.tri(cc, v, arr[(i + 1) % 4]));
+    };
+    side(c['000'], c['100'], c['110'], c['010'], [0, 0, -1]); side(c['001'], c['101'], c['111'], c['011'], [0, 0, 1]);
+    side(c['000'], c['100'], c['101'], c['001'], [0, -1, 0]); side(c['010'], c['110'], c['111'], c['011'], [0, 1, 0]);
+    side(c['000'], c['010'], c['011'], c['001'], [-1, 0, 0]); side(c['100'], c['110'], c['111'], c['101'], [1, 0, 0]);
+    mesh.center = [0, 0, h / 2];
+    return mesh;
+  }
+  // chest lid: a half-round prism along x, sitting on z = 0 between y = ±d/2, height lh
+  function lidPrism(w, d, lh, n, m, seed, under) {
+    const mesh = new Mesh(m, seed), L = [], R = [];
+    for (let k = 0; k <= n; k++) {
+      const t = k / n * Math.PI, y = d / 2 * Math.cos(t), z = lh * Math.sin(t);
+      L.push(mesh.add([-w / 2, y, z])); R.push(mesh.add([w / 2, y, z]));
+    }
+    for (let k = 0; k < n; k++) { mesh.tri(L[k], R[k], R[k + 1]); mesh.tri(L[k], R[k + 1], L[k + 1]); }
+    const cl = mesh.add([-w / 2, 0, 0]), cr = mesh.add([w / 2, 0, 0]);
+    for (let k = 0; k < n; k++) { mesh.tri(cl, L[k], L[k + 1]); mesh.tri(cr, R[k + 1], R[k]); }
+    mesh.tri(L[0], R[0], R[n], under); mesh.tri(L[0], R[n], L[n], under); // underside (seen when open)
+    mesh.center = [0, 0, lh * .4];
+    return mesh;
+  }
+  const hingeX = (mesh, yh, zh, phi) => mesh.map(p => {
+    const dy = p[1] - yh, dz = p[2] - zh, c = Math.cos(phi), s = Math.sin(phi);
+    return [p[0], yh + dy * c + dz * s, zh - dy * s + dz * c];
+  });
+  // standing disc facing the viewer (−y), axis along y; bottom at z = 0
+  function disc(r, t, n, m, seed, emboss) {
+    const mesh = new Mesh(m, seed);
+    const mk = (rr, y) => { const ids = [], ang = []; for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2; ids.push(mesh.add([Math.cos(a) * rr, y, Math.sin(a) * rr + r])); ang.push(a); } return { ids, ang }; };
+    const back = mk(r, t / 2), front = mk(r, -t / 2), inner = mk(r * .72, -t / 2 - r * .03);
+    stitch(mesh, back, front); stitch(mesh, front, inner);
+    fan(mesh, mesh.add([0, -t / 2 - r * (emboss || .12), r]), inner);
+    fan(mesh, mesh.add([0, t / 2 + r * .06, r]), back);
+    mesh.center = [0, 0, r];
+    return mesh;
+  }
+  Object.assign(make, {
+    // treasure chest. o.open = lid angle in radians (0 closed, ~2 wide open)
+    chest(o) {
+      const S = o.size || 120, seed = o.seed || 1, w = S, d = S * .62, h = S * .5, lh = S * .26, phi = o.open || 0;
+      const meshes = [box(w, d, h, mat.wood, seed * 41, .08)];
+      [-1, 1].forEach((s, i) => { const b = box(w * .09, d * 1.04, h * 1.02, mat.metal, seed * 41 + 1 + i, .04).move(s * w * .32, 0, 0); b.bias = S; meshes.push(b); });
+      const lid = hingeX(lidPrism(w * 1.02, d * 1.02, lh, 4, mat.wood, seed * 41 + 3, mat.woodInner).move(0, 0, h), d * .51, h, phi);
+      meshes.push(lid);
+      [-1, 1].forEach((s, i) => {
+        const band = hingeX(lidPrism(w * .09, d * 1.06, lh * 1.05, 4, mat.metal, seed * 41 + 4 + i).move(s * w * .32, 0, h), d * .53, h, phi);
+        band.bias = S * 2; meshes.push(band);
+      });
+      if (phi > .3) { // gold heap inside
+        const heap = icosphere(1, mat.gold, seed * 41 + 6).jitter(.08, rng(seed)).scale(w * .42, d * .38, h * .3).floor(-.1 * h);
+        heap.move(0, 0, h * .9); meshes.push(heap);
+      } else {
+        const lock = box(w * .12, d * .08, h * .22, mat.gold, seed * 41 + 7, .1).move(0, -d * .52, h * .72); lock.bias = S * 2; meshes.push(lock);
+      }
+      return place(meshes, o, S * .45, { ordered: 'depth' });
+    },
+    // gold coin standing up; o.rot spins it around the vertical axis
+    coin(o) {
+      const S = o.size || 40;
+      return place([disc(S / 2, S * .14, 10, o.mat || mat.gold, (o.seed || 1) * 43)], o, S * .3);
+    },
+    // five-point star, faceted from a front and back apex. o.on = false → grey (rating not earned)
+    star(o) {
+      const S = o.size || 60, R = S / 2, D = S * .17, m = o.mat || (o.on === false ? mat.starOff : mat.gold);
+      const mesh = new Mesh(m, (o.seed || 1) * 47), ring = [];
+      for (let i = 0; i < 10; i++) { const a = Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? R * .47 : R; ring.push(mesh.add([Math.cos(a) * r, 0, Math.sin(a) * r + R])); }
+      const f = mesh.add([0, -D, R]), b = mesh.add([0, D, R]);
+      for (let i = 0; i < 10; i++) { mesh.tri(f, ring[i], ring[(i + 1) % 10]); mesh.tri(b, ring[(i + 1) % 10], ring[i]); }
+      mesh.center = [0, 0, R];
+      return place([mesh], o, S * .3);
+    },
+    // cut gem (crown + pointed pavilion). o.color: blue | red | green
+    gem(o) {
+      const S = o.size || 50, m = o.mat || mat['gem' + ({ red: 'Red', green: 'Green' }[o.color] || 'Blue')];
+      const mesh = new Mesh(m, (o.seed || 1) * 53), n = 6;
+      const table = ring(mesh, n, { r: .55, z: .3, off: .5 }), girdle = ring(mesh, n, { r: 1, z: 0 });
+      fan(mesh, mesh.add([0, 0, .3]), table); stitch(mesh, table, girdle); fan(mesh, mesh.add([0, 0, -1.1]), girdle);
+      mesh.scale(S / 2).move(0, 0, S * .55); mesh.center = [0, 0, S * .5];
+      return place([mesh], Object.assign({ rot: .3 }, o), S * .3);
+    },
+    // wooden plank of n units, unit seams visible (a number you can count). o.unit = size of one unit
+    plank(o) {
+      const n = o.n || 3, u = o.unit || 40, meshes = [];
+      for (let i = 0; i < n; i++) {
+        const b = box(u * .96, u * .62, u * .3, o.mat || mat.wood, (o.seed || 1) * 59 + i, .1).move((i - (n - 1) / 2) * u, 0, 0);
+        meshes.push(b);
+      }
+      return place(meshes, o, 0, { ordered: 'depth', n, unit: u });
+    },
+  });
 
   // ---------- characters ----------
   // a pose = joint angles (radians). leg/arm: swing forward; knee/elbow: bend; side: raise outward (π ≈ straight up); bob: body lift (× height)
