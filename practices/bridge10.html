@@ -55,6 +55,15 @@ header{display:flex;justify-content:center;align-items:center;flex:none;margin-i
 .wchest .chest{width:100%;height:auto;display:block}
 .wchest.idle .chest{animation:chestCall 1.6s ease-in-out infinite}
 .wchest:active .chest{transform:scale(.94)}
+.monster{z-index:4;pointer-events:none;transform-origin:50% 100%}
+.monster .ml{transform-origin:50% 0;transform-box:fill-box}
+.monster.mwalk .ml1{animation:legA .38s infinite alternate}.monster.mwalk .ml2{animation:legA .38s infinite alternate-reverse}
+.monster.mwalk .mbody{animation:mstep .19s infinite alternate}
+@keyframes mstep{to{transform:translateY(-3px)}}
+.monster .mjaw{transform-box:fill-box;transform-origin:20% 0;animation:mbite 1.3s ease-in-out infinite}
+@keyframes mbite{0%,60%,100%{transform:none}75%{transform:rotate(14deg) translateY(2px)}}
+.quake{animation:quake .65s}
+@keyframes quake{10%,50%,90%{transform:translate(-9px,3px)}30%,70%{transform:translate(9px,-3px)}100%{transform:none}}
 .endscreen{background:rgba(255,255,255,.55);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);z-index:80}
 .idle{animation:idleHop 4.5s ease-in-out infinite}
 @keyframes idleHop{0%,78%,100%{transform:translateY(0)}83%{transform:translateY(-16px)}88%{transform:translateY(0) scale(1.04,.96)}92%{transform:translateY(-7px)}96%{transform:translateY(0)}}
@@ -207,10 +216,13 @@ let lastGap=null;
 function genRound(i){
   const [lo,hi]=i<2?[5,7]:[7,10];
   let gap,g=0; do{gap=rand(lo,hi);g++}while(gap===lastGap&&g<50); lastGap=gap;
+  return {gap,planks:makePlanks(i,gap),wrong:0};
+}
+function makePlanks(i,gap){
   const a=rand(1,Math.min(4,gap-1)), b=gap-a, c=rand(1,4);
-  const ids=shuffle([0,1,2]);
-  const planks=(i===0?[a,b]:[a,b,c]).map((n,k)=>({id:`r${i}-${k}`,segs:[{n,c:ids[k]}],key:k<2}));   // first scene: just the two that make it
-  return {gap,planks:shuffle(planks),wrong:0};
+  const ids=shuffle([0,1,2]), tag=Math.random().toString(36).slice(2,6);
+  const planks=(i===0?[a,b]:[a,b,c]).map((n,k)=>({id:`r${i}-${k}-${tag}`,segs:[{n,c:ids[k]}],key:k<2}));   // first scene: just the two that make it
+  return shuffle(planks);
 }
 
 /* ---------- sound: everything made in code (Web Audio), no files ---------- */
@@ -242,6 +254,8 @@ const sfx={
   merge(){sfx.knock();setTimeout(()=>{noise(.06,{f:1300,q:4,vol:.3});tone(260,.08,'triangle',.12)},90);setTimeout(()=>tone(784,.14,'sine',.08),190)},
   thud(){noise(.14,{type:'lowpass',f:500,vol:.5});tone(110,.18,'sine',.2,60)},
   splash(){noise(.7,{type:'lowpass',f:3200,f2:300,vol:.35});setTimeout(()=>noise(.35,{f:1800,f2:600,q:.8,vol:.18}),120)},
+  growl(v=1){tone(92,.7,'sawtooth',.06*v,55);setTimeout(()=>tone(70,.5,'square',.035*v,48),120);noise(.6,{type:'lowpass',f:500,vol:.18*v})},
+  roar(){tone(130,1,'sawtooth',.1,45);noise(1,{type:'lowpass',f:900,f2:180,vol:.35});setTimeout(()=>tone(82,.7,'square',.07,40),200)},
   chop(){noise(.18,{type:'highpass',f:5000,f2:900,vol:.3});setTimeout(()=>{noise(.06,{f:1100,q:3,vol:.3});tone(240,.07,'triangle',.1)},140)},   // knife swish + clack
   sizzle(){noise(.8,{type:'highpass',f:2500,f2:6000,vol:.22});tone(90,.4,'sawtooth',.06,50)},
   crack(){sfx.knock();setTimeout(()=>{noise(.08,{f:2200,q:2,vol:.3});tone(150,.1,'triangle',.12)},120)},
@@ -369,6 +383,22 @@ const Alien=({s=64,talking})=>(<svg className={'mascot'+(talking?' talking':'')}
     <circle className="eye" cx="30" cy="27" r="9" fill="#fff"/><circle className="eye" cx="31" cy="28" r="4.5" fill="#33373b"/>
     <circle cx="33" cy="26" r="1.5" fill="#fff"/>
     {talking!==undefined?<ellipse className="mouth" cx="30" cy="39" rx="4" ry="2.6" fill="#4A2A8A"/>:<path d="M26 38 Q30 42 34 38" stroke="#4A2A8A" strokeWidth="1.8" fill="none"/>}
+  </g></svg>);
+
+/* the chasing monster (low-poly, faces right) */
+const Monster=({w,h})=>(<svg width={w} height={h} viewBox="0 0 80 100" style={{display:'block',overflow:'visible'}}>
+  <polygon points="10,98 70,98 64,94 16,94" fill="rgba(20,50,40,.25)"/>
+  <rect className="ml ml1" x="22" y="80" width="12" height="17" fill="#2F7F57"/><rect className="ml ml2" x="46" y="80" width="12" height="17" fill="#256B48"/>
+  <g className="mbody">
+    <polygon points="24,22 17,3 32,15" fill="#FFC531"/><polygon points="50,14 59,0 61,18" fill="#E9A913"/>
+    <polygon points="10,40 22,18 44,12 44,88 24,88 8,72" fill="#4CB07E"/><polygon points="44,12 66,22 75,46 71,78 50,88 44,88" fill="#3A9467"/>
+    <polygon points="28,54 50,50 58,70 47,84 29,80" fill="#9BE08E"/><polygon points="50,50 58,70 47,84" fill="#86CF7A"/>
+    <polygon points="12,58 4,66 8,72 16,64" fill="#3A9467"/>
+    <polygon className="marm" points="64,56 78,62 75,69 61,63" fill="#2F7F57"/>
+    <polygon points="45,24 67,26 65,21 47,19" fill="#256B48"/>
+    <circle cx="57" cy="34" r="9" fill="#fff"/><circle cx="60" cy="35" r="4.5" fill="#33373b"/><circle cx="61.5" cy="33.5" r="1.4" fill="#fff"/>
+    <g className="mjaw"><polygon points="48,50 76,46 72,61 52,64" fill="#2A1F45"/>
+      <polygon points="52,50 55,56 58,49.5" fill="#fff"/><polygon points="61,48.6 64,55 67,48" fill="#fff"/><polygon points="56,63 59,58 62,62.4" fill="#fff"/></g>
   </g></svg>);
 
 /* speaker icon (on: sound waves, off: an x) */
@@ -597,6 +627,22 @@ function App(){
   const [built,setBuilt]=useState([]);             // bridges that stay behind: [{i,p}]
   const [worldI,setWorldI]=useState(0),[walkDur,setWalkDur]=useState(0);   // the world scrolls to pit worldI
   const [hero,setHero]=useState({walk:false,vis:false,cheer:false});
+  // the monster creeps toward the hero while the child builds. dur = seconds to reach him.
+  const monRef=useRef(null), mon=useRef({dur:60,elapsed:0,active:false,retreat:false,nextGrowl:0,nextDur:60}), caughtRef=useRef(null);
+  const [quake,setQuake]=useState(false);
+  useEffect(()=>{let raf,last=performance.now();
+    const loop=now=>{const dt=Math.min(.1,(now-last)/1000);last=now;const m=mon.current,g=R.current.geo,el=monRef.current;
+      if(g&&el){
+        const building=m.active&&R.current.phase==='build';
+        if(m.retreat){m.elapsed=Math.max(0,m.elapsed-dt*m.dur/.9);if(m.elapsed===0)m.retreat=false}
+        else if(building){m.elapsed+=dt;
+          if(now>m.nextGrowl){sfx.growl(.5+.6*Math.min(1,m.elapsed/m.dur));m.nextGrowl=now+5000+Math.random()*4000}
+          if(m.elapsed>=m.dur){m.active=false;if(caughtRef.current)caughtRef.current()}}
+        const pr=Math.min(1,m.elapsed/m.dur), sx=-g.mw*.62, tx=g.heroX-g.mw*.42;
+        el.style.transform=`translateX(${Math.round(sx+(tx-sx)*pr)}px)${m.retreat?' scaleX(-1)':''}`;
+        el.classList.toggle('mwalk',building||m.retreat)}
+      raf=requestAnimationFrame(loop)};
+    raf=requestAnimationFrame(loop);return()=>cancelAnimationFrame(raf)},[]);
   const [coinTaken,setCoinTaken]=useState(-1);
   const [hl,setHl]=useState([]);
   const [fx,setFx]=useState({}),[fxN,setFxN]=useState(0);
@@ -637,8 +683,9 @@ function App(){
   const E=[],S=[];{let e=LxOf(0);rounds.forEach((r,i)=>{E[i]=e;S[i]=e+r.gap*U;e=S[i]+C});E[rounds.length]=e}   // E[5] = where the chest waits
   const gap=rounds[ri]?rounds[ri].gap:7;
   const offset=(E[worldI]??LxOf(worldI))-LxOf(worldI);
-  const topY=60, maxY=groundY-hs-T-8;
-  R.current.geo={U,T,Lx,groundY,W,H,topY,maxY,C,hw,cs:Math.round(Math.max(110,Math.min(190,W*.42,groundY*.45)))};
+  const topY=6, maxY=groundY-T-2, layMaxY=groundY-hs-T-8;
+  const mh=hs*2, mw=Math.round(mh*.8);               // the chasing monster: twice the hero's height
+  R.current.geo={U,T,Lx,groundY,W,H,topY,maxY,layMaxY,C,hw,heroX,mw,mh,cs:Math.round(Math.max(110,Math.min(190,W*.42,groundY*.45)))};
 
   const tts=()=>soundOn&&speechOn&&hasTTS&&heVoice;
   const newFlow=()=>{const f=++flow.current;return()=>f===flow.current};
@@ -704,10 +751,10 @@ function App(){
 
   /* lay the planks out in rows, centred, in the free sky area */
   function layout(list){
-    const {U,T,W,topY,maxY}=R.current.geo, gapX=22, rowH=T+44, maxW=W-24;
+    const {U,T,W,topY,layMaxY:maxY}=R.current.geo, gapX=22, rowH=T+44, maxW=W-24;
     const rows=[[]];let w=0;
     list.forEach(p=>{const pw=total(p)*U;if(rows[rows.length-1].length&&w+gapX+pw>maxW){rows.push([]);w=0}w+=(w?gapX:0)+pw;rows[rows.length-1].push(p)});
-    const totalH=(rows.length-1)*rowH+T, y0=Math.max(topY+20,topY+20+(maxY-topY-20-totalH)/2);
+    const totalH=(rows.length-1)*rowH+T, y0=Math.max(topY+40,topY+40+(maxY-topY-40-totalH)/2);
     const out=[];
     rows.forEach((row,r)=>{const rw=row.reduce((s,p,i)=>s+total(p)*U+(i?gapX:0),0);let x=(W-rw)/2;
       row.forEach(p=>{out.push({...p,fall:true,x:Math.round(x),y:Math.round(y0+r*rowH),z:++zTop.current});x+=total(p)*U+gapX})});
@@ -731,7 +778,8 @@ function App(){
     const laid=layout(r.planks);
     setRi(i);R.current.ri=i;R.current.round=r;setPlanks(laid);R.current.planks=laid;setFallN(n=>n+1);setBridge(null);setHl([]);setFx({});
     setPhase('busy');R.current.phase='busy';
-    stats.current[i]={gap:r.gap,wrong:0,merges:0,cuts:0};
+    stats.current[i]={gap:r.gap,wrong:0,merges:0,cuts:0,caught:0};
+    {const m=mon.current;m.dur=i===0?60:m.nextDur;m.elapsed=0;m.retreat=false;m.active=true;m.nextGrowl=performance.now()+6000}
     log('round_start',{gap:r.gap,planks:r.planks.map(total)});
     if(first){await sleep(800); if(!alive())return; setHero({walk:false,vis:true,cheer:false});sfx.thud()}
     await sleep(700); if(!alive())return;
@@ -865,6 +913,20 @@ function App(){
     })();
   }
 
+  function caught(){
+    if(R.current.phase!=='build')return;
+    const alive=newFlow(), ri=R.current.ri, r=R.current.round;
+    clearNudges();hush();clearTimeout(teachTimer.current);setDemo(null);dragRef.current=null;setDrag(null);setHot(false);
+    setPhase('busy');R.current.phase='busy';setQuake(true);setTimeout(()=>setQuake(false),700);sfx.roar();
+    stats.current[ri].caught++;log('caught',{round:ri,secs:Math.round(mon.current.dur)});
+    r.planks=makePlanks(ri,r.gap);
+    later(alive,650,()=>{mon.current.retreat=true;const laid=layout(r.planks);R.current.planks=laid;setPlanks(laid);setFallN(n=>n+1);setHl([]);setFx({})});
+    say('אוי! המפלצת הגיעה אלינו. ננסה שוב, עם קרשים אחרים.').then(()=>{if(!alive())return;
+      const m=mon.current;m.dur=m.dur*2;m.elapsed=0;m.retreat=false;m.active=true;m.nextGrowl=performance.now()+6000;   // 50% slower
+      setPhase('build');R.current.phase='build';armNudges(alive);armTeach(6000)});
+  }
+  caughtRef.current=caught;
+
   async function tryBridge(p,home){
     const alive=newFlow(); clearNudges();hush();clearTimeout(teachTimer.current);setDemo(null);
     const {round,ri}=R.current, n=total(p), g=round.gap, geo=R.current.geo;
@@ -874,6 +936,7 @@ function App(){
     KP.answer(state==='fit');log('bridge_attempt',{gap:g,plank:n,correct:state==='fit'});
     await sleep(160); if(!alive())return;
     if(state==='fit'){
+      {const m=mon.current;m.nextDur=Math.max(15,Math.min(120,m.elapsed*1.2));m.active=false;m.retreat=true;stats.current[ri].secs=Math.round(m.elapsed)}
       sfx.thud();sfx.win();
       if(teach.current==='drag')teach.current='cut';
       say(`${n}! הגשר מוכן!`,{voice:false});
@@ -1015,6 +1078,7 @@ function App(){
       <div className="hero" style={{left:heroX,top:groundY-hs+2,width:hw,height:hs,opacity:hero.vis?1:0,transition:walkDur?`left ${walkDur}s linear`:'none'}}>
         <div className={'in'+(hero.vis?' show':'')} key={hero.vis?'v':'h'}>
           <div className={hero.walk||hero.cheer?'':'idle'}><Player s={hs} view="side" shadow={false} happy walking={hero.walk} cheer={hero.cheer}/></div></div></div>
+      {screen==='play'&&<div ref={monRef} className="monster" style={{left:0,top:groundY-mh+8,width:mw,height:mh}}><Monster w={mw} h={mh}/></div>}
       {planks.map((p,k)=>{const c=drag===p.id?{x:p.x,y:p.y}:clampPos(p.x,p.y,total(p)*U);return(
         <div key={p.id} className={'pk'+(drag===p.id?' dragging':'')} style={{left:c.x,top:c.y,zIndex:drag===p.id?40:5+(p.z%30)}}
           onPointerDown={e=>plankDown(e,p)} onPointerMove={plankMove} onPointerUp={plankUp} onPointerCancel={plankUp}>
@@ -1040,7 +1104,7 @@ function App(){
   return(<>
     <LowPolyBG/>
     <div className="dim"/>
-    <div className="app" onPointerDownCapture={()=>audio()}>
+    <div className={'app'+(quake?' quake':'')} onPointerDownCapture={()=>audio()}>
       {Side}
       <div className="top">{screen==='play'&&Talk}{Header}</div>
       {Board}
