@@ -17,14 +17,14 @@ body{font-family:Fredoka,system-ui,sans-serif;color:var(--ink);background:#CDEBF
 button{font-family:inherit;cursor:pointer;border:0}
 .bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;display:block}
 .app{position:relative;z-index:1;display:flex;flex-direction:column;height:100vh;height:100dvh}
-.top{flex:none;width:100%;max-width:960px;margin:0 auto;padding:10px 14px 0 66px;display:flex;flex-direction:column;gap:6px;position:relative;z-index:8;pointer-events:none}
+.top{flex:none;width:100%;max-width:960px;margin:0 auto;padding:10px 14px 0 66px;display:flex;flex-direction:row;align-items:center;gap:10px;min-height:66px;position:relative;z-index:8;pointer-events:none}
 .top>*{pointer-events:auto}
 
 /* header (same frame as the other practices) */
-header{display:flex;justify-content:center;align-items:center;flex:none;min-height:46px}
+header{display:flex;justify-content:center;align-items:center;flex:none;margin-inline-start:auto}
 .side{position:absolute;left:10px;top:10px;display:flex;flex-direction:column;gap:8px;z-index:90}
 .side .iconbtn{display:flex;align-items:center;justify-content:center}
-.dim{position:fixed;inset:0;z-index:0;background:rgba(18,42,66,.2);pointer-events:none}
+.dim{position:fixed;inset:0;z-index:0;background:linear-gradient(180deg,transparent 0 38%,rgba(18,42,66,.2) 62%);pointer-events:none}
 .lidopen{transform-origin:40px 30px;transform-box:view-box;animation:lidUp .45s cubic-bezier(.3,1.5,.5,1) both}
 @keyframes lidUp{from{transform:scaleY(.15)}}
 .title{justify-self:start;min-width:0;max-width:100%;font-weight:700;font-size:16px;display:flex;align-items:center;gap:6px;color:var(--kblue);background:rgba(255,255,255,.88);padding:6px 14px 6px 12px;clip-path:polygon(0 0,100% 0,calc(100% - 12px) 100%,0 100%)}
@@ -127,16 +127,18 @@ header{display:flex;justify-content:center;align-items:center;flex:none;min-heig
 @keyframes shake{25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
 
 /* talk */
-.talk{display:flex;align-items:flex-end;gap:10px;min-height:64px;flex:none}
-.bubble{flex:1;background:#fff;padding:8px 14px;font-size:16px;line-height:1.4;font-weight:500;position:relative;box-shadow:0 5px 0 rgba(23,111,190,.18);margin-bottom:10px;border-radius:14px}
+.talk{display:flex;align-items:center;gap:10px;flex:1 1 auto;min-width:0}
+.bubble{flex:0 1 540px;min-width:0;background:#fff;padding:8px 14px;font-size:16px;line-height:1.35;font-weight:500;position:relative;box-shadow:0 5px 0 rgba(23,111,190,.18);border-radius:14px}
+@media(max-width:559px){.bubble{font-size:13.5px;padding:6px 10px}.pbar{width:36px;height:12px}.treasure{gap:4px}.treasure .chest{width:40px;height:32px}
+  .talk{gap:8px}.talk .speechbtn{position:absolute;right:-8px;bottom:-10px;transform:scale(.85)}.talk .spawn{margin-right:6px}}
 @media(min-width:700px){.bubble{padding:12px 18px;font-size:19px}}
 .bubble::before{content:"";position:absolute;right:-12px;top:50%;margin-top:-10px;border:10px solid transparent;border-left-color:#fff;border-right:0}
 .bubble .txt{animation:txtIn .35s both}
 @keyframes txtIn{from{opacity:0;transform:translateY(6px)}}
-.spawn{position:relative;flex:none;display:flex;justify-content:center;padding-bottom:6px}
-.spawn::before{content:"";position:absolute;bottom:0;left:50%;width:70px;height:22px;margin-left:-35px;border-radius:50%;background:#9FD3F2;box-shadow:0 0 0 5px rgba(255,255,255,.7),0 0 0 11px rgba(255,255,255,.3)}
+.spawn{position:relative;flex:none;display:flex;flex-direction:row;align-items:center;gap:8px;padding-bottom:4px}
+.spawn::before{content:"";position:absolute;bottom:0;right:-6px;width:58px;height:18px;border-radius:50%;background:#9FD3F2;box-shadow:0 0 0 5px rgba(255,255,255,.7),0 0 0 11px rgba(255,255,255,.3)}
 .spawn svg{position:relative}
-.speechbtn{flex:none;align-self:center;margin-bottom:10px;width:44px;height:44px;border-radius:50%;background:#fff;color:var(--kblue);box-shadow:0 3px 0 rgba(23,111,190,.22);display:flex;align-items:center;justify-content:center}
+.speechbtn{flex:none;align-self:center;width:44px;height:44px;border-radius:50%;background:#fff;color:var(--kblue);box-shadow:0 3px 0 rgba(23,111,190,.22);display:flex;align-items:center;justify-content:center}
 .speechbtn svg{position:static}
 .mascot{flex:none;overflow:visible}
 .mascot .body{transform-origin:50% 100%;transform-box:fill-box}
@@ -622,16 +624,19 @@ function App(){
   const W=size.w, H=size.h;
   const U=Math.max(16,Math.min(46,Math.floor((Math.min(W,1000)-80)/MAXLEN),Math.floor((W-24)/17)));
   const T=Math.max(28,Math.round(U*1.3));            // thick enough for a finger
-  const Lx=Math.round((W-MAXLEN*U)/2);               // the edge the hero stands at, on screen
+  const csz=Math.round(Math.max(110,Math.min(190,W*.42,(H-Math.round(Math.max(110,Math.min(230,H*.3))))*.45)));
+  // screen x of pit i's left edge: the pit is centred on the screen (after the last pit: the chest is centred)
+  const LxOf=i=>Math.round(rounds[i]?W/2-rounds[i].gap*U/2:W/2-csz/2-2);
+  const Lx=LxOf(ri);                                 // the current pit's left edge, on screen
   const groundH=Math.round(Math.max(110,Math.min(230,H*.3)));
   const groundY=H-groundH;
   const hs=Math.max(60,Math.min(99,Math.round(H*.156))), hw=hs*.75;   // 30% bigger than before
-  const heroX=Lx-hw-6;                               // the hero never moves; the world does
-  const C=Math.max(hw+70,Math.round(U*5),W-Lx+40);   // the land between two pits: wide, so the next pit is out of view
+  const heroX=LxOf(worldI)-hw-6;                     // the hero walks on the spot; the world moves (he shifts a bit to keep the pit centred)
+  const C=Math.max(hw+70,Math.round(U*5),Math.round(W/2+40));   // the land between two pits: wide, so the next pit is out of view
   // world x of each pit: E[i] = left edge, S[i] = right edge (start of the next land)
-  const E=[],S=[];{let e=Lx;rounds.forEach((r,i)=>{E[i]=e;S[i]=e+r.gap*U;e=S[i]+C});E[rounds.length]=e}   // E[5] = where the chest waits
+  const E=[],S=[];{let e=LxOf(0);rounds.forEach((r,i)=>{E[i]=e;S[i]=e+r.gap*U;e=S[i]+C});E[rounds.length]=e}   // E[5] = where the chest waits
   const gap=rounds[ri]?rounds[ri].gap:7;
-  const offset=(E[worldI]??Lx)-Lx;
+  const offset=(E[worldI]??LxOf(worldI))-LxOf(worldI);
   const topY=60, maxY=groundY-hs-T-8;
   R.current.geo={U,T,Lx,groundY,W,H,topY,maxY,C,hw,cs:Math.round(Math.max(110,Math.min(190,W*.42,groundY*.45)))};
 
@@ -843,7 +848,9 @@ function App(){
     const alive=newFlow(); const {planks,round}=R.current, {U}=R.current.geo;
     clearNudges();hush();
     const first=p.x+total(p)*U/2<t.x+total(t)*U/2;           // the plank on the left comes first
-    const segs=first?[...p.segs,...t.segs]:[...t.segs,...p.segs];
+    const block=x=>({n:total(x),c:[...x.segs].sort((u,v)=>v.n-u.n)[0].c});   // a plank as one block (colour of its biggest part)
+    const A=block(first?p:t), Bk=block(first?t:p);
+    const segs=A.c===Bk.c?[{n:A.n+Bk.n,c:A.c}]:[A,Bk];                      // same plank put back together → one block, no "2+1"
     const a=total(first?p:t), b=total(first?t:p), w=(a+b)*U;
     const m={id:'m'+(++idN.current),segs,key:false,...clampPos(first?t.x-total(p)*U:t.x,t.y,w),z:++zTop.current};
     const next=planks.filter(x=>x.id!==p.id&&x.id!==t.id).concat(m);
@@ -895,7 +902,7 @@ function App(){
       [523,659,784,1047,1319].forEach((f,j)=>setTimeout(()=>tone(f,.25),j*120));
       await sleep(600); if(!alive())return;
       const g2=R.current.geo, csz=g2.cs;
-      setDemo({kind:'tap',x:g2.Lx+2+csz/2,y:g2.groundY-csz*.4+6});
+      setDemo({kind:'tap',x:g2.W/2,y:g2.groundY-csz*.4+6});
       return;
     }
     // wrong: too short falls into the water, too long does not fit; then it comes back where it was
@@ -960,8 +967,8 @@ function App(){
 
   const Talk=(
     <div className="talk">
-      <div className="spawn"><Alien s={66} talking={!!talking}/></div>
-      <button className="speechbtn" title={speech?'להשתיק את הדיבור':'להפעיל את הדיבור'} aria-label={speech?'להשתיק את הדיבור':'להפעיל את הדיבור'} onClick={toggleSpeech}><SpeakerIcon on={speech}/></button>
+      <div className="spawn"><Alien s={56} talking={!!talking}/>
+      <button className="speechbtn" title={speech?'להשתיק את הדיבור':'להפעיל את הדיבור'} aria-label={speech?'להשתיק את הדיבור':'להפעיל את הדיבור'} onClick={toggleSpeech}><SpeakerIcon on={speech}/></button></div>
       <div className="bubble" aria-live="polite"><div className="txt" key={capN}>{caption||'…'}</div></div>
     </div>);
 
@@ -1005,7 +1012,7 @@ function App(){
         {showMeasure&&<div className={'measure'+(hot?' hot':'')} style={{left:E[ri],top:groundY+3-18,width:gap*U,height:36}}>
           <span key={measurePop} className="mnum pop">{gap}</span></div>}
       </div>
-      <div className="hero" style={{left:heroX,top:groundY-hs+2,width:hw,height:hs,opacity:hero.vis?1:0}}>
+      <div className="hero" style={{left:heroX,top:groundY-hs+2,width:hw,height:hs,opacity:hero.vis?1:0,transition:walkDur?`left ${walkDur}s linear`:'none'}}>
         <div className={'in'+(hero.vis?' show':'')} key={hero.vis?'v':'h'}>
           <div className={hero.walk||hero.cheer?'':'idle'}><Player s={hs} view="side" shadow={false} happy walking={hero.walk} cheer={hero.cheer}/></div></div></div>
       {planks.map((p,k)=>{const c=drag===p.id?{x:p.x,y:p.y}:clampPos(p.x,p.y,total(p)*U);return(
@@ -1035,7 +1042,7 @@ function App(){
     <div className="dim"/>
     <div className="app" onPointerDownCapture={()=>audio()}>
       {Side}
-      <div className="top">{Header}{screen==='play'&&Talk}</div>
+      <div className="top">{screen==='play'&&Talk}{Header}</div>
       {Board}
       {overlay}
     </div></>);
