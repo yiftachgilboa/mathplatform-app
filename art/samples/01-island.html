@@ -13,6 +13,9 @@
   header p { margin: 0; color: var(--muted); font-size: 14px; }
   .stage { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
   .scene { width: 100%; height: auto; display: block; border-radius: 16px; }
+  .themes { display: flex; gap: 8px; padding: 12px 16px 0; max-width: 1100px; margin: 0 auto; }
+  .themes button { flex: 1; background: #fff; color: var(--ink); border: 2px solid var(--line); }
+  .themes button[aria-pressed=true] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
   .controls { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 12px 16px; max-width: 1100px; margin: 0 auto; }
   .controls label { display: grid; grid-template-columns: 90px 1fr 34px; align-items: center; gap: 8px; font-size: 14px; }
   .controls input[type=range] { width: 100%; height: 32px; direction: ltr; }
@@ -21,12 +24,14 @@
   h2 { font-size: 16px; max-width: 1100px; margin: 18px auto 8px; padding: 0 16px; }
   .gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 0 16px 32px; max-width: 1100px; margin: 0 auto; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px; text-align: center; }
-  .card svg { width: 100%; height: 130px; display: block; background: linear-gradient(#cdebef, #eef8f8); border-radius: 10px; padding: 8px; }
+  .card svg { width: 100%; height: 130px; display: block; border-radius: 10px; padding: 8px; }
   .card b { display: block; font-size: 14px; margin-top: 6px; }
-  .card code { font-size: 12px; color: var(--muted); direction: ltr; display: block; }
+  .card { min-width: 0; }
+  .card code { font-size: 11px; color: var(--muted); direction: ltr; display: block; overflow-wrap: anywhere; }
   @media (min-width: 700px) {
+    .themes { max-width: 520px; margin-inline-start: max(16px, calc((100% - 1100px) / 2)); padding-inline: 16px 0; }
     .controls { grid-template-columns: repeat(3, 1fr) auto; align-items: center; }
-    .gallery { grid-template-columns: repeat(6, 1fr); }
+    .gallery { grid-template-columns: repeat(5, 1fr); }
   }
   /* life */
   .float { animation: float 7s ease-in-out infinite; }
@@ -42,13 +47,18 @@
 <body>
 <header>
   <h1>דוגמת מופת 1 — אי מרחף</h1>
-  <p>Soft Low‑Poly בקוד. כל צבע נקבע מהכיוון של הפאה ביחס לאור אחד. מזיזים את המחוונים ורואים איך הכללים משנים את הכול יחד.</p>
+  <p>Soft Low‑Poly בקוד. כל צבע נקבע מהכיוון של הפאה ביחס לאור אחד, וערכת הצבע מחליפה את כל החומרים יחד.</p>
 </header>
 <div class="stage"><svg id="scene" class="scene" viewBox="0 0 1200 800" role="img" aria-label="אי מרחף בסגנון low poly"></svg></div>
+<div class="themes" id="themes">
+  <button type="button" data-theme="day" aria-pressed="true">☀️ יום</button>
+  <button type="button" data-theme="sunset" aria-pressed="false">🌅 שקיעה</button>
+  <button type="button" data-theme="ice" aria-pressed="false">❄️ קרח</button>
+</div>
 <div class="controls">
   <label>פירוט <input id="detail" type="range" min="0" max="2" step="1" value="0"><output id="detailV"></output></label>
   <label>גיוון צבע <input id="vary" type="range" min="0" max="2" step="0.1" value="1"><output id="varyV"></output></label>
-  <label>כיוון אור <input id="light" type="range" min="120" max="320" step="2" value="222"><output id="lightV"></output></label>
+  <label>כיוון אור <input id="light" type="range" min="120" max="320" step="2" value="204"><output id="lightV"></output></label>
   <button id="seed" type="button">🎲 צורות אחרות</button>
 </div>
 <h2>החלקים (התחלת הספרייה)</h2>
@@ -57,28 +67,33 @@
 <script src="../lowpoly.js"></script>
 <script>
 const $ = id => document.getElementById(id);
-let SEED = 7;
+let SEED = 7, THEME = 'day';
 
 function sceneSVG(opts) {
-  const cam = LP.camera({ ox: 600, oy: 420, lightAz: opts.light, vary: opts.vary, fogColor: '#cfeef1' });
-  const D = opts.detail, s = n => SEED * 101 + n;
-  const M = LP.make;
+  const T = LP.useTheme(THEME);
+  const cam = LP.camera({ ox: 600, oy: 400, lightAz: opts.light, vary: opts.vary });
+  const D = opts.detail, s = n => SEED * 101 + n, M = LP.make;
 
-  // sky
+  // sky, sun on the side the light comes from, soft halo
+  const sunX = Math.max(140, Math.min(1060, 600 - Math.cos(opts.light * Math.PI / 180) * -520));
   let svg = `<defs>
-    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7fcad6"/><stop offset=".65" stop-color="#bfe8ec"/><stop offset="1" stop-color="#e6f6f6"/></linearGradient>
-    <radialGradient id="glow"><stop offset="0" stop-color="#fffbe6" stop-opacity=".95"/><stop offset=".35" stop-color="#fff6d6" stop-opacity=".55"/><stop offset="1" stop-color="#fff6d6" stop-opacity="0"/></radialGradient>
-    <radialGradient id="halo"><stop offset="0" stop-color="#ffffff" stop-opacity=".45"/><stop offset=".7" stop-color="#ffffff" stop-opacity=".18"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${T.sky[0]}"/><stop offset=".6" stop-color="${T.sky[1]}"/><stop offset="1" stop-color="${T.sky[2]}"/></linearGradient>
+    <radialGradient id="glow"><stop offset="0" stop-color="${T.glow}" stop-opacity=".95"/><stop offset=".35" stop-color="${T.glow}" stop-opacity=".5"/><stop offset="1" stop-color="${T.glow}" stop-opacity="0"/></radialGradient>
+    <radialGradient id="halo"><stop offset="0" stop-color="#fff" stop-opacity=".4"/><stop offset=".7" stop-color="#fff" stop-opacity=".14"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
   </defs>
-  <rect width="1200" height="800" fill="url(#sky)"/>`;
-  // sun sits on the side the light comes from
-  const sx = opts.light < 270 ? 230 + (opts.light - 120) * 1.2 : 1000, sunX = Math.max(140, Math.min(1060, 1200 - sx));
-  svg += `<circle cx="${sunX}" cy="140" r="210" fill="url(#glow)"/><circle cx="${sunX}" cy="140" r="58" fill="#fffdf2"/>`;
-  svg += `<circle cx="600" cy="430" r="430" fill="url(#halo)"/>`;
+  <rect width="1200" height="800" fill="url(#sky)"/>
+  <circle cx="${sunX}" cy="150" r="230" fill="url(#glow)"/><circle cx="${sunX}" cy="150" r="62" fill="${T.sun}"/>`;
 
-  // far clouds (behind the island)
-  const far = [M.cloud({ x: -380, y: 500, z: 120, size: 190, seed: s(1), detail: D, fog: .25 }),
-               M.cloud({ x: 330, y: 560, z: 210, size: 230, seed: s(2), detail: D, fog: .3 })];
+  // background: three ridges, each further one melts more into the sky
+  [{ oy: 600, fog: .55, h: 300, seed: 1 }, { oy: 700, fog: .36, h: 230, seed: 2 }, { oy: 815, fog: .2, h: 190, seed: 3 }].forEach(r => {
+    const bg = LP.camera({ a: .16, ox: 600, oy: r.oy, lightAz: opts.light, vary: opts.vary });
+    svg += LP.draw(M.ridge({ width: 1700, h: r.h, count: 5, seed: s(70 + r.seed), fog: r.fog, snow: .74 }), bg);
+  });
+  svg += `<circle cx="600" cy="420" r="430" fill="url(#halo)"/>`;
+
+  // far clouds
+  const far = [M.cloud({ x: -380, y: 500, z: 140, size: 190, seed: s(1), detail: D, fog: .25 }),
+               M.cloud({ x: 330, y: 560, z: 230, size: 230, seed: s(2), detail: D, fog: .3 })];
   svg += `<g class="drift">${far.map(c => LP.draw(c, cam)).join('')}</g>`;
 
   // island + everything on it, floating together
@@ -88,20 +103,24 @@ function sceneSVG(opts) {
     M.rock({ x: 45, y: 140, size: 170, h: .9, seed: s(11), detail: D + 1 }),
     M.rock({ x: 135, y: 95, size: 110, h: .8, seed: s(12), detail: D }),
     M.rock({ x: 70, y: -125, size: 48, h: .6, seed: s(13), detail: D }),
-    M.tree({ x: -205, y: 5, size: 230, seed: s(20), detail: D + 1 }),
-    M.tree({ x: 225, y: -15, size: 190, seed: s(21), detail: D + 1 }),
-    M.pine({ x: -295, y: -40, size: 230, seed: s(30), detail: D }),
-    M.pine({ x: 95, y: -60, size: 210, seed: s(31), detail: D }),
-    M.pine({ x: -15, y: 80, size: 150, seed: s(32), detail: D }),
-    M.pine({ x: 265, y: 95, size: 165, seed: s(33), detail: D }),
-    M.pine({ x: -150, y: 140, size: 135, seed: s(34), detail: D }),
-    M.bush({ x: -85, y: -115, size: 52, seed: s(40), detail: D }),
+    M.tree({ x: -205, y: 5, size: 230, seed: s(20), detail: D + 1, kind: 'round' }),
+    M.tree({ x: 225, y: -15, size: 200, seed: s(21), detail: D + 1, kind: 'umbrella' }),
+    M.tree({ x: -55, y: -60, size: 170, seed: s(22), detail: D + 1, kind: 'branches' }),
+    M.tree({ x: 300, y: 70, size: 190, seed: s(23), detail: D + 1, kind: 'tall' }),
+    M.pine({ x: -295, y: -40, size: 240, seed: s(30), detail: D }),
+    M.pine({ x: 105, y: -55, size: 220, seed: s(31), detail: D }),
+    M.pine({ x: -15, y: 80, size: 160, seed: s(32), detail: D }),
+    M.pine({ x: 215, y: 120, size: 170, seed: s(33), detail: D }),
+    M.pine({ x: -160, y: 140, size: 145, seed: s(34), detail: D }),
+    M.bush({ x: -125, y: -125, size: 52, seed: s(40), detail: D }),
     M.bush({ x: 170, y: -125, size: 42, seed: s(41), detail: D }),
     M.bush({ x: -235, y: -120, size: 46, seed: s(42), detail: D }),
     M.bush({ x: 20, y: -160, size: 34, seed: s(43), detail: D }),
-    M.bush({ x: 300, y: 30, size: 38, seed: s(44), detail: D }),
+    M.bush({ x: 300, y: -40, size: 38, seed: s(44), detail: D }),
   ].sort((a, b) => b.y - a.y); // far first
-  svg += `<g class="float">${LP.draw(island, cam)}${things.map(t => LP.shadow(t, cam, '#2f5a12', .18)).join('')}${things.map(t => LP.draw(t, cam)).join('')}</g>`;
+  const shadows = `<clipPath id="top"><polygon points="${LP.outline(island.top, cam)}"/></clipPath>
+    <g clip-path="url(#top)" fill="${T.shadow}" opacity=".36">${things.map(t => LP.castShadow(t, cam)).join('')}</g>`;
+  svg += `<g class="float">${LP.draw(island, cam)}${shadows}${things.map(t => LP.draw(t, cam)).join('')}</g>`;
 
   // small floating rocks
   svg += `<g class="float2">${LP.draw(M.rock({ x: -480, y: -40, z: -150, size: 70, h: 1, seed: s(50), detail: D, mat: LP.mat.earth }), cam)}</g>`;
@@ -112,10 +131,11 @@ function sceneSVG(opts) {
   return svg;
 }
 
-function cardSVG(obj, opts) {
-  const cam = LP.camera({ lightAz: opts.light, vary: opts.vary });
+function cardSVG(obj, opts, camOpts) {
+  const cam = LP.camera(Object.assign({ lightAz: opts.light, vary: opts.vary }, camOpts));
   const list = LP.facets(obj, cam), b = LP.bounds(list), p = Math.max(b.w, b.h) * .08;
-  return `<svg viewBox="${(b.x - p).toFixed(0)} ${(b.y - p).toFixed(0)} ${(b.w + 2 * p).toFixed(0)} ${(b.h + 2 * p).toFixed(0)}">${LP.polys(list)}</svg>`;
+  const T = LP.theme;
+  return `<svg viewBox="${(b.x - p).toFixed(0)} ${(b.y - p).toFixed(0)} ${(b.w + 2 * p).toFixed(0)} ${(b.h + 2 * p).toFixed(0)}" style="background:linear-gradient(${T.sky[1]},${T.sky[2]})">${LP.polys(list)}</svg>`;
 }
 
 function render() {
@@ -124,17 +144,27 @@ function render() {
   $('scene').innerHTML = sceneSVG(opts);
   const D = opts.detail, M = LP.make, s = n => SEED * 101 + n;
   const parts = [
-    ['עץ', 'make.tree', M.tree({ size: 200, seed: s(60), detail: D + 1 })],
-    ['אורן', 'make.pine', M.pine({ size: 220, seed: s(61), detail: D })],
-    ['סלע', 'make.rock', M.rock({ size: 150, seed: s(62), detail: D })],
-    ['שיח', 'make.bush', M.bush({ size: 80, seed: s(63), detail: D })],
-    ['ענן', 'make.cloud', M.cloud({ size: 200, seed: s(64), detail: D })],
-    ['אי', 'make.island', M.island({ rx: 200, ry: 120, depth: 190, seed: s(65) })],
+    ['עץ עגול', "tree({kind:'round'})", M.tree({ size: 200, seed: s(60), detail: D + 1, kind: 'round' })],
+    ['עץ מטריה', "tree({kind:'umbrella'})", M.tree({ size: 200, seed: s(66), detail: D + 1, kind: 'umbrella' })],
+    ['עץ ענפים', "tree({kind:'branches'})", M.tree({ size: 200, seed: s(67), detail: D + 1, kind: 'branches' })],
+    ['עץ גבוה', "tree({kind:'tall'})", M.tree({ size: 200, seed: s(68), detail: D + 1, kind: 'tall' })],
+    ['אורן', 'pine()', M.pine({ size: 220, seed: s(61), detail: D })],
+    ['סלע', 'rock()', M.rock({ size: 150, seed: s(62), detail: D + 1 })],
+    ['שיח', 'bush()', M.bush({ size: 80, seed: s(63), detail: D })],
+    ['ענן', 'cloud()', M.cloud({ size: 200, seed: s(64), detail: D })],
+    ['רכס', 'ridge()', M.ridge({ width: 600, h: 260, count: 3, seed: s(69) }), { a: .16 }],
+    ['אי', 'island()', M.island({ rx: 200, ry: 120, depth: 190, seed: s(65) })],
   ];
-  $('gallery').innerHTML = parts.map(([he, code, obj]) => `<div class="card">${cardSVG(obj, opts)}<b>${he}</b><code>LP.${code}</code></div>`).join('');
+  $('gallery').innerHTML = parts.map(([he, code, obj, co]) => `<div class="card">${cardSVG(obj, opts, co)}<b>${he}</b><code>LP.make.${code}</code></div>`).join('');
 }
 ['detail', 'vary', 'light'].forEach(id => $(id).addEventListener('input', render));
 $('seed').addEventListener('click', () => { SEED = Math.floor(Math.random() * 9999) + 1; render(); });
+$('themes').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  THEME = b.dataset.theme;
+  document.querySelectorAll('#themes button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  render();
+});
 render();
 </script>
 </body>
