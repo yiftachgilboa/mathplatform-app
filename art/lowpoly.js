@@ -74,6 +74,20 @@
       },
     },
   };
+  themes.day.mat.cactus = M(['#1d4f34', '#2c7446', '#46a05a', '#86cc72'], .06);
+  themes.sunset.mat.cactus = M(['#2a1640', '#4a2556', '#7a3a66', '#b05a74'], .06);
+  themes.ice.mat.cactus = M(['#1d5468', '#2c7790', '#4f9fb6', '#94cfe0'], .06);
+  // desert: sand instead of grass, warm red earth, purple shadows (ref 20)
+  themes.desert = {
+    sky: ['#2a8f9a', '#9fd6c6', '#f6e6b0'], fog: '#f1dcaa', sun: '#fff6d8', glow: '#ffe7a8', shadow: '#5a2450',
+    mat: Object.assign({}, themes.day.mat, {
+      grass: M(['#b56f34', '#d9944c', '#efb86c', '#fbdb9a'], .1), grassSide: M(['#93522a', '#b46a34', '#d18a48'], .06),
+      earth: M(['#5e261c', '#8c3f28', '#b85d36', '#d98652'], .1), stone: M(['#5e3c4a', '#8a5d62', '#b78676', '#dcb196', '#f3d6bb'], .08),
+      leaf: M(['#475518', '#6c7f26', '#94a63a', '#c2cd68'], .09), pine: M(['#344516', '#566b22', '#7c9132', '#a8b95a'], .07),
+      cloud: M(['#e6cfa6', '#f6e6c8', '#fff7e8', '#ffffff'], .03), snow: M(['#e0c08e', '#f2dcb4', '#fbefd8', '#ffffff'], .04),
+      mountain: M(['#9a4630', '#c46a3c', '#e29356', '#f5be86'], .06), cactus: M(['#1d4f34', '#2c7446', '#46a05a', '#86cc72'], .06),
+    }),
+  };
   // characters keep their colors in every theme (identity), so they live outside the themes
   const charMat = {
     skin: M(['#b9774f', '#dc9b70', '#f2bb92', '#ffd8b4'], .03), hair: M(['#24170f', '#3e2a1d', '#5e4130', '#7f5a42'], .05),
@@ -85,6 +99,16 @@
     starOff: M(['#7d858c', '#a6adb3', '#cdd2d6', '#eceff1'], .03),
     gemBlue: M(['#123c7a', '#2a6fd1', '#5aa2f0', '#bfe3ff'], .04), gemRed: M(['#6e0f24', '#c2223f', '#f0566d', '#ffc2cb'], .04),
     gemGreen: M(['#0e5a3a', '#1f9a5f', '#4fd08c', '#c4f5d9'], .04),
+    woodEnd: M(['#a8733f', '#cf9c62', '#ebc48a', '#f8dfb0'], .05), petal: M(['#c2410c', '#ea6a1a', '#f79a2e', '#ffd166'], .07),
+    // animals and creatures (identity colors)
+    dark: M(['#1c1d21', '#2f3137', '#474a52'], .03), white: M(['#b9bec4', '#dcdfe3', '#f2f4f6', '#ffffff'], .03),
+    pink: M(['#c77c86', '#e8a0aa', '#f7c4ca'], .03), beak: M(['#9a5a0e', '#d48a1e', '#f2b544'], .03),
+    bearFur: M(['#3b2416', '#5e3a22', '#87573a', '#b07b55'], .06), bearLight: M(['#9a7a5a', '#c8a47c', '#e6c9a0', '#f6e2c2'], .05),
+    foxFur: M(['#8a3412', '#c9531c', '#ee7a32', '#ffad66'], .06), rabbitFur: M(['#6b5442', '#94765e', '#b89a80', '#d9bfa5'], .06),
+    birdBlue: M(['#173c78', '#2563b0', '#3f86d6', '#86c4f2'], .07), birdBelly: M(['#c06a1c', '#e8902e', '#f6b356', '#ffd690'], .05),
+    monster: M(['#2f1846', '#52287a', '#7a42a8', '#a874d1'], .07), monsterBelly: M(['#5b7a12', '#86a822', '#b2cf3a', '#dcef7a'], .05),
+    horn: M(['#8a7a5c', '#bfae88', '#e6d9b8', '#fbf3dc'], .04),
+    alien: M(['#17603a', '#249050', '#43bb6c', '#8fe39f'], .06), alienBelly: M(['#5aa86a', '#8fd09a', '#bfe9c4', '#e6f8e8'], .04),
   };
   const mat = {};
   let theme = themes.day;
@@ -100,7 +124,11 @@
     if (this.snow) this.snow.z += (z || 0);
     return this.map(p => [p[0] + x, p[1] + y, p[2] + (z || 0)]);
   };
-  Mesh.prototype.rotZ = function (t) { const c = Math.cos(t), s = Math.sin(t); return this.map(p => [p[0] * c - p[1] * s, p[0] * s + p[1] * c, p[2]]); };
+  Mesh.prototype.rotZ = function (t) {
+    const c = Math.cos(t), s = Math.sin(t), R = p => [p[0] * c - p[1] * s, p[0] * s + p[1] * c, p[2]];
+    if (this.patch) this.patch.dir = R(this.patch.dir);
+    return this.map(R);
+  };
   Mesh.prototype.jitter = function (amt, rand) { return this.map(p => [p[0] + (rand() - .5) * 2 * amt, p[1] + (rand() - .5) * 2 * amt, p[2] + (rand() - .5) * 2 * amt]); };
   Mesh.prototype.floor = function (z) { return this.map(p => [p[0], p[1], Math.max(z, p[2])]); }; // flat bottom
   Mesh.prototype.minZ = function () { return Math.min.apply(null, this.v.map(p => p[2])); };
@@ -160,18 +188,18 @@
     return mesh;
   }
   // unit cylinder z 0 → 1, radius 1 at bottom, `top` at the top
-  function cylinder(n, top, m, seed) {
+  function cylinder(n, top, m, seed, capMat) {
     const mesh = new Mesh(m, seed);
     const A = ring(mesh, n, { r: 1, z: 0 }), B = ring(mesh, n, { r: top, z: 1, off: .5 });
-    stitch(mesh, A, B); fan(mesh, mesh.add([0, 0, 1]), B); fan(mesh, mesh.add([0, 0, 0]), A);
+    stitch(mesh, A, B); fan(mesh, mesh.add([0, 0, 1]), B, capMat); fan(mesh, mesh.add([0, 0, 0]), A, capMat);
     return mesh;
   }
-  // a tapered branch from p0 to p1
-  function limb(p0, p1, r0, r1, m, seed) {
+  // a tapered branch from p0 to p1 (n sides; capMat colors the two ends, e.g. a cut log)
+  function limb(p0, p1, r0, r1, m, seed, n, capMat) {
     const d = sub(p1, p0), L = len(d), dir = norm(d);
     const up = Math.abs(dir[2]) < .9 ? [0, 0, 1] : [1, 0, 0];
     const u = norm(cross(dir, up)), v = cross(dir, u);
-    return cylinder(5, r1 / r0, m, seed).map(p => [
+    return cylinder(n || 5, r1 / r0, m, seed, capMat).map(p => [
       p0[0] + dir[0] * L * p[2] + (u[0] * p[0] + v[0] * p[1]) * r0,
       p0[1] + dir[1] * L * p[2] + (u[1] * p[0] + v[1] * p[1]) * r0,
       p0[2] + dir[2] * L * p[2] + (u[2] * p[0] + v[2] * p[1]) * r0]);
@@ -221,6 +249,7 @@
         if (dot(n, toCam) <= 0.002) return; // back face
         let fm = f[3] || m;
         if (mesh.snow && cen[2] > mesh.snow.z && n[2] > .15) fm = mat.snow; // snow sits on upward faces above the line
+        if (mesh.patch && dot(n, mesh.patch.dir) > mesh.patch.th) fm = mesh.patch.mat; // color patch by region (belly, chest, tail tip)
         const lam = dot(n, cam.L);
         let t = cam.ambient + (1 - cam.ambient) * Math.max(0, Math.min(1, 0.5 + 0.5 * cam.contrast * lam));
         t += (jit - .5) * 2 * fm.v * cam.vary;
@@ -296,6 +325,20 @@
       const leaf = o.mat || mat[LEAVES[Math.floor(rand() * LEAVES.length)]];
       const blob = (k, sx, sy, sz, x, y, z, j) => icosphere(d, leaf, seed * 5 + k).jitter(j || .14, rand).scale(sx, sy, sz).move(x, y, z);
       const meshes = [];
+      if (kind === 'bare') { // branches only, forking 3 times (ref 26)
+        const grow = (p, dir, L, r, depth) => {
+          const q = [p[0] + dir[0] * L, p[1] + dir[1] * L, p[2] + dir[2] * L];
+          meshes.push(limb(p, q, r, r * .68, mat.trunk, seed * 5 + meshes.length));
+          if (!depth) return;
+          const n = 2 + (rand() < .35 ? 1 : 0), a0 = rand() * 6.28;
+          for (let i = 0; i < n; i++) {
+            const a = a0 + i / n * 6.28, spread = .55 + rand() * .3;
+            grow(q, norm([dir[0] + Math.cos(a) * spread, dir[1] + Math.sin(a) * spread * .7, dir[2] + .25]), L * (.62 + rand() * .12), r * .66, depth - 1);
+          }
+        };
+        grow([0, 0, 0], [0, 0, 1], S * .38, S * .055, 3);
+        return place(meshes, Object.assign({ rot: rand() * 6.28 }, o), S * .12, { ordered: true, kind });
+      }
       if (kind === 'tall') {
         meshes.push(limb([0, 0, 0], [0, 0, S * .4], S * .045, S * .03, mat.trunk, seed * 5));
         meshes.push(blob(2, S * .17, S * .17, S * .4, 0, 0, S * .6, .12));
@@ -487,6 +530,172 @@
     },
   });
 
+  // ---------- more world objects (round 3) ----------
+  Object.assign(make, {
+    // saguaro cactus: ribbed trunk + arms that bend up (ref 20). o.arms = 0..3
+    cactus(o) {
+      const S = o.size || 160, seed = o.seed || 1, rand = rng(seed), arms = o.arms == null ? 1 + Math.floor(rand() * 3) : o.arms;
+      const m = mat.cactus, r = S * .085, meshes = [];
+      const tip = (x, y, z, rr, k) => cone(7, m, seed * 61 + k, rand, .75).scale(rr, rr, rr * 1.3).move(x, y, z);
+      meshes.push(limb([0, 0, 0], [0, 0, S * .8], r, r * .92, m, seed * 61, 7), tip(0, 0, S * .8, r * .92, 1));
+      for (let i = 0; i < arms; i++) {
+        const a = (i % 2 ? Math.PI : 0) + (rand() - .5) * .6, h = S * (i > 1 ? .5 + rand() * .1 : .26 + rand() * .2);
+        const out = S * (.15 + rand() * .06), up = S * (.16 + rand() * .16), ar = r * .62;
+        const x = Math.cos(a) * out, y = Math.sin(a) * out * .6;
+        meshes.push(limb([0, 0, h], [x, y, h + S * .03], ar, ar, m, seed * 61 + 10 + i, 7));
+        meshes.push(limb([x, y, h - ar * .4], [x, y, h + up], ar, ar * .92, m, seed * 61 + 20 + i, 7), tip(x, y, h + up, ar * .92, 30 + i));
+      }
+      return place(meshes, Object.assign({ rot: (rand() - .5) * .8 }, o), r * 1.4, { ordered: 'depth' }); // small turn only: arms stay to the sides
+    },
+    // log lying on the ground, light cut ends (ref 23)
+    log(o) {
+      const L = o.size || 140, r = L * .16, seed = o.seed || 1, rand = rng(seed);
+      const meshes = [limb([-L / 2, 0, r], [L / 2, 0, r * .96], r, r * .92, mat.trunk, seed * 67, 6, mat.woodEnd)];
+      if (rand() < .7) meshes.push(limb([L * .1, 0, r * 1.7], [L * .18, -r * .3, r * 2.5], r * .3, r * .2, mat.trunk, seed * 67 + 1, 5, mat.woodEnd));
+      return place(meshes, Object.assign({ rot: rand() * .6 - .3 }, o), r * 1.2, { ordered: 'depth' });
+    },
+    // tree stump with a cut top
+    stump(o) {
+      const S = o.size || 60, seed = o.seed || 1, rand = rng(seed);
+      const m = limb([0, 0, 0], [0, 0, S * .5], S * .3, S * .26, mat.trunk, seed * 71, 7, mat.woodEnd);
+      return place([m], Object.assign({ rot: rand() * 6.28 }, o), S * .3);
+    },
+    // flower: stem + two rings of pointed petals around a gold center (ref 19)
+    flower(o) {
+      const S = o.size || 70, seed = o.seed || 1, rand = rng(seed), pm = o.mat || mat.petal, meshes = [];
+      const c = [0, 0, S * .6];
+      meshes.push(limb([0, 0, 0], c, S * .025, S * .02, mat.leaf, seed * 73, 5));
+      [[6, .3, .45, 0], [5, .2, .62, .5]].forEach(([n, out, up, off], k) => {
+        for (let i = 0; i < n; i++) {
+          const a = (i + off) / n * 6.28 + rand() * .2;
+          meshes.push(limb(c, [c[0] + Math.cos(a) * S * out, c[1] + Math.sin(a) * S * out, c[2] + S * up * .5], S * .07, S * .012, pm, seed * 73 + 10 * k + i, 4));
+        }
+      });
+      meshes.push(icosphere(0, mat.gold, seed * 73 + 40).scale(S * .07).move(c[0], c[1], c[2] + S * .04));
+      return place(meshes, o, S * .15, { ordered: 'depth' });
+    },
+  });
+
+  // ---------- creatures (ref 17–27) ----------
+  // one body plan for four-legged animals and monsters: body, legs, head, snout, ears, tail, extras.
+  // sizes are × S (body length). forward = −y, like the kid.
+  const SPECIES = {
+    bear:    { body: [.52, .8, .5], leg: [.3, .085], head: [.3, .27, .26], headAt: [.45, .3], snout: [.15, .09], ears: 'round', tail: 'stub', fur: 'bearFur', light: 'bearLight', face: 'animal' },
+    fox:     { body: [.3, .78, .3], leg: [.34, .042], head: [.2, .22, .18], headAt: [.46, .26], snout: [.22, .065], ears: 'pointed', tail: 'bushy', fur: 'foxFur', light: 'white', legMat: 'dark', face: 'animal' },
+    rabbit:  { body: [.44, .6, .44], leg: [.12, .07], head: [.25, .24, .23], headAt: [.33, .3], snout: [.07, .075], ears: 'long', tail: 'puff', fur: 'rabbitFur', light: 'white', face: 'animal' },
+    monster: { body: [.62, .9, .55], leg: [.32, .11], head: [.36, .34, .3], headAt: [.5, .28], snout: [.12, .15], ears: 'horns', tail: 'long', fur: 'monster', light: 'monsterBelly', plates: true, face: 'monster' },
+  };
+  make.critter = function (o) {
+    const sp = Object.assign({}, SPECIES[o.kind] || SPECIES.bear, o.species), S = o.size || 160, seed = o.seed || 1, t = o.t || 0;
+    const rand = rng(seed * 79), d = clampD(o.detail == null ? 1 : o.detail), fur = mat[sp.fur], light = mat[sp.light];
+    const walk = o.pose === 'walk', ph = t * Math.PI * 2 * 1.3, meshes = [];
+    const [bw, bl, bh] = sp.body, legL = sp.leg[0] * S, legR = sp.leg[1] * S;
+    const bob = walk ? Math.abs(Math.sin(ph)) * .015 * S : Math.sin(t * 2.4) * .005 * S;
+    const zc = legL + bh * S * .42 + bob;
+    const body = icosphere(d, fur, seed * 79 + 1).jitter(.05, rand).scale(bw * S / 2, bl * S / 2, bh * S / 2).move(0, 0, zc);
+    body.patch = { mat: light, dir: [0, -.35, -1], th: .55 };
+    meshes.push(body);
+    // legs (diagonal pairs move together)
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sy], i) => {
+      const hip = [sx * bw * S * .28, sy * bl * S * .3, zc - bh * S * .2];
+      const p = ph + ((sx < 0) !== (sy < 0) ? Math.PI : 0), a = walk ? .45 * Math.sin(p) : 0, lift = walk ? Math.max(0, Math.cos(p)) * .04 * S : 0;
+      const foot = [hip[0], hip[1] - Math.sin(a) * legL, Math.max(legR * .5, hip[2] - Math.cos(a) * (hip[2] - legR * .5)) + lift];
+      meshes.push(limb(hip, foot, legR, legR * .8, mat[sp.legMat] || fur, seed * 79 + 10 + i));
+      meshes.push(icosphere(0, mat[sp.legMat] || fur, seed * 79 + 20 + i).scale(legR * 1.15, legR * 1.5, legR * .7).move(foot[0], foot[1] - legR * .3, foot[2] - legR * .2));
+    });
+    // head
+    const [hw, hl, hh] = sp.head, hc = [0, -sp.headAt[0] * S, zc + sp.headAt[1] * S + (walk ? 0 : Math.sin(t * 1.7) * .008 * S)];
+    const head = icosphere(d, fur, seed * 79 + 30).jitter(.05, rand).scale(hw * S, hl * S, hh * S).move(hc[0], hc[1], hc[2]);
+    meshes.push(head, limb([0, -bl * S * .3, zc + bh * S * .1], hc, hw * S * .55, hw * S * .5, fur, seed * 79 + 31));
+    // snout + nose
+    const s0 = [hc[0], hc[1] - hl * S * .55, hc[2] - hh * S * .3], s1 = [s0[0], s0[1] - sp.snout[0] * S, s0[2] - sp.snout[0] * S * .15];
+    const snout = limb(s0, s1, sp.snout[1] * S, sp.snout[1] * S * .6, light, seed * 79 + 32, 5); snout.bias = S * .05; meshes.push(snout);
+    const nose = icosphere(0, mat.dark, seed * 79 + 33).scale(sp.snout[1] * S * .55).move(s1[0], s1[1] - sp.snout[1] * S * .1, s1[2] + sp.snout[1] * S * .15); nose.bias = S * .1; meshes.push(nose);
+    // ears / horns
+    [-1, 1].forEach((sx, i) => {
+      if (sp.ears === 'round') meshes.push(icosphere(0, fur, seed * 79 + 40 + i).scale(.07 * S, .035 * S, .07 * S).move(sx * hw * S * .62, hc[1] + hl * S * .1, hc[2] + hh * S * .78));
+      if (sp.ears === 'pointed') meshes.push(cone(4, fur, seed * 79 + 40 + i, rand, .5).scale(.06 * S, .03 * S, .14 * S).move(sx * hw * S * .5, hc[1] + hl * S * .05, hc[2] + hh * S * .55));
+      if (sp.ears === 'long') {
+        const b = [sx * hw * S * .35, hc[1] + .02 * S, hc[2] + hh * S * .7], tp = [b[0] + sx * .07 * S, b[1] + .06 * S, b[2] + .4 * S];
+        meshes.push(limb(b, tp, .045 * S, .02 * S, fur, seed * 79 + 40 + i, 5));
+        const inner = limb([b[0], b[1] - .016 * S, b[2] + .03 * S], [tp[0], tp[1] - .016 * S, tp[2] - .03 * S], .028 * S, .01 * S, mat.pink, seed * 79 + 42 + i, 4);
+        inner.bias = S * .05; meshes.push(inner);
+      }
+      if (sp.ears === 'horns') meshes.push(limb([sx * hw * S * .45, hc[1], hc[2] + hh * S * .6], [sx * hw * S * 1.0, hc[1] + .02 * S, hc[2] + hh * S * 1.7], .05 * S, .006 * S, mat.horn, seed * 79 + 40 + i, 5));
+    });
+    // tail
+    const tb = [0, bl * S * .48, zc + bh * S * .15], wag = Math.sin(t * (walk ? 8 : 4)) * .04 * S;
+    if (sp.tail === 'stub') meshes.push(icosphere(0, fur, seed * 79 + 50).scale(.07 * S).move(tb[0] + wag * .3, tb[1], tb[2]));
+    if (sp.tail === 'puff') meshes.push(icosphere(0, mat.white, seed * 79 + 50).scale(.085 * S).move(tb[0] + wag * .3, tb[1], tb[2]));
+    if (sp.tail === 'bushy') {
+      const tail = icosphere(1, fur, seed * 79 + 50).jitter(.06, rand).scale(.09 * S, .25 * S, .09 * S).move(wag, tb[1] + .2 * S, tb[2] + .05 * S);
+      tail.patch = { mat: light, dir: [0, 1, 0], th: .6 }; meshes.push(tail);
+    }
+    if (sp.tail === 'long') {
+      const mid = [wag, tb[1] + .28 * S, tb[2] - .12 * S], tip = [wag * 2, tb[1] + .5 * S, tb[2] + .02 * S];
+      meshes.push(limb(tb, mid, .08 * S, .05 * S, fur, seed * 79 + 50), limb(mid, tip, .05 * S, .008 * S, fur, seed * 79 + 51));
+    }
+    // back plates
+    if (sp.plates) for (let i = 0; i < 5; i++) {
+      const y = (-.28 + i * .15) * bl * S, k = 1 - Math.abs(i - 1.5) / 4;
+      const pl = cone(4, light, seed * 79 + 60 + i, rand, .45).scale(.06 * S * k, .025 * S, .15 * S * k).move(0, y, zc + bh * S * .42);
+      pl.bias = S * .05; meshes.push(pl);
+    }
+    const obj = place(meshes, Object.assign({ rot: 0 }, o), bw * S * .6, { ordered: 'depth' });
+    const r = o.rot || 0, C = Math.cos(r), Sn = Math.sin(r);
+    obj.face = { c: [obj.x + hc[0] * C - hc[1] * Sn, obj.y + hc[0] * Sn + hc[1] * C, obj.z + hc[2]], r: hw * S, k: [hl / hw, 1, hh / hw],
+      f: [Sn, -C, 0], u: [C, Sn, 0], style: sp.face, roar: o.roar || 0 };
+    return obj;
+  };
+  // small bird: egg body, head, beak, wings, fan tail, thin legs; hops and pecks
+  make.bird = function (o) {
+    const S = o.size || 80, seed = o.seed || 1, t = o.t || 0, rand = rng(seed * 83), d = clampD(o.detail == null ? 1 : o.detail);
+    const fur = o.mat || mat.birdBlue, hop = Math.max(0, Math.sin(t * 5)) * (Math.sin(t * 1.3) > .3 ? .12 * S : 0), meshes = [];
+    const zc = S * .42 + hop, peck = Math.max(0, Math.sin(t * 1.3 + 2)) * .5;
+    const body = icosphere(d, fur, seed * 83 + 1).jitter(.05, rand).scale(S * .22, S * .3, S * .23).move(0, 0, zc);
+    body.patch = { mat: o.belly || mat.birdBelly, dir: [0, -.6, -.8], th: .35 };
+    const hc = [0, -S * .22, zc + S * .22 - peck * S * .12];
+    const head = icosphere(d, fur, seed * 83 + 2).jitter(.04, rand).scale(S * .15, S * .15, S * .14).move(hc[0], hc[1], hc[2]);
+    const beak = limb([0, hc[1] - S * .11, hc[2] - S * .02], [0, hc[1] - S * .27, hc[2] - S * .05 - peck * S * .05], S * .05, S * .005, mat.beak, seed * 83 + 3, 4);
+    beak.bias = S * .1;
+    meshes.push(body, head, beak);
+    [-1, 1].forEach((sx, i) => {
+      const w = icosphere(0, fur, seed * 83 + 4 + i).scale(S * .05, S * .24, S * .13).move(sx * S * .2, S * .04, zc + S * .03);
+      w.bias = S * .02; meshes.push(w);
+      const hip = [sx * S * .07, S * .02, zc - S * .18], ft = [sx * S * .07, -S * .02, Math.max(0, hop - S * .0) + S * .015];
+      meshes.push(limb(hip, ft, S * .016, S * .012, mat.beak, seed * 83 + 6 + i, 4));
+      meshes.push(limb(ft, [ft[0], ft[1] - S * .07, S * .008], S * .012, S * .006, mat.beak, seed * 83 + 8 + i, 4));
+    });
+    [-1, 0, 1].forEach((k, i) => meshes.push(limb([0, S * .24, zc + S * .02], [k * S * .07, S * .5, zc + S * .14], S * .04, S * .012, fur, seed * 83 + 10 + i, 4)));
+    const obj = place(meshes, Object.assign({ rot: 0 }, o), S * .2, { ordered: 'depth' });
+    const r = o.rot || 0, C = Math.cos(r), Sn = Math.sin(r);
+    obj.face = { c: [obj.x + hc[0] * C - hc[1] * Sn, obj.y + hc[0] * Sn + hc[1] * C, obj.z + hc[2]], r: S * .15, k: [1, 1, .93], f: [Sn, -C, 0], u: [C, Sn, 0], style: 'animal' };
+    return obj;
+  };
+  // little alien: egg body, big head with one eye, antennae; floats
+  make.alien = function (o) {
+    const S = o.size || 120, seed = o.seed || 1, t = o.t || 0, rand = rng(seed * 89), d = clampD(o.detail == null ? 1 : o.detail);
+    const g = o.mat || mat.alien, float = (Math.sin(t * 2.2) * .5 + .5) * .06 * S, meshes = [];
+    const zc = S * .3 + float;
+    const body = icosphere(d, g, seed * 89 + 1).jitter(.04, rand).scale(S * .2, S * .17, S * .24).move(0, 0, zc);
+    body.patch = { mat: mat.alienBelly, dir: [0, -1, -.2], th: .7 };
+    const hc = [0, 0, zc + S * .38], hr = S * .23;
+    meshes.push(body, icosphere(d, g, seed * 89 + 2).jitter(.04, rand).scale(hr, hr * .92, hr * .95).move(hc[0], hc[1], hc[2]));
+    [-1, 1].forEach((sx, i) => {
+      const wig = Math.sin(t * 3 + i) * .03 * S, tip = [sx * S * .17 + wig, S * .02, hc[2] + S * .36];
+      meshes.push(limb([sx * S * .08, 0, hc[2] + hr * .7], tip, S * .016, S * .01, g, seed * 89 + 3 + i, 4));
+      const ball = icosphere(0, mat.gold, seed * 89 + 5 + i).scale(S * .04).move(tip[0], tip[1], tip[2]); ball.bias = S * .02; meshes.push(ball);
+      const sh = [sx * S * .17, -S * .02, zc + S * .08], hand = [sx * S * .27, -S * .08, zc - S * .04 + Math.sin(t * 2.2 + i) * .02 * S];
+      meshes.push(limb(sh, hand, S * .03, S * .022, g, seed * 89 + 7 + i, 5));
+      meshes.push(limb([sx * S * .08, 0, zc - S * .18], [sx * S * .09, -S * .02, float], S * .035, S * .03, g, seed * 89 + 9 + i, 5));
+      meshes.push(icosphere(0, g, seed * 89 + 11 + i).scale(S * .045, S * .06, S * .025).move(sx * S * .09, -S * .04, float + S * .01));
+    });
+    const obj = place(meshes, Object.assign({ rot: 0 }, o), S * .18, { ordered: 'depth' });
+    const r = o.rot || 0, C = Math.cos(r), Sn = Math.sin(r);
+    obj.face = { c: [obj.x, obj.y, obj.z + hc[2]], r: hr, k: [.92, 1, .95], f: [Sn, -C, 0], u: [C, Sn, 0], style: 'cyclops' };
+    return obj;
+  };
+
   // ---------- characters ----------
   // a pose = joint angles (radians). leg/arm: swing forward; knee/elbow: bend; side: raise outward (π ≈ straight up); bob: body lift (× height)
   const poses = {
@@ -573,16 +782,19 @@
   function face(obj, cam) {
     const F = obj.face; if (!F) return '';
     const toCam = [0, -Math.cos(cam.a), Math.sin(cam.a)];
-    if (dot(F.f, toCam) < .15) return ''; // facing away
-    // a point on the head surface; .vis = it faces the camera (features on the far side are skipped)
+    const style = F.style || 'kid';
+    if (style === 'kid' && dot(F.f, toCam) < .15) return ''; // facing away
+    // a point on the head surface (head ellipsoid radii = F.r × F.k); .vis = it faces the camera
+    const K = F.k || [.93, 1, 1.02];
     const at = (fw, sd, up) => {
-      const n0 = norm([fw, sd, up]), k = [n0[0] * .93, n0[1], n0[2] * 1.02]; // on the head's ellipsoid (it is 7% shallower front-to-back)
-      const v = norm([F.f[0] * fw + F.u[0] * sd, F.f[1] * fw + F.u[1] * sd, up]);
+      const n0 = norm([fw, sd, up]), k = [n0[0] * K[0], n0[1] * K[1], n0[2] * K[2]];
+      const v = norm([F.f[0] * fw / K[0] + F.u[0] * sd, F.f[1] * fw / K[0] + F.u[1] * sd, up / K[2]]);
       const q = project([F.c[0] + (F.f[0] * k[0] + F.u[0] * k[1]) * F.r, F.c[1] + (F.f[1] * k[0] + F.u[1] * k[1]) * F.r, F.c[2] + k[2] * F.r], cam);
-      q.vis = dot(v, toCam) > .25; return q;
+      q.vis = dot(v, toCam) > .2; return q;
     };
     const s = F.r * cam.s, E = '#2b2f33', R = '#8a2f35';
-    const both = [at(.93, -.36, .06), at(.93, .36, .06)], m = at(.95, 0, -.36);
+    const EYE = { kid: [.93, .36, .06], animal: [.62, .78, .22], monster: [.85, .45, .22], cyclops: [.97, 0, .12] }[style];
+    const both = [at(EYE[0], -EYE[1], EYE[2]), at(EYE[0], EYE[1], EYE[2])], m = at(.95, 0, style === 'monster' ? -.3 : style === 'cyclops' ? -.42 : -.36);
     const eyes = both.filter(e => e.vis);
     both.forEach((e, i) => { e.inner = Math.sign(both[1 - i][0] - e[0]) || 1; });
     const f1 = n => n.toFixed(1);
@@ -593,6 +805,26 @@
     const brow = (e, innerUp, lift) => P(`M${f1(e[0] - e.inner * s * .1)},${f1(e[1] - s * (lift - innerUp))} L${f1(e[0] + e.inner * s * .1)},${f1(e[1] - s * (lift + innerUp))}`, .045);
     if (!m.vis && !eyes.length) return '';
     let out = '';
+    if (style === 'animal') return `<g class="face">${eyes.map(e => dotEye(e, .85)).join('')}</g>`;
+    if (style === 'cyclops') {
+      const e = both[0]; if (!e.vis) return '';
+      out += `<circle cx="${f1(e[0])}" cy="${f1(e[1])}" r="${f1(s * .32)}" fill="#fff"/><circle cx="${f1(e[0])}" cy="${f1(e[1] + s * .03)}" r="${f1(s * .19)}" fill="#7b3fd1"/>`;
+      out += `<circle cx="${f1(e[0])}" cy="${f1(e[1] + s * .04)}" r="${f1(s * .1)}" fill="${E}"/><circle cx="${f1(e[0] + s * .07)}" cy="${f1(e[1] - s * .06)}" r="${f1(s * .055)}" fill="#fff"/>`;
+      if (m.vis) out += P(`M${f1(m[0] - s * .13)},${f1(m[1] - s * .02)} Q${f1(m[0])},${f1(m[1] + s * .12)} ${f1(m[0] + s * .13)},${f1(m[1] - s * .02)}`, .05);
+      return `<g class="face">${out}</g>`;
+    }
+    if (style === 'monster') {
+      out += eyes.map(e => `<ellipse cx="${f1(e[0])}" cy="${f1(e[1])}" rx="${f1(s * .1)}" ry="${f1(s * .085)}" fill="#ffd23f"/><ellipse cx="${f1(e[0])}" cy="${f1(e[1])}" rx="${f1(s * .028)}" ry="${f1(s * .07)}" fill="${E}"/>`).join('');
+      out += eyes.map(e => brow(e, -.07, .15)).join('');
+      if (m.vis) {
+        const w = s * .32, h = s * (.1 + .22 * (F.roar || 0)), n = 5;
+        out += `<path d="M${f1(m[0] - w)},${f1(m[1])} Q${f1(m[0])},${f1(m[1] + h * 2)} ${f1(m[0] + w)},${f1(m[1])} Z" fill="${R}"/>`;
+        let teeth = '';
+        for (let i = 0; i < n; i++) { const x0 = m[0] - w * .8 + i * w * 1.6 / n; teeth += `M${f1(x0)},${f1(m[1])} l${f1(w * .16)},${f1(s * .1)} l${f1(w * .16)},${f1(-s * .1)} Z `; }
+        out += `<path d="${teeth}" fill="#fff"/>`;
+      }
+      return `<g class="face">${out}</g>`;
+    }
     switch (F.expr) {
       case 'joy':
         out += eyes.map(e => P(`M${f1(e[0] - s * .1)},${f1(e[1] + s * .03)} Q${f1(e[0])},${f1(e[1] - s * .13)} ${f1(e[0] + s * .1)},${f1(e[1] + s * .03)}`)).join('');
