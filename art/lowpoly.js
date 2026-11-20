@@ -234,7 +234,14 @@
     };
     let meshes = obj.meshes;
     // 'depth': whole parts sorted by their center (characters: arm behind / in front of the body); bias nudges a part
-    if (obj.ordered === 'depth') meshes = meshes.map(m => ({ m, d: project(centerOf(m), cam)[2] + (m.bias || 0) })).sort((a, b) => a.d - b.d).map(x => x.m);
+    // group: a limb chain (upper, lower, foot, joint covers) sorts as one unit (by its nearest part) and draws
+    // in its own order, so a joint cover always sits on top of the connection, whichever way the limb points
+    if (obj.ordered === 'depth') {
+      const items = meshes.map(m => ({ m, d: project(centerOf(m), cam)[2] + (m.bias || 0) })), gk = {};
+      items.forEach(x => { const g = x.m.group; if (g != null) gk[g] = Math.max(gk[g] == null ? -Infinity : gk[g], x.d); });
+      items.forEach(x => { x.k = x.m.group != null ? gk[x.m.group] : x.d; });
+      meshes = items.sort((a, b) => a.k - b.k || (a.m.order || 0) - (b.m.order || 0)).map(x => x.m);
+    }
     meshes.forEach(mesh => {
       const m = mesh.mat, rand = rng(mesh.seed * 7919 + 17), part = [];
       const c = centerOf(mesh);
@@ -600,8 +607,12 @@
       const hip = [sx * bw * S * .28, sy * bl * S * .3, zc - bh * S * .2];
       const p = ph + ((sx < 0) !== (sy < 0) ? Math.PI : 0), a = walk ? .45 * Math.sin(p) : 0, lift = walk ? Math.max(0, Math.cos(p)) * .04 * S : 0;
       const foot = [hip[0], hip[1] - Math.sin(a) * legL, Math.max(legR * .5, hip[2] - Math.cos(a) * (hip[2] - legR * .5)) + lift];
-      meshes.push(limb(hip, foot, legR, legR * .8, mat[sp.legMat] || fur, seed * 79 + 10 + i));
-      meshes.push(icosphere(0, mat[sp.legMat] || fur, seed * 79 + 20 + i).scale(legR * 1.15, legR * 1.5, legR * .7).move(foot[0], foot[1] - legR * .3, foot[2] - legR * .2));
+      // leg, foot, then the hip cover (in fur) on top of the connection
+      const lm = mat[sp.legMat] || fur;
+      [limb(hip, foot, legR, legR * .8, lm, seed * 79 + 10 + i),
+        icosphere(0, lm, seed * 79 + 20 + i).scale(legR * 1.15, legR * 1.5, legR * .7).move(foot[0], foot[1] - legR * .3, foot[2] - legR * .2),
+        icosphere(0, fur, seed * 79 + 24 + i).scale(legR * 1.35).move(hip[0], hip[1], hip[2])]
+        .forEach((m, j) => { m.group = 'leg' + i; m.order = j; meshes.push(m); });
     });
     // head
     const [hw, hl, hh] = sp.head, hc = [0, -sp.headAt[0] * S, zc + sp.headAt[1] * S + (walk ? 0 : Math.sin(t * 1.7) * .008 * S)];
@@ -643,8 +654,11 @@
     }
     const obj = place(meshes, Object.assign({ rot: 0 }, o), bw * S * .6, { ordered: 'depth' });
     const r = o.rot || 0, C = Math.cos(r), Sn = Math.sin(r);
-    obj.face = { c: [obj.x + hc[0] * C - hc[1] * Sn, obj.y + hc[0] * Sn + hc[1] * C, obj.z + hc[2]], r: hw * S, k: [hl / hw, 1, hh / hw],
-      f: [Sn, -C, 0], u: [C, Sn, 0], style: sp.face, roar: o.roar || 0 };
+    const W = p => [obj.x + p[0] * C - p[1] * Sn, obj.y + p[0] * Sn + p[1] * C, obj.z + p[2]];
+    const sr = sp.snout[1] * S;
+    obj.face = { c: W(hc), r: hw * S, k: [hl / hw, 1, hh / hw], f: [Sn, -C, 0], u: [C, Sn, 0], style: sp.face, roar: o.roar || 0,
+      // mouth line in 3D along the underside of the snout: corners at the cheeks, tip at the front
+      mouth: { L: W([-sr * 1.05, s0[1] + sr * .4, s0[2] - sr * .5]), tip: W([0, s1[1] - sr * .25, s1[2] - sr * .5]), R: W([sr * 1.05, s0[1] + sr * .4, s0[2] - sr * .5]), drop: sr * (.3 + 1.1 * (o.roar || 0)) } };
     return obj;
   };
   // small bird: egg body, head, beak, wings, fan tail, thin legs; hops and pecks
@@ -734,16 +748,17 @@
       (poses[o.pose || 'stand'] || poses.stand)(o.t || 0));
     const skin = o.skin || mat.skin, shirt = o.shirt || mat.shirt, pants = o.pants || mat.pants, hair = o.hair || mat.hair;
     const meshes = [], hipZ = .44 * H + P.bob * H;
-    // legs + shoes
+    const chain = (g, parts) => parts.forEach((m, i) => { m.group = g; m.order = i; meshes.push(m); });
+    const ball = (p, r, m, sd) => icosphere(0, m, sd).scale(r).move(p[0], p[1], p[2]); // joint cover
+    // legs + shoes: upper, lower, shoe, then knee and hip covers on top
     [[-1, 'L'], [1, 'R']].forEach(([s, k]) => {
       const hip = [s * .065 * H, 0, hipZ];
       const knee = limbEnd(hip, P['leg' + k], .04, s, .2 * H);
       const ankle = limbEnd(knee, P['leg' + k] - P['knee' + k], .04, s, .2 * H);
-      meshes.push(limb(hip, knee, .05 * H, .042 * H, pants, seed * 31 + s));
-      meshes.push(limb(knee, ankle, .042 * H, .034 * H, pants, seed * 31 + 2 + s));
       const shoe = icosphere(0, mat.shoe, seed * 31 + 4 + s).scale(.05 * H, .08 * H, .036 * H);
       shoe.move(ankle[0], ankle[1] - .028 * H, ankle[2] - .006 * H);
-      meshes.push(shoe);
+      chain('leg' + k, [limb(hip, knee, .05 * H, .042 * H, pants, seed * 31 + s), limb(knee, ankle, .042 * H, .034 * H, pants, seed * 31 + 2 + s), shoe,
+        ball(knee, .045 * H, pants, seed * 31 + 90 + s), ball(hip, .056 * H, pants, seed * 31 + 92 + s)]);
     });
     // body: hips (pants) + shirt + neck
     meshes.push(cylinder(6, 1, pants, seed * 31 + 7).scale(.1 * H, .07 * H, .1 * H).move(0, 0, hipZ - .04 * H));
@@ -754,11 +769,11 @@
       const sh = [s * .125 * H, 0, hipZ + .28 * H];
       const el = limbEnd(sh, P['arm' + k], P['side' + k], s, .15 * H);
       const wr = limbEnd(el, P['arm' + k] + P['elbow' + k], P['side' + k], s, .14 * H);
-      meshes.push(limb(sh, el, .04 * H, .033 * H, shirt, seed * 31 + 10 + s));
-      meshes.push(limb(el, wr, .029 * H, .025 * H, skin, seed * 31 + 12 + s));
       const hand = icosphere(0, skin, seed * 31 + 14 + s).scale(.036 * H);
       const hd = norm(sub(wr, el)); hand.move(wr[0] + hd[0] * .02 * H, wr[1] + hd[1] * .02 * H, wr[2] + hd[2] * .02 * H);
-      meshes.push(hand);
+      // sleeve, forearm, hand, then the cuff (elbow) and shoulder covers on top
+      chain('arm' + k, [limb(sh, el, .04 * H, .033 * H, shirt, seed * 31 + 10 + s), limb(el, wr, .029 * H, .025 * H, skin, seed * 31 + 12 + s), hand,
+        ball(el, .036 * H, shirt, seed * 31 + 94 + s), ball(sh, .05 * H, shirt, seed * 31 + 96 + s)]);
     });
     // head + hair cap (cut higher at the front so the face stays clear)
     const hz = hipZ + .5 * H, hr = .145 * H;
@@ -816,12 +831,27 @@
     if (style === 'monster') {
       out += eyes.map(e => `<ellipse cx="${f1(e[0])}" cy="${f1(e[1])}" rx="${f1(s * .1)}" ry="${f1(s * .085)}" fill="#ffd23f"/><ellipse cx="${f1(e[0])}" cy="${f1(e[1])}" rx="${f1(s * .028)}" ry="${f1(s * .07)}" fill="${E}"/>`).join('');
       out += eyes.map(e => brow(e, -.07, .15)).join('');
-      if (m.vis) {
-        const w = s * .32, h = s * (.1 + .22 * (F.roar || 0)), n = 5;
-        out += `<path d="M${f1(m[0] - w)},${f1(m[1])} Q${f1(m[0])},${f1(m[1] + h * 2)} ${f1(m[0] + w)},${f1(m[1])} Z" fill="${R}"/>`;
+      const Mo = F.mouth;
+      if (Mo) {
+        // a corner shows only when its side of the snout faces the camera (profile → half a mouth)
+        const side = sgn => dot([F.u[0] * sgn, F.u[1] * sgn, 0], toCam) > -.25;
+        const top = [side(-1) ? Mo.L : null, Mo.tip, side(1) ? Mo.R : null].filter(Boolean);
+        const down = (p, k) => [p[0], p[1], p[2] - Mo.drop * k];
+        const kOf = p => (p === Mo.tip ? 1 : .35); // the jaw opens most at the front
+        const P2 = p => { const q = project(p, cam); return f1(q[0]) + ',' + f1(q[1]); };
+        const lower = top.slice().reverse().map(p => down(p, kOf(p)));
+        out += `<polygon points="${top.concat(lower).map(P2).join(' ')}" fill="${R}"/>`;
+        // teeth hang from the upper line
         let teeth = '';
-        for (let i = 0; i < n; i++) { const x0 = m[0] - w * .8 + i * w * 1.6 / n; teeth += `M${f1(x0)},${f1(m[1])} l${f1(w * .16)},${f1(s * .1)} l${f1(w * .16)},${f1(-s * .1)} Z `; }
-        out += `<path d="${teeth}" fill="#fff"/>`;
+        for (let i = 0; i < top.length - 1; i++) {
+          const a = top[i], b = top[i + 1], n = 3;
+          for (let j = 0; j < n; j++) {
+            const t0 = j / n, t1 = (j + 1) / n, at3 = t => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+            const p0 = at3(t0 + .05), p1 = at3(t1 - .05), pm = down(at3((t0 + t1) / 2), .45);
+            teeth += `<polygon points="${P2(p0)} ${P2(p1)} ${P2(pm)}" fill="#fff"/>`;
+          }
+        }
+        out += teeth;
       }
       return `<g class="face">${out}</g>`;
     }
