@@ -55,13 +55,16 @@ header{display:flex;justify-content:center;align-items:center;flex:none;margin-i
 .wchest .chest{width:100%;height:auto;display:block}
 .wchest.idle .chest{animation:chestCall 1.6s ease-in-out infinite}
 .wchest:active .chest{transform:scale(.94)}
-.monster{z-index:4;pointer-events:none;transform-origin:50% 100%}
+.monster{z-index:3;pointer-events:none;transform-origin:50% 100%}
 .monster .ml{transform-origin:50% 0;transform-box:fill-box}
 .monster.mwalk .ml1{animation:legA .38s infinite alternate}.monster.mwalk .ml2{animation:legA .38s infinite alternate-reverse}
 .monster.mwalk .mbody{animation:mstep .19s infinite alternate}
 @keyframes mstep{to{transform:translateY(-3px)}}
 .monster .mpupil{transform:translate(var(--px,0px),var(--py,0px));transition:transform .16s ease-out}
 .monster .mbrow{transform-box:fill-box;transform-origin:50% 50%;transform:translateY(var(--by,0px)) rotate(var(--br,0deg));transition:transform .22s ease-out}
+.monster .marmL{transform-box:fill-box;transform-origin:100% 30%}
+.monster.mwalk .marmL{animation:marm .38s ease-in-out infinite alternate}
+@keyframes marm{from{transform:rotate(-12deg)}to{transform:rotate(14deg)}}
 .monster .mspike{transform-box:fill-box;transform-origin:50% 100%;transition:transform .28s cubic-bezier(.3,1.6,.5,1)}
 .quake{animation:quake .65s}
 @keyframes quake{10%,50%,90%{transform:translate(-9px,3px)}30%,70%{transform:translate(9px,-3px)}100%{transform:none}}
@@ -97,7 +100,8 @@ header{display:flex;justify-content:center;align-items:center;flex:none;margin-i
 .mnum{transition:transform .2s,background .2s,color .2s;position:relative;z-index:1;min-width:44px;height:36px;padding:0 10px;border-radius:18px;background:#fff;color:var(--coral);font-weight:700;font-size:24px;line-height:36px;text-align:center;box-shadow:0 4px 0 rgba(23,111,190,.22)}
 .mnum.pop{animation:mpop .6s}
 @keyframes mpop{40%{transform:scale(1.35)}}
-.hero{z-index:5;pointer-events:none}
+.hero{z-index:4;pointer-events:none}
+.world.front{z-index:5;pointer-events:none}
 .hero .in.show{animation:heroIn .6s both}
 @keyframes heroIn{from{transform:translateY(-140px)}60%{transform:translateY(0) scale(1.06,.92)}to{transform:none}}
 .coin2{z-index:2;animation:bob 1.4s ease-in-out infinite alternate;pointer-events:none}
@@ -169,7 +173,10 @@ header{display:flex;justify-content:center;align-items:center;flex:none;margin-i
 @keyframes arm{to{transform:rotate(-40deg)}}
 .mascot .feather{transform-origin:0 100%;transform-box:fill-box;animation:feather 1.6s infinite alternate}
 @keyframes feather{to{transform:rotate(12deg)}}
-.mascot .leg,.mascot .armS{transform-origin:50% 0;transform-box:fill-box}
+.mascot .leg,.mascot .armS,.mascot .armB{transform-origin:50% 0;transform-box:fill-box;transition:transform .2s}
+.scaredpose .mascot .armS{transform:rotate(-72deg)}.scaredpose .mascot .armB{transform:rotate(-100deg)}
+.scaredpose .mascot .body{animation:tremble .11s infinite alternate}
+@keyframes tremble{from{transform:translateX(-.7px)}to{transform:translateX(.7px)}}
 .mascot.walking .l1{animation:legA .26s infinite alternate}
 .mascot.walking .l2,.mascot.walking .armS{animation:legA .26s infinite alternate-reverse}
 @keyframes legA{from{transform:rotate(28deg)}to{transform:rotate(-28deg)}}
@@ -191,6 +198,11 @@ header{display:flex;justify-content:center;align-items:center;flex:none;margin-i
 @keyframes chestCall{0%,60%,100%{transform:rotate(0)}70%{transform:rotate(-5deg) scale(1.04)}80%{transform:rotate(5deg) scale(1.04)}90%{transform:rotate(-3deg)}}
 .bigchest:active .chest{transform:scale(.94)}
 .bigchest:focus-visible{outline:4px solid #fff;outline-offset:6px;border-radius:20px}
+.coinp{position:fixed;left:0;top:0;pointer-events:none;z-index:1001;will-change:transform,opacity;line-height:0}
+.coins{display:flex;align-items:center;gap:4px;font-weight:700;font-size:18px;color:#9B6A00;background:rgba(255,255,255,.85);border-radius:14px;padding:2px 10px 2px 6px}
+.coins.bump{animation:bump .5s}
+.endcoins{display:flex;align-items:center;gap:8px;font-weight:700;font-size:32px;color:#9B6A00;background:rgba(255,255,255,.9);border-radius:24px;padding:4px 18px 4px 10px}
+.cta.restart{background:linear-gradient(180deg,#fff 0 50%,#EEF3FA 50%);padding:10px 28px}
 .coin{position:fixed;left:0;top:0;border-radius:50%;pointer-events:none;z-index:1001;will-change:transform,opacity;
   background:radial-gradient(circle at 35% 30%,#FFF4B0 0 18%,#FFD84A 19% 55%,#E9A913 56% 100%);box-shadow:inset 0 0 0 3px #C98A00}
 .coin::after{content:"";position:absolute;inset:26%;border-radius:50%;border:2px solid rgba(201,138,0,.55)}
@@ -310,7 +322,8 @@ function coinBurst(el,n=26){
   const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
   n=Math.min(n,Math.max(0,140-liveCoins)); if(reduce)n=Math.min(n,8);
   for(let i=0;i<n;i++){
-    const c=document.createElement('div');c.className='coin';const s=20+Math.random()*16;c.style.width=c.style.height=s+'px';
+    const c=document.createElement('div');c.className='coinp';const s=22+Math.random()*16;c.style.width=c.style.height=s+'px';
+    c.innerHTML=COIN_SVG.replace('width="30" height="30"','width="100%" height="100%"');
     document.body.appendChild(c);liveCoins++;
     const vx=(Math.random()-.5)*Math.min(900,window.innerWidth*1.6), vy=-(520+Math.random()*520), g=1500;
     const T=Math.max(1.1,(-vy+Math.sqrt(vy*vy+2*g*(H-y0+60)))/g), spin=2+Math.floor(Math.random()*4), frames=[];
@@ -362,6 +375,7 @@ const Player=({s=96,talking,happy=true,shadow=true,view='front',walking,cheer})=
   </>}
   {view==='side'&&<>
     <Legs x1={25} x2={30}/>
+    <rect className="armB" x="31" y="43" width="7" height="17" fill="#B8443A"/>
     <polygon points="18,43 22,39 38,39 42,43 43,67 18,67" fill="#FF7B6E"/><polygon points="33,39 38,39 42,43 43,67 33,67" fill="#E25B4E"/>
     <rect className="armS" x="27" y="43" width="7" height="17" fill="#C94A3E"/>
     <polygon points="21,21 39,21 39,29 43,32 39,35 39,41 21,41" fill="#FFDDB8"/>
@@ -416,12 +430,12 @@ const Monster=({w,h})=>(<svg width={w} height={h} viewBox="0 0 80 100" style={{d
     <polygon className="mspike" points="40,13 44,1 48,13" fill="#FFC531"/><polygon className="mspike" points="50,14 59,0 61,18" fill="#E9A913"/>
     <polygon points="10,40 22,18 44,12 44,88 24,88 8,72" fill="#4CB07E"/><polygon points="44,12 66,22 75,46 71,78 50,88 44,88" fill="#3A9467"/>
     <polygon points="28,54 50,50 58,70 47,84 29,80" fill="#9BE08E"/><polygon points="50,50 58,70 47,84" fill="#86CF7A"/>
-    <polygon points="12,58 4,66 8,72 16,64" fill="#3A9467"/>
-    <polygon className="marm" points="64,56 78,62 75,69 61,63" fill="#2F7F57"/>
+    <polygon className="marmL" points="13,56 3,62 6,69 16,63" fill="#3A9467"/>
     <polygon className="mbrow" points="45,24 67,26 65,21 47,19" fill="#256B48"/>
     <circle cx="57" cy="34" r="9" fill="#fff"/><g className="mpupil"><circle cx="60" cy="35" r="4.5" fill="#33373b"/><circle cx="61.5" cy="33.5" r="1.4" fill="#fff"/></g>
-    <g className="mjaw"><polygon points="48,50 76,46 72,61 52,64" fill="#2A1F45"/>
-      <polygon points="52,50 55,56 58,49.5" fill="#fff"/><polygon points="61,48.6 64,55 67,48" fill="#fff"/><polygon points="56,63 59,58 62,62.4" fill="#fff"/></g>
+    <g className="mjaw"><polygon points="49,50 70,47.5 67.5,58.5 52,60.5" fill="#2A1F45"/>
+      <polygon points="53,49.6 55.5,54.5 58,49.3" fill="#fff"/><polygon points="61,48.6 63.5,53.5 66,48.2" fill="#fff"/>
+      <polygon points="55,60.2 57.5,56.4 60,59.9" fill="#fff"/><polygon points="62,59.2 64.2,55.6 66.4,58.8" fill="#fff"/></g>
   </g></svg>);
 
 /* stars at the end: 5 bridges vs mistakes (wrong bridges, joins that don't help, start-overs, being caught) */
@@ -674,7 +688,8 @@ function App(){
         el.style.transform=`translateX(${Math.round(sx+(tx-sx)*pr)}px)${m.retreat?' scaleX(-1)':''}`;
         el.classList.toggle('mwalk',building||m.retreat);
         // the face and the back plates move now and then, at random
-        if(now>(m.nextFace||0)){const r=Math.random;el.style.setProperty('--px',(r()*5.5-3.5).toFixed(1)+'px');el.style.setProperty('--py',(r()*3-1.5).toFixed(1)+'px');
+        if(building&&pr>.7){el.style.setProperty('--px','3.2px');el.style.setProperty('--py','1.2px');el.style.setProperty('--br','-10deg');el.style.setProperty('--by','1px')}
+        else if(now>(m.nextFace||0)){const r=Math.random;el.style.setProperty('--px',(r()*5.5-3.5).toFixed(1)+'px');el.style.setProperty('--py',(r()*3-1.5).toFixed(1)+'px');
           el.style.setProperty('--by',(r()<.4?-(1+r()*2.5):0).toFixed(1)+'px');el.style.setProperty('--br',(r()*14-9).toFixed(0)+'deg');m.nextFace=now+250+r()*1600}
         if(now>(m.nextSpike||0)){const sp=el.querySelectorAll('.mspike');if(sp.length){const k=Math.floor(Math.random()*sp.length);sp[k].style.transform=`rotate(${(Math.random()*24-12).toFixed(0)}deg)`;
           setTimeout(()=>{sp[k].style.transform=''},250+Math.random()*500)}m.nextSpike=now+150+Math.random()*700}}
@@ -688,7 +703,7 @@ function App(){
   const [demo,setDemo]=useState(null);             // teaching hand
   const [measurePop,setMeasurePop]=useState(0);
   const [caption,setCaption]=useState(''),[capN,setCapN]=useState(0),[talking,setTalking]=useState(false);
-  const [progress,setProgress]=useState(0),[bumpN,setBumpN]=useState(0);
+  const [progress,setProgress]=useState(0),[bumpN,setBumpN]=useState(0),[coins,setCoins]=useState(0);
   const [sound,setSound]=useState(true);
   const [lidOpen,setLidOpen]=useState(false),[taps,setTaps]=useState(0),[leaving,setLeaving]=useState(false);
   const [size,setSize]=useState({w:360,h:560});
@@ -993,7 +1008,7 @@ function App(){
       later(alive,((g*geo.U+22)/speed)*1000,async()=>{
         sfx.coin();setCoinTaken(ri);
         await flyCoin(coinRef.current,chestRef.current);
-        setProgress(ri+1);setBumpN(b=>b+1);tone(988,.25,'sine');setTimeout(()=>tone(1319,.3,'sine'),120);
+        setProgress(ri+1);setBumpN(b=>b+1);setCoins(c=>c+10);tone(988,.25,'sine');setTimeout(()=>tone(1319,.3,'sine'),120);
       });
       await sleep(dur*1000+60); if(!alive())return;
       setBuilt(b=>[...b,{i:ri,p}]);setBridge(null);setWalkDur(0);
@@ -1033,6 +1048,12 @@ function App(){
     if(alive()){armNudges(alive);armTeach(6000)}
   }
 
+  function restart(){   // play the whole game again from the first pit
+    hush();clearNudges();clearTimeout(teachTimer.current);setDemo(null);setEndStage(null);setLidOpen(false);setTaps(0);setCoins(0);setBumpN(0);
+    setPlanks([]);R.current.planks=[];setBridge(null);setHero({walk:false,vis:false,cheer:false});scaredRef.current=false;setScared(false);
+    {const m=mon.current;m.active=false;m.retreat=false;m.elapsed=0}
+    start();
+  }
   function tapChest(){
     if(endStageRef.current!=='chest')return;
     audio();hush();setDemo(null);setEndStage('coins');endStageRef.current='coins';setTaps(1);log('chest_tap');
@@ -1070,6 +1091,7 @@ function App(){
     <header>
       <div className="treasure" style={screen==='end'?{visibility:'hidden'}:null}>
         <div className="pbar"><div className="pfill" style={{width:(progress/ROUNDS*100)+'%'}}/></div>
+        <span className={'coins'+(bumpN?' bump':'')} key={'k'+bumpN} dir="ltr"><Coin s={20}/>{coins}</span>
         <Chest key={'c'+bumpN} innerRef={chestRef} bump={bumpN>0}/>
       </div>
     </header>);
@@ -1107,7 +1129,6 @@ function App(){
       <div className="world" style={{left:0,top:0,width:worldW,height:H,transform:`translateX(${-offset}px)`,transition:walkDur?`transform ${walkDur}s linear`:'none'}}>
         {rounds.map((r,i)=><div key={'pit'+i} style={{left:E[i]-14,top:groundY+2,width:r.gap*U+28,height:H-groundY-2}}><Pit type={r.type} w={r.gap*U+28} h={Math.max(10,H-groundY-2)} seed={i+1}/></div>)}
         {cliffs.map((c,k)=><div key={k} style={{left:c.x0,top:groundY,width:c.x1-c.x0,height:groundH}}><Cliff w={c.x1-c.x0} h={groundH} seed={k+1} edgeL={c.l} edgeR={c.r} pal={PALS[k%PALS.length]}/></div>)}
-        {decor.map(d=><div key={d.key} style={{left:d.x,top:groundY-d.h+5}}><Decor kind={d.kind} h={d.h}/></div>)}
         {rounds.length>0&&<button ref={bigChestRef} className={'wchest'+(endStage==='chest'?' idle':'')} aria-label="לפתוח את תיבת האוצר"
           style={{left:E[ROUNDS]+2,top:groundY-Math.round(cs*.8)+6,width:cs}} onPointerDown={e=>e.stopPropagation()} onClick={()=>{if(screen==='end')tapChest()}}>
           <Chest key={'big'+taps} open={lidOpen} bump={taps>0} s={cs}/></button>}
@@ -1123,8 +1144,12 @@ function App(){
       </div>
       <div className="hero" ref={heroRef} style={{left:heroX,top:groundY-hs+2,width:hw,height:hs,opacity:hero.vis?1:0,transition:walkDur?`left ${walkDur}s linear`:'none'}}>
         <div className={'in'+(hero.vis?' show':'')} key={hero.vis?'v':'h'}>
-          <div className={hero.walk||hero.cheer||scared?'':'idle'} style={scared?{transform:'scaleX(-1)'}:null}><Player s={hs} view="side" shadow={false} happy={!scared} walking={hero.walk} cheer={hero.cheer}/></div></div></div>
+          <div className={hero.walk||hero.cheer||scared?(scared?'scaredpose':''):'idle'} style={scared?{transform:'scaleX(-1)'}:null}><Player s={hs} view="side" shadow={false} happy={!scared} walking={hero.walk} cheer={hero.cheer}/></div></div></div>
       {screen==='play'&&<div ref={monRef} className="monster" style={{left:0,top:groundY-mh+8,width:mw,height:mh}}><Monster w={mw} h={mh}/></div>}
+      {/* front layer: the small things on the land, in front of the hero (depth while walking) */}
+      <div className="world front" style={{left:0,top:0,width:worldW,height:H,transform:`translateX(${-offset}px)`,transition:walkDur?`transform ${walkDur}s linear`:'none'}}>
+        {decor.map(d=><div key={d.key} style={{left:d.x,top:groundY-d.h+5}}><Decor kind={d.kind} h={d.h}/></div>)}
+      </div>
       {planks.map((p,k)=>{const c=drag===p.id?{x:p.x,y:p.y}:clampPos(p.x,p.y,total(p)*U);return(
         <div key={p.id} className={'pk'+(drag===p.id?' dragging':'')} style={{left:c.x,top:c.y,zIndex:drag===p.id?40:6+(p.z%30)}}
           onPointerDown={e=>plankDown(e,p)} onPointerMove={plankMove} onPointerUp={plankUp} onPointerCancel={plankUp}>
@@ -1143,8 +1168,11 @@ function App(){
     const stars=starCount(stats.current);
     overlay=(<div className="center endscreen" key="end">
       <div className="stars" dir="ltr">{[0,1,2].map(i=><div key={i} className={'star'+(i<stars?' on':'')} style={{animationDelay:.15+i*.35+'s'}}><StarIcon on={i<stars}/></div>)}</div>
+      <div className="endcoins fall" dir="ltr" style={{animationDelay:'1.1s'}}><Coin s={34}/>{coins}</div>
       <div className="fall" style={{animationDelay:'1.3s'}}><button className="cta arrow" onClick={goNext} disabled={leaving} aria-label="המשך" title="המשך">
         <svg width="40" height="32" viewBox="0 0 40 32" fill="none" stroke="#fff" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"><path d="M34 16H6M16 5L5 16l11 11"/></svg></button></div>
+      <div className="fall" style={{animationDelay:'1.45s'}}><button className="cta restart" onClick={restart} aria-label="להתחיל מחדש" title="להתחיל מחדש">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#176fbe" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v5h5"/></svg></button></div>
     </div>);
   }
 
