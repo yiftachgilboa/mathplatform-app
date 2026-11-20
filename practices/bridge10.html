@@ -60,8 +60,10 @@ header{display:flex;justify-content:center;align-items:center;flex:none;margin-i
 .monster.mwalk .ml1{animation:legA .38s infinite alternate}.monster.mwalk .ml2{animation:legA .38s infinite alternate-reverse}
 .monster.mwalk .mbody{animation:mstep .19s infinite alternate}
 @keyframes mstep{to{transform:translateY(-3px)}}
-.monster .mjaw{transform-box:fill-box;transform-origin:20% 0;animation:mbite 1.3s ease-in-out infinite}
-@keyframes mbite{0%,60%,100%{transform:none}75%{transform:rotate(14deg) translateY(2px)}}
+.monster .mpupil{animation:mlook 2.6s ease-in-out infinite}
+@keyframes mlook{0%,35%{transform:translate(0,0)}45%,62%{transform:translate(-3px,1px)}72%,100%{transform:translate(1.5px,-1px)}}
+.monster .mbrow{transform-box:fill-box;transform-origin:50% 50%;animation:mbrow 1.3s ease-in-out infinite alternate}
+@keyframes mbrow{0%,40%{transform:none}100%{transform:translateY(-2.5px) rotate(-6deg)}}
 .quake{animation:quake .65s}
 @keyframes quake{10%,50%,90%{transform:translate(-9px,3px)}30%,70%{transform:translate(9px,-3px)}100%{transform:none}}
 .endscreen{background:rgba(255,255,255,.55);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);z-index:80}
@@ -395,8 +397,8 @@ const Monster=({w,h})=>(<svg width={w} height={h} viewBox="0 0 80 100" style={{d
     <polygon points="28,54 50,50 58,70 47,84 29,80" fill="#9BE08E"/><polygon points="50,50 58,70 47,84" fill="#86CF7A"/>
     <polygon points="12,58 4,66 8,72 16,64" fill="#3A9467"/>
     <polygon className="marm" points="64,56 78,62 75,69 61,63" fill="#2F7F57"/>
-    <polygon points="45,24 67,26 65,21 47,19" fill="#256B48"/>
-    <circle cx="57" cy="34" r="9" fill="#fff"/><circle cx="60" cy="35" r="4.5" fill="#33373b"/><circle cx="61.5" cy="33.5" r="1.4" fill="#fff"/>
+    <polygon className="mbrow" points="45,24 67,26 65,21 47,19" fill="#256B48"/>
+    <circle cx="57" cy="34" r="9" fill="#fff"/><g className="mpupil"><circle cx="60" cy="35" r="4.5" fill="#33373b"/><circle cx="61.5" cy="33.5" r="1.4" fill="#fff"/></g>
     <g className="mjaw"><polygon points="48,50 76,46 72,61 52,64" fill="#2A1F45"/>
       <polygon points="52,50 55,56 58,49.5" fill="#fff"/><polygon points="61,48.6 64,55 67,48" fill="#fff"/><polygon points="56,63 59,58 62,62.4" fill="#fff"/></g>
   </g></svg>);
@@ -630,6 +632,7 @@ function App(){
   // the monster creeps toward the hero while the child builds. dur = seconds to reach him.
   const monRef=useRef(null), mon=useRef({dur:60,elapsed:0,active:false,retreat:false,nextGrowl:0,nextDur:60}), caughtRef=useRef(null);
   const [quake,setQuake]=useState(false);
+  const [scared,setScared]=useState(false), scaredRef=useRef(false), heroRef=useRef(null);   // the hero looks at the monster when it is close
   useEffect(()=>{let raf,last=performance.now();
     const loop=now=>{const dt=Math.min(.1,(now-last)/1000);last=now;const m=mon.current,g=R.current.geo,el=monRef.current;
       if(g&&el){
@@ -638,7 +641,8 @@ function App(){
         else if(building){m.elapsed+=dt;
           if(now>m.nextGrowl){sfx.growl(.5+.6*Math.min(1,m.elapsed/m.dur));m.nextGrowl=now+5000+Math.random()*4000}
           if(m.elapsed>=m.dur){m.active=false;if(caughtRef.current)caughtRef.current()}}
-        const pr=Math.min(1,m.elapsed/m.dur), sx=-g.mw*.62, tx=g.heroX-g.mw*.42;
+        const pr=Math.min(1,m.elapsed/m.dur), sx=-g.mw-14, tx=g.heroX-g.mw*.93+6;   // enters from outside; its front edge meets the hero
+        const near=building&&pr>.7; if(near!==scaredRef.current){scaredRef.current=near;setScared(near)}
         el.style.transform=`translateX(${Math.round(sx+(tx-sx)*pr)}px)${m.retreat?' scaleX(-1)':''}`;
         el.classList.toggle('mwalk',building||m.retreat)}
       raf=requestAnimationFrame(loop)};
@@ -918,6 +922,11 @@ function App(){
     const alive=newFlow(), ri=R.current.ri, r=R.current.round;
     clearNudges();hush();clearTimeout(teachTimer.current);setDemo(null);dragRef.current=null;setDrag(null);setHot(false);
     setPhase('busy');R.current.phase='busy';setQuake(true);setTimeout(()=>setQuake(false),700);sfx.roar();
+    {const hr=heroRef.current&&heroRef.current.getBoundingClientRect();
+      if(hr){const cx=hr.left+hr.width/2, cy=hr.top+hr.height*.55, cols=['#FF7B6E','#E25B4E','#FFDDB8','#FFD23F','#B8443A','#3B3360'];
+        burst(cx,cy,cols,26,1.4);burst(cx,cy-hr.height*.25,cols,16,1.1);sfx.splash()}
+      scaredRef.current=false;setScared(false);setHero(h=>({...h,vis:false}));
+      later(alive,1300,()=>setHero(h=>({...h,vis:true})))}
     stats.current[ri].caught++;log('caught',{round:ri,secs:Math.round(mon.current.dur)});
     r.planks=makePlanks(ri,r.gap);
     later(alive,650,()=>{mon.current.retreat=true;const laid=layout(r.planks);R.current.planks=laid;setPlanks(laid);setFallN(n=>n+1);setHl([]);setFx({})});
@@ -1075,9 +1084,9 @@ function App(){
         {showMeasure&&<div className={'measure'+(hot?' hot':'')} style={{left:E[ri],top:groundY+3-18,width:gap*U,height:36}}>
           <span key={measurePop} className="mnum pop">{gap}</span></div>}
       </div>
-      <div className="hero" style={{left:heroX,top:groundY-hs+2,width:hw,height:hs,opacity:hero.vis?1:0,transition:walkDur?`left ${walkDur}s linear`:'none'}}>
+      <div className="hero" ref={heroRef} style={{left:heroX,top:groundY-hs+2,width:hw,height:hs,opacity:hero.vis?1:0,transition:walkDur?`left ${walkDur}s linear`:'none'}}>
         <div className={'in'+(hero.vis?' show':'')} key={hero.vis?'v':'h'}>
-          <div className={hero.walk||hero.cheer?'':'idle'}><Player s={hs} view="side" shadow={false} happy walking={hero.walk} cheer={hero.cheer}/></div></div></div>
+          <div className={hero.walk||hero.cheer||scared?'':'idle'} style={scared?{transform:'scaleX(-1)'}:null}><Player s={hs} view="side" shadow={false} happy={!scared} walking={hero.walk} cheer={hero.cheer}/></div></div></div>
       {screen==='play'&&<div ref={monRef} className="monster" style={{left:0,top:groundY-mh+8,width:mw,height:mh}}><Monster w={mw} h={mh}/></div>}
       {planks.map((p,k)=>{const c=drag===p.id?{x:p.x,y:p.y}:clampPos(p.x,p.y,total(p)*U);return(
         <div key={p.id} className={'pk'+(drag===p.id?' dragging':'')} style={{left:c.x,top:c.y,zIndex:drag===p.id?40:5+(p.z%30)}}
