@@ -1515,7 +1515,7 @@
     },
   });
 
-  // ---------- side-view game world (bridge game) — test, waiting for approval ----------
+  // ---------- side-view game world (bridge game) — approved 21.11.2026 ----------
   Object.assign(charMat, {
     fire: M(['#9c2a14', '#e0541f', '#ff8a2e', '#ffd23f'], .06), ember: M(['#5a1a10', '#8e2a18', '#c2402a'], .05),
     swamp: M(['#2f4a1c', '#4d6e2a', '#7a9a3e', '#a8c46a'], .07),
