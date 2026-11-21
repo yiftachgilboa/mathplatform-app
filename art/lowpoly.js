@@ -594,6 +594,9 @@
   // sizes are × S (body length). forward = −y, like the kid.
   const SPECIES = {
     bear:    { body: [.52, .8, .5], leg: [.3, .085], head: [.3, .27, .26], headAt: [.45, .3], snout: [.15, .09], ears: 'round', tail: 'stub', fur: 'bearFur', light: 'bearLight', face: 'animal' },
+    // big-head test: a small body, a huge head with a front face (eyes, brows, expressions), signature parts kept big
+    foxBig:  { body: [.26, .4, .26], leg: [.17, .048], head: [.4, .36, .36], headAt: [.22, .36], snout: [.14, .075], ears: 'pointed', earK: 1.9, tail: 'bushy', tailK: 1.25, tailUp: true,
+               fur: 'foxFur', light: 'white', legMat: 'dark', face: 'buddy', eye: [.9, .36, .2], eyeK: 1.25, mouthUp: -.55, headPatch: { dir: [0, -.5, -.86], th: .5 }, browColor: '#3a1a0c' },
     fox:     { body: [.3, .78, .3], leg: [.34, .042], head: [.2, .22, .18], headAt: [.46, .26], snout: [.22, .065], ears: 'pointed', tail: 'bushy', fur: 'foxFur', light: 'white', legMat: 'dark', face: 'animal' },
     rabbit:  { body: [.44, .6, .44], leg: [.12, .07], head: [.25, .24, .23], headAt: [.33, .3], snout: [.07, .075], ears: 'long', tail: 'puff', fur: 'rabbitFur', light: 'white', face: 'animal' },
     monster: { body: [.62, .9, .55], leg: [.32, .11], head: [.36, .34, .3], headAt: [.5, .28], snout: [.12, .15], ears: 'horns', tail: 'long', fur: 'monster', light: 'monsterBelly', plates: true, face: 'monster' },
@@ -623,6 +626,7 @@
     // head
     const [hw, hl, hh] = sp.head, hc = [0, -sp.headAt[0] * S, zc + sp.headAt[1] * S + (walk ? 0 : Math.sin(t * 1.7) * .008 * S)];
     const head = icosphere(d, fur, seed * 79 + 30).jitter(.05, rand).scale(hw * S, hl * S, hh * S).move(hc[0], hc[1], hc[2]);
+    if (sp.headPatch) head.patch = { mat: light, dir: sp.headPatch.dir.slice(), th: sp.headPatch.th }; // light cheeks / muzzle
     meshes.push(head, limb([0, -bl * S * .3, zc + bh * S * .1], hc, hw * S * .55, hw * S * .5, fur, seed * 79 + 31));
     // snout + nose
     const s0 = [hc[0], hc[1] - hl * S * .55, hc[2] - hh * S * .3], s1 = [s0[0], s0[1] - sp.snout[0] * S, s0[2] - sp.snout[0] * S * .15];
@@ -631,7 +635,8 @@
     // ears / horns
     [-1, 1].forEach((sx, i) => {
       if (sp.ears === 'round') meshes.push(icosphere(0, fur, seed * 79 + 40 + i).scale(.07 * S, .035 * S, .07 * S).move(sx * hw * S * .62, hc[1] + hl * S * .1, hc[2] + hh * S * .78));
-      if (sp.ears === 'pointed') meshes.push(cone(4, fur, seed * 79 + 40 + i, rand, .5).scale(.06 * S, .03 * S, .14 * S).move(sx * hw * S * .5, hc[1] + hl * S * .05, hc[2] + hh * S * .55));
+      const eK = sp.earK || 1;
+      if (sp.ears === 'pointed') meshes.push(cone(4, fur, seed * 79 + 40 + i, rand, .5).scale(.06 * S * eK, .03 * S * eK, .14 * S * eK).move(sx * hw * S * .5, hc[1] + hl * S * .05, hc[2] + hh * S * .55));
       if (sp.ears === 'long') {
         const b = [sx * hw * S * .35, hc[1] + .02 * S, hc[2] + hh * S * .7], tp = [b[0] + sx * .07 * S, b[1] + .06 * S, b[2] + .4 * S];
         meshes.push(limb(b, tp, .045 * S, .02 * S, fur, seed * 79 + 40 + i, 5));
@@ -645,8 +650,11 @@
     if (sp.tail === 'stub') meshes.push(icosphere(0, fur, seed * 79 + 50).scale(.07 * S).move(tb[0] + wag * .3, tb[1], tb[2]));
     if (sp.tail === 'puff') meshes.push(icosphere(0, mat.white, seed * 79 + 50).scale(.085 * S).move(tb[0] + wag * .3, tb[1], tb[2]));
     if (sp.tail === 'bushy') {
-      const tail = icosphere(1, fur, seed * 79 + 50).jitter(.06, rand).scale(.09 * S, .25 * S, .09 * S).move(wag, tb[1] + .2 * S, tb[2] + .05 * S);
-      tail.patch = { mat: light, dir: [0, 1, 0], th: .6 }; meshes.push(tail);
+      const tK = sp.tailK || 1;
+      const tail = sp.tailUp // standing up behind the head, so it shows from the front too
+        ? icosphere(1, fur, seed * 79 + 50).jitter(.06, rand).scale(.11 * S * tK, .12 * S * tK, .22 * S * tK).map(p => [p[0] + p[2] * .45, p[1], p[2]]).move(wag + .2 * S * tK, tb[1] + .02 * S, tb[2] + .22 * S * tK)
+        : icosphere(1, fur, seed * 79 + 50).jitter(.06, rand).scale(.09 * S * tK, .25 * S * tK, .09 * S * tK).move(wag, tb[1] + .2 * S * tK, tb[2] + .05 * S * tK);
+      tail.patch = { mat: light, dir: sp.tailUp ? [0, .25, 1] : [0, 1, 0], th: .6 }; meshes.push(tail);
     }
     if (sp.tail === 'long') {
       const mid = [wag, tb[1] + .28 * S, tb[2] - .12 * S], tip = [wag * 2, tb[1] + .5 * S, tb[2] + .02 * S];
@@ -663,6 +671,7 @@
     const W = p => [obj.x + p[0] * C - p[1] * Sn, obj.y + p[0] * Sn + p[1] * C, obj.z + p[2]];
     const sr = sp.snout[1] * S;
     obj.face = { c: W(hc), r: hw * S, k: [hl / hw, 1, hh / hw], f: [Sn, -C, 0], u: [C, Sn, 0], style: sp.face, roar: o.roar || 0,
+      eye: sp.eye, eyeK: sp.eyeK, mouthUp: sp.mouthUp, browColor: sp.browColor, expr: o.expression || 'happy',
       // mouth line in 3D along the underside of the snout: corners at the cheeks, tip at the front
       mouth: { L: W([-sr * 1.05, s0[1] + sr * .4, s0[2] - sr * .5]), tip: W([0, s1[1] - sr * .25, s1[2] - sr * .5]), R: W([sr * 1.05, s0[1] + sr * .4, s0[2] - sr * .5]), drop: sr * (.3 + 1.1 * (o.roar || 0)) } };
     return obj;
@@ -671,25 +680,33 @@
   make.bird = function (o) {
     const S = o.size || 80, seed = o.seed || 1, t = o.t || 0, rand = rng(seed * 83), d = clampD(o.detail == null ? 1 : o.detail);
     const fur = o.mat || mat.birdBlue, hop = Math.max(0, Math.sin(t * 5)) * (Math.sin(t * 1.3) > .3 ? .12 * S : 0), meshes = [];
-    const zc = S * .42 + hop, peck = Math.max(0, Math.sin(t * 1.3 + 2)) * .5;
-    const body = icosphere(d, fur, seed * 83 + 1).jitter(.05, rand).scale(S * .22, S * .3, S * .23).move(0, 0, zc);
+    // o.big: big-head test — small body, huge head with a front face; beak, wings, fan tail and thin legs stay
+    const B = o.big
+      ? { zc: .3, body: [.17, .2, .17], hc: [-.06, .33], hr: [.3, .28, .28], peck: .05, beak: [.22, .46, .1], wing: [.05, .17, .11, .17], hipZ: .13, tail: [.14, .34, .3, .09] }
+      : { zc: .42, body: [.22, .3, .23], hc: [-.22, .22], hr: [.15, .15, .14], peck: .12, beak: [.11, .27, .05], wing: [.05, .24, .13, .2], hipZ: .18, tail: [.24, .5, .14, .07] };
+    const zc = S * B.zc + hop, peck = Math.max(0, Math.sin(t * 1.3 + 2)) * .5;
+    const body = icosphere(d, fur, seed * 83 + 1).jitter(.05, rand).scale(S * B.body[0], S * B.body[1], S * B.body[2]).move(0, 0, zc);
     body.patch = { mat: o.belly || mat.birdBelly, dir: [0, -.6, -.8], th: .35 };
-    const hc = [0, -S * .22, zc + S * .22 - peck * S * .12];
-    const head = icosphere(d, fur, seed * 83 + 2).jitter(.04, rand).scale(S * .15, S * .15, S * .14).move(hc[0], hc[1], hc[2]);
-    const beak = limb([0, hc[1] - S * .11, hc[2] - S * .02], [0, hc[1] - S * .27, hc[2] - S * .05 - peck * S * .05], S * .05, S * .005, mat.beak, seed * 83 + 3, 4);
+    const hc = [0, S * B.hc[0], zc + S * B.hc[1] - peck * S * B.peck];
+    const head = icosphere(d, fur, seed * 83 + 2).jitter(.04, rand).scale(S * B.hr[0], S * B.hr[1], S * B.hr[2]).move(hc[0], hc[1], hc[2]);
+    if (o.big) head.patch = { mat: o.belly || mat.birdBelly, dir: [0, -.45, -.9], th: .55 };
+    const beak = limb([0, hc[1] - S * B.beak[0], hc[2] - S * .03], [0, hc[1] - S * B.beak[1], hc[2] - S * .06 - peck * S * .05], S * B.beak[2], S * .005, mat.beak, seed * 83 + 3, 4);
     beak.bias = S * .1;
     meshes.push(body, head, beak);
     [-1, 1].forEach((sx, i) => {
-      const w = icosphere(0, fur, seed * 83 + 4 + i).scale(S * .05, S * .24, S * .13).move(sx * S * .2, S * .04, zc + S * .03);
+      const w = icosphere(0, fur, seed * 83 + 4 + i).scale(S * B.wing[0], S * B.wing[1], S * B.wing[2]).move(sx * S * B.wing[3], S * .04, zc + S * .03);
       w.bias = S * .02; meshes.push(w);
-      const hip = [sx * S * .07, S * .02, zc - S * .18], ft = [sx * S * .07, -S * .02, Math.max(0, hop - S * .0) + S * .015];
+      const hip = [sx * S * .07, S * .02, zc - S * B.hipZ], ft = [sx * S * .07, -S * .02, Math.max(0, hop - S * .0) + S * .015];
       meshes.push(limb(hip, ft, S * .016, S * .012, mat.beak, seed * 83 + 6 + i, 4));
       meshes.push(limb(ft, [ft[0], ft[1] - S * .07, S * .008], S * .012, S * .006, mat.beak, seed * 83 + 8 + i, 4));
     });
-    [-1, 0, 1].forEach((k, i) => meshes.push(limb([0, S * .24, zc + S * .02], [k * S * .07, S * .5, zc + S * .14], S * .04, S * .012, fur, seed * 83 + 10 + i, 4)));
+    [-1, 0, 1].forEach((k, i) => meshes.push(limb([0, S * B.tail[0], zc + S * .02], [k * S * B.tail[3], S * B.tail[1], zc + S * B.tail[2]], S * .04, S * .012, fur, seed * 83 + 10 + i, 4)));
     const obj = place(meshes, Object.assign({ rot: 0 }, o), S * .2, { ordered: 'depth' });
     const r = o.rot || 0, C = Math.cos(r), Sn = Math.sin(r);
-    obj.face = { c: [obj.x + hc[0] * C - hc[1] * Sn, obj.y + hc[0] * Sn + hc[1] * C, obj.z + hc[2]], r: S * .15, k: [1, 1, .93], f: [Sn, -C, 0], u: [C, Sn, 0], style: 'animal' };
+    obj.face = o.big
+      ? { c: [obj.x + hc[0] * C - hc[1] * Sn, obj.y + hc[0] * Sn + hc[1] * C, obj.z + hc[2]], r: S * B.hr[0], k: [B.hr[1] / B.hr[0], 1, B.hr[2] / B.hr[0]], f: [Sn, -C, 0], u: [C, Sn, 0],
+          style: 'buddy', eye: [.88, .4, .2], eyeK: 1.2, noMouth: true, browColor: '#0f2a52', expr: o.expression || 'happy' } // the beak is the mouth
+      : { c: [obj.x + hc[0] * C - hc[1] * Sn, obj.y + hc[0] * Sn + hc[1] * C, obj.z + hc[2]], r: S * .15, k: [1, 1, .93], f: [Sn, -C, 0], u: [C, Sn, 0], style: 'animal' };
     return obj;
   };
   // little alien: egg body, big head with one eye, antennae; floats
@@ -926,8 +943,8 @@
       q.vis = dot(v, toCam) > .2; return q;
     };
     const s = F.r * cam.s, E = '#2b2f33', R = '#8a2f35';
-    const EYE = { kid: [.93, .36, .06], buddy: [.92, .33, .2], animal: [.62, .78, .22], monster: [.85, .45, .22], cyclops: [.97, 0, .12] }[style];
-    const both = [at(EYE[0], -EYE[1], EYE[2]), at(EYE[0], EYE[1], EYE[2])], m = at(.95, 0, style === 'monster' ? -.3 : style === 'cyclops' ? -.42 : style === 'buddy' ? -.12 : -.36);
+    const EYE = F.eye || { kid: [.93, .36, .06], buddy: [.92, .33, .2], animal: [.62, .78, .22], monster: [.85, .45, .22], cyclops: [.97, 0, .12] }[style];
+    const both = [at(EYE[0], -EYE[1], EYE[2]), at(EYE[0], EYE[1], EYE[2])], m = at(.95, 0, F.mouthUp != null ? F.mouthUp : style === 'monster' ? -.3 : style === 'cyclops' ? -.42 : style === 'buddy' ? -.12 : -.36);
     const eyes = both.filter(e => e.vis);
     both.forEach((e, i) => { e.inner = Math.sign(both[1 - i][0] - e[0]) || 1; });
     const f1 = n => n.toFixed(1);
