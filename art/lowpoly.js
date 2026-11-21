@@ -784,14 +784,16 @@
       const wr = limbEnd(el, P['arm' + k] + P['elbow' + k], P['side' + k] + (P['elbowSide' + k] || 0), s, .14 * H);
       const hand = icosphere(0, skin, seed * 31 + 14 + s).scale(.036 * H);
       const hd = norm(sub(wr, el)); hand.move(wr[0] + hd[0] * .02 * H, wr[1] + hd[1] * .02 * H, wr[2] + hd[2] * .02 * H);
-      // sleeve, forearm, hand, then the cuff (elbow) and shoulder covers on top
-      const parts = [limb(sh, el, .04 * H, .033 * H, shirt, seed * 31 + 10 + s), limb(el, wr, .029 * H, .025 * H, skin, seed * 31 + 12 + s)];
+      // sleeve, forearm, elbow and shoulder covers; then a held object (in front of the elbow, since the elbow folds
+      // forward); the hand last, so it grips the object
+      const parts = [limb(sh, el, .04 * H, .033 * H, shirt, seed * 31 + 10 + s), limb(el, wr, .029 * H, .025 * H, skin, seed * 31 + 12 + s),
+        ball(el, .036 * H, shirt, seed * 31 + 94 + s), ball(sh, .05 * H, shirt, seed * 31 + 96 + s)];
       if (o.staff && k === 'R') { // staff held in the right hand, gem on top; the hand is drawn over it
         const top = [wr[0], wr[1] - .03 * H, Math.max(wr[2] + .45 * H, .95 * H)];
         parts.push(limb([wr[0], wr[1] - .03 * H, 0], top, .02 * H, .016 * H, mat.wood, seed * 31 + 98, 5));
         parts.push(icosphere(0, mat.gemBlue, seed * 31 + 99).scale(.045 * H, .045 * H, .06 * H).move(top[0], top[1], top[2] + .04 * H));
       }
-      parts.push(hand, ball(el, .036 * H, shirt, seed * 31 + 94 + s), ball(sh, .05 * H, shirt, seed * 31 + 96 + s));
+      parts.push(hand);
       chain('arm' + k, parts);
     });
     // head + hair cap (cut higher at the front so the face stays clear)
@@ -860,13 +862,15 @@
       const el = limbEnd(sh, P['arm' + k], P['side' + k] + .35, s, .1 * H);
       const wr = limbEnd(el, P['arm' + k] + P['elbow' + k], P['side' + k] + .35 + (P['elbowSide' + k] || 0), s, .09 * H);
       const hd = norm(sub(wr, el)), hand = icosphere(0, handM, seed * 37 + 14 + s).scale(.055 * H).move(wr[0] + hd[0] * .02 * H, wr[1] + hd[1] * .02 * H, wr[2] + hd[2] * .02 * H);
-      const parts = [limb(sh, el, .05 * H, .045 * H, sleeveM, seed * 37 + 20 + s), limb(el, wr, .04 * H, .036 * H, outfit === 'kid' ? skin : sleeveM, seed * 37 + 22 + s)];
+      // sleeve, forearm, covers; then a held object over the elbow (it folds forward); the hand last, gripping it
+      const parts = [limb(sh, el, .05 * H, .045 * H, sleeveM, seed * 37 + 20 + s), limb(el, wr, .04 * H, .036 * H, outfit === 'kid' ? skin : sleeveM, seed * 37 + 22 + s),
+        ball(el, .047 * H, sleeveM, seed * 37 + 94 + s), ball(sh, .065 * H, sleeveM, seed * 37 + 96 + s)];
       if (outfit === 'wizard' && k === 'R') { // staff in the right hand, gem on top
         const top = [wr[0], wr[1] - .03 * H, Math.max(wr[2] + .5 * H, 1.1 * H)];
         parts.push(limb([wr[0], wr[1] - .03 * H, 0], top, .025 * H, .02 * H, mat.wood, seed * 37 + 40, 5));
         parts.push(icosphere(0, mat.gemBlue, seed * 37 + 41).scale(.06 * H, .06 * H, .08 * H).move(top[0], top[1], top[2] + .05 * H));
       }
-      parts.push(hand, ball(el, .047 * H, sleeveM, seed * 37 + 94 + s), ball(sh, .065 * H, sleeveM, seed * 37 + 96 + s));
+      parts.push(hand);
       chain('arm' + k, parts);
     });
     if (!outfit) [-1, 0, 1].forEach((k, i) => { // tuft: three little leaves
