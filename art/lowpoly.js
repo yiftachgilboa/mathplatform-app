@@ -725,8 +725,8 @@
     const sr = sp.snout[1] * S;
     obj.face = { c: W(hc), r: hw * S, k: [hl / hw, 1, hh / hw], f: [Sn, -C, 0], u: [C, Sn, 0], style: sp.face, roar: o.roar || 0,
       eye: sp.eye, eyeK: sp.eyeK, mouthUp: sp.mouthUp, browColor: sp.browColor, expr: o.expression || 'happy', noMouth: !!sp.noMouth, noCheeks: !!sp.noMouth,
-      // mouth line in 3D along the underside of the snout: corners at the cheeks, tip at the front
-      mouth: { L: W([-sr * 1.05, s0[1] + sr * .4, s0[2] - sr * .5]), tip: W([0, s1[1] - sr * .25, s1[2] - sr * .5]), R: W([sr * 1.05, s0[1] + sr * .4, s0[2] - sr * .5]), drop: sr * (.3 + 1.1 * (o.roar || 0)) } };
+      // mouth line in 3D along the lower half of the snout: corners where the snout leaves the head, tip just behind the nose
+      mouth: { L: W([-sr * .9, s0[1] - sr * .15, s0[2] - sr * .3]), tip: W([0, s1[1] + sr * .1, s1[2] - sr * .3]), R: W([sr * .9, s0[1] - sr * .15, s0[2] - sr * .3]), drop: sr * (.25 + 1.1 * (o.roar || 0)) } };
     return obj;
   };
   // small bird: egg body, head, beak, wings, fan tail, thin legs; hops and pecks
@@ -1589,7 +1589,32 @@
     },
   };
 
-  const LP = { flat, rng, camera, poses, face, project, facets, polys, draw, bounds, hull, castShadow, outline, material, mat, themes, useTheme, make, Mesh, icosphere, cone, cylinder, limb, ring, stitch, fan, hex2rgb, rgb2hex };
+  // ---------- backdrops (whole scenes) ----------
+  const scenes = {
+    // meadow backdrop (approved in the bridge game, 21.11.2026): sky and sun glow from the theme, a far snowy ridge in fog,
+    // two rows of green hills, drifting clouds, a few low-detail trees. Markup for viewBox 0 0 1200 800 (use preserveAspectRatio
+    // "xMidYMid slice"). Clouds come in <g class="cloud"> with a duration and delay: animate .cloud in the page to drift them.
+    meadow(o) {
+      o = o || {}; const T = theme, W = 1200, id = o.id || 'mdw';
+      let svg = `<defs><linearGradient id="${id}sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${T.sky[0]}"/><stop offset=".55" stop-color="${T.sky[1]}"/><stop offset="1" stop-color="${T.sky[2]}"/></linearGradient>
+        <radialGradient id="${id}glow"><stop offset="0" stop-color="${T.glow}" stop-opacity=".9"/><stop offset=".4" stop-color="${T.glow}" stop-opacity=".4"/><stop offset="1" stop-color="${T.glow}" stop-opacity="0"/></radialGradient></defs>
+        <rect width="${W}" height="800" fill="url(#${id}sky)"/><circle cx="210" cy="140" r="220" fill="url(#${id}glow)"/><circle cx="210" cy="140" r="54" fill="${T.sun}"/>`;
+      [[120, 130, 150, 140], [560, 80, 110, 180], [860, 210, 90, 110], [1060, 150, 120, 160]].forEach(([x, y, s, dur], i) => {
+        svg += `<g class="cloud" style="animation-duration:${dur}s;animation-delay:${-(x / 1400 * dur).toFixed(1)}s">${draw(make.cloud({ size: s, seed: i + 3, detail: 0 }), camera({ a: .16, ox: 0, oy: y }))}</g>`;
+      });
+      svg += draw(make.ridge({ width: 1700, h: 230, count: 5, seed: 5, fog: .55, snow: .74 }), camera({ a: .16, ox: W / 2, oy: 540 }));
+      svg += draw(make.ridge({ width: 1800, h: 190, count: 6, seed: 13, fog: .3, snow: false, mat: mat.leaf }), camera({ a: .16, ox: W / 2, oy: 610 }));
+      svg += draw(make.ridge({ width: 1900, h: 120, count: 8, seed: 21, fog: .1, snow: false, mat: mat.grass }), camera({ a: .16, ox: W / 2, oy: 650 }));
+      svg += `<rect y="630" width="${W}" height="170" fill="${rgb2hex(mat.grass.stops[1])}"/>`;
+      [[70, 640, 90, 1], [190, 625, 70, 2], [1110, 640, 95, 3], [1000, 628, 66, 4], [300, 648, 60, 5], [900, 646, 64, 6]].forEach(([x, y, s, k]) => {
+        const t = k % 3 ? make.tree({ size: s, seed: k * 7, kind: 'round', detail: 0, fog: .15 }) : make.pine({ size: s * 1.1, seed: k * 7, fog: .15 });
+        svg += draw(t, camera({ a: .3, ox: x, oy: y }));
+      });
+      return svg;
+    },
+  };
+
+  const LP = { flat, scenes, rng, camera, poses, face, project, facets, polys, draw, bounds, hull, castShadow, outline, material, mat, themes, useTheme, make, Mesh, icosphere, cone, cylinder, limb, ring, stitch, fan, hex2rgb, rgb2hex };
   root.LP = LP;
   useTheme('day');
 })(typeof window !== 'undefined' ? window : globalThis);
