@@ -418,8 +418,15 @@
       return place([m], Object.assign({ rot: rand() * 6.28 }, o), S * .45);
     },
     // flat-bottomed puffy cloud
+    // o.kind: 'round' (one big puff with two small ones, round underneath), 'long' (a low row of small puffs),
+    // 'tall' (a puff stacked on a puff). No kind = the original flat-bottomed cloud.
     cloud(o) {
-      const S = o.size || 160, rand = rng(o.seed || 1), n = 3 + Math.floor(rand() * 2), meshes = [];
+      const S = o.size || 160, rand = rng(o.seed || 1), meshes = [], d = clampD(o.detail || 0), sd = (o.seed || 1) * 13;
+      const puff = (i, r, x, y, z, fl) => { const m = icosphere(d, mat.cloud, sd + i).jitter(.1, rand).floor(fl).scale(r).move(x, y, z); meshes.push(m); };
+      if (o.kind === 'round') { puff(0, S * .3, 0, 0, S * .05, -.75); puff(1, S * .19, -S * .3, S * .03, -S * .02, -.7); puff(2, S * .17, S * .29, -S * .02, -S * .03, -.7); return place(meshes, o, 0); }
+      if (o.kind === 'long') { const k = 5 + Math.floor(rand() * 2); for (let i = 0; i < k; i++) { const t = i / (k - 1) - .5; puff(i, S * (.11 + (1 - Math.abs(t) * 2) * .07 + rand() * .03), t * S * 1.1, (rand() - .5) * S * .08, (rand() - .5) * S * .03, -.65); } meshes.forEach(m => m.scale(1, 1, .8)); return place(meshes, o, 0); }
+      if (o.kind === 'tall') { puff(0, S * .24, 0, 0, 0, -.75); puff(1, S * .18, S * .08, S * .02, S * .26, -.6); puff(2, S * .14, -S * .22, -S * .02, -S * .05, -.7); return place(meshes, o, 0); }
+      const n = 3 + Math.floor(rand() * 2);
       for (let i = 0; i < n; i++) {
         const k = 1 - Math.abs(i - (n - 1) / 2) / n;
         const m = icosphere(clampD(o.detail || 0), mat.cloud, (o.seed || 1) * 13 + i).jitter(.12, rand).floor(-.35);
@@ -1604,23 +1611,25 @@
 
   // ---------- backdrops (whole scenes) ----------
   const scenes = {
-    // meadow backdrop (approved in the bridge game, 21.11.2026): sky and sun glow from the theme, a far snowy ridge in fog,
-    // two rows of green hills, drifting clouds, a few low-detail trees. Markup for viewBox 0 0 1200 800 (use preserveAspectRatio
+    // meadow backdrop (approved in the bridge game, 21.11.2026): sky and sun glow from the theme, a far floating island
+    // with a snowy ridge in fog and two rows of green hills on it, drifting clouds of three kinds, a few low-detail trees. Markup for viewBox 0 0 1200 800 (use preserveAspectRatio
     // "xMidYMid slice"). Clouds come in <g class="cloud"> with a duration and delay: animate .cloud in the page to drift them.
     meadow(o) {
       o = o || {}; const T = theme, W = 1200, id = o.id || 'mdw';
       let svg = `<defs><linearGradient id="${id}sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${T.sky[0]}"/><stop offset=".55" stop-color="${T.sky[1]}"/><stop offset="1" stop-color="${T.sky[2]}"/></linearGradient>
         <radialGradient id="${id}glow"><stop offset="0" stop-color="${T.glow}" stop-opacity=".9"/><stop offset=".4" stop-color="${T.glow}" stop-opacity=".4"/><stop offset="1" stop-color="${T.glow}" stop-opacity="0"/></radialGradient></defs>
         <rect width="${W}" height="800" fill="url(#${id}sky)"/><circle cx="210" cy="140" r="200" fill="url(#${id}glow)"/><polygon points="${Array.from({ length: 9 }, (_, i) => { const t = i / 9 * 6.283 + .2; return (210 + Math.cos(t) * 38).toFixed(1) + ',' + (140 + Math.sin(t) * 38).toFixed(1); }).join(' ')}" fill="${T.sun}"/>`; // a faceted sun, not a perfect disc
-      [[120, 130, 150, 140], [560, 80, 110, 180], [860, 210, 90, 110], [1060, 150, 120, 160]].forEach(([x, y, s, dur], i) => {
-        svg += `<g class="cloud" style="animation-duration:${dur}s;animation-delay:${-(x / 1400 * dur).toFixed(1)}s">${draw(make.cloud({ size: s, seed: i + 3, detail: 0 }), camera({ a: .16, ox: 0, oy: y }))}</g>`;
+      // clouds: three kinds, never two the same in a row
+      [[120, 130, 170, 140, 'long'], [560, 80, 120, 180, 'round'], [860, 210, 100, 110, 'tall'], [1060, 150, 150, 160, 'long']].forEach(([x, y, s, dur, kind], i) => {
+        svg += `<g class="cloud" style="animation-duration:${dur}s;animation-delay:${-(x / 1400 * dur).toFixed(1)}s">${draw(make.cloud({ size: s, seed: i + 3, detail: 1, kind }), camera({ a: .16, ox: 0, oy: y }))}</g>`;
       });
-      svg += draw(make.ridge({ width: 1700, h: 230, count: 5, seed: 5, fog: .55, snow: .74 }), camera({ a: .16, ox: W / 2, oy: 540 }));
-      svg += draw(make.ridge({ width: 1800, h: 190, count: 6, seed: 13, fog: .3, snow: false, mat: mat.leaf }), camera({ a: .16, ox: W / 2, oy: 610 }));
-      svg += draw(make.ridge({ width: 1900, h: 120, count: 8, seed: 21, fog: .1, snow: false, mat: mat.grass }), camera({ a: .16, ox: W / 2, oy: 650 }));
-      svg += `<rect y="630" width="${W}" height="170" fill="${rgb2hex(mat.grass.stops[1])}"/>`;
-      [[70, 640, 90, 1], [190, 625, 70, 2], [1110, 640, 95, 3], [1000, 628, 66, 4], [300, 648, 60, 5], [900, 646, 64, 6]].forEach(([x, y, s, k]) => {
-        const t = k % 3 ? make.tree({ size: s, seed: k * 7, kind: 'round', detail: 0, fog: .15 }) : make.pine({ size: s * 1.1, seed: k * 7, fog: .15 });
+      // the mountains and hills stand on a far floating island (the land in the games floats too)
+      svg += draw(make.island({ rx: 540, ry: 110, depth: 210, seed: 4, fog: .4 }), camera({ a: .3, ox: W / 2, oy: 520 }));
+      svg += draw(make.ridge({ width: 920, h: 230, count: 4, seed: 5, fog: .55, snow: .74 }), camera({ a: .16, ox: W / 2, oy: 500 }));
+      svg += draw(make.ridge({ width: 960, h: 150, count: 5, seed: 13, fog: .34, snow: false, mat: mat.leaf }), camera({ a: .16, ox: W / 2, oy: 522 }));
+      svg += draw(make.ridge({ width: 980, h: 90, count: 7, seed: 21, fog: .2, snow: false, mat: mat.grass }), camera({ a: .16, ox: W / 2, oy: 540 }));
+      [[190, 548, 64, 1], [290, 540, 52, 2], [1000, 548, 66, 3], [910, 540, 50, 4], [380, 551, 46, 5], [820, 551, 48, 6]].forEach(([x, y, s, k]) => {
+        const t = k % 3 ? make.tree({ size: s, seed: k * 7, kind: 'round', detail: 0, fog: .3 }) : make.pine({ size: s * 1.1, seed: k * 7, fog: .3 });
         svg += draw(t, camera({ a: .3, ox: x, oy: y }));
       });
       return svg;
