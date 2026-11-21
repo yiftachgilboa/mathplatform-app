@@ -450,17 +450,7 @@ const LowPolyBG=React.memo(function LowPolyBG(){
 
 /* a stretch of land seen from the side (library ground: grass top, lip, earth face with stones). edgeL/edgeR = a pit on that side */
 const SA=Math.sin(A_W), CA=Math.cos(A_W), GTOP=12, FEET=7;   // the grass top shows GTOP px deep (groundY → groundY+GTOP); characters stand at groundY+FEET
-const FLOAT=true;
-/* under the floating land: haze in the sky color and a few slow clouds (a fixed layer, so it costs nothing while walking) */
-const Abyss=React.memo(function Abyss(){
-  const html=useMemo(()=>{const T=LP.theme;let svg='';
-    // soft white mist (blurred), drifting slowly — no hard cloud edges at the sides
-    [[60,150,260,46,1],[380,170,200,38,2],[640,140,320,52,3],[980,165,240,42,4],[1180,150,180,36,5]].forEach(([x,y,rx,ry,k])=>{
-      svg+=`<g class="cloud" style="animation-duration:${170+k*30}s;animation-delay:${-(x/1400*(170+k*30)).toFixed(1)}s"><ellipse cx="0" cy="${y}" rx="${rx}" ry="${ry}" fill="#fff" opacity=".85" filter="url(#mist)"/></g>`});
-    return `<defs><linearGradient id="abyss" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${T.sky[2]}" stop-opacity="0"/><stop offset=".45" stop-color="${T.sky[2]}" stop-opacity=".85"/><stop offset="1" stop-color="${T.sky[1]}"/></linearGradient>
-      <filter id="mist" x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur stdDeviation="22"/></filter></defs><rect width="1200" height="200" fill="url(#abyss)"/>`+svg},[]);
-  return <svg viewBox="0 0 1200 200" preserveAspectRatio="xMidYMax slice" style={{position:'absolute',left:0,right:0,bottom:0,width:'100%',height:'100%',display:'block'}} dangerouslySetInnerHTML={{__html:html}}/>;
-});   // the land as floating islands (closed underneath, like the island in the art library); false = earth down to the bottom
+const FLOAT=true;   // the land as floating islands (closed underneath, like the island in the art library); false = earth down to the bottom
 function Cliff({w,h,seed=1,edgeL=true,edgeR=true,pal=PALS[0]}){
   const hh=FLOAT?h*.78:h;
   const html=useMemo(()=>LP.draw(LP.make.ground({w,h:hh/CA,depth:GTOP/SA,seed,edgeL,edgeR,float:FLOAT,top:pal.top,lip:pal.lip,side:pal.side}),LP.camera({a:A_W,ox:12,oy:6+GTOP})),[w,hh,seed,edgeL,edgeR,pal]);
@@ -1059,7 +1049,6 @@ function App(){
   const Board=(
     <div className="board" ref={boardRef} onPointerDown={boardDown} onPointerMove={boardMove} onPointerUp={boardUp} onPointerCancel={boardUp}
       style={screen==='start'?{visibility:'hidden'}:null}>
-      {FLOAT&&<div style={{left:0,right:0,top:groundY+Math.round(groundH*.25),bottom:0,zIndex:0,pointerEvents:'none'}}><Abyss/></div>}
       {/* the world: river, land, bridges, coins. It slides left while the hero walks on the spot */}
       <div className="world" style={{left:0,top:0,width:worldW,height:H,transform:`translateX(${-offset}px)`,transition:walkDur?`transform ${walkDur}s linear`:'none'}}>
         {rounds.map((r,i)=><div key={'pit'+i} style={{left:E[i]-14,top:groundY+2,width:r.gap*U+28,height:H-groundY-2}}><Pit type={r.type} w={r.gap*U+28} h={Math.max(10,H-groundY-2)} seed={i+1}/></div>)}
