@@ -592,15 +592,27 @@
   // ---------- creatures (ref 17–27) ----------
   // one body plan for four-legged animals and monsters: body, legs, head, snout, ears, tail, extras.
   // sizes are × S (body length). forward = −y, like the kid.
+  // Game style (approved): big head with a front face (eyes + big brows), small body, NO mouth — the snout is the mouth,
+  // and it is big and exaggerated. Signature parts stay big. The monster keeps its toothed jaw on the snout (its roar).
+  const BIG = { face: 'buddy', noMouth: true, eyeK: 1.25 };
   const SPECIES = {
-    bear:    { body: [.52, .8, .5], leg: [.3, .085], head: [.3, .27, .26], headAt: [.45, .3], snout: [.15, .09], ears: 'round', tail: 'stub', fur: 'bearFur', light: 'bearLight', face: 'animal' },
-    // big-head test: a small body, a huge head with a front face (eyes, brows, expressions), signature parts kept big
-    foxBig:  { body: [.26, .4, .26], leg: [.17, .048], head: [.4, .36, .36], headAt: [.22, .36], snout: [.36, .13], snoutAt: [.62, .3], noMouth: true, ears: 'pointed', earK: 1.9, tail: 'bushy', tailK: 1.25, tailUp: true,
-               fur: 'foxFur', light: 'white', legMat: 'dark', face: 'buddy', eye: [.9, .36, .2], eyeK: 1.25, mouthUp: -.55, headPatch: { dir: [0, -.5, -.86], th: .5 }, browColor: '#3a1a0c' },
-    fox:     { body: [.3, .78, .3], leg: [.34, .042], head: [.2, .22, .18], headAt: [.46, .26], snout: [.22, .065], ears: 'pointed', tail: 'bushy', fur: 'foxFur', light: 'white', legMat: 'dark', face: 'animal' },
-    rabbit:  { body: [.44, .6, .44], leg: [.12, .07], head: [.25, .24, .23], headAt: [.33, .3], snout: [.07, .075], ears: 'long', tail: 'puff', fur: 'rabbitFur', light: 'white', face: 'animal' },
-    monster: { body: [.62, .9, .55], leg: [.32, .11], head: [.36, .34, .3], headAt: [.5, .28], snout: [.12, .15], ears: 'horns', tail: 'long', fur: 'monster', light: 'monsterBelly', plates: true, face: 'monster' },
+    fox:     Object.assign({}, BIG, { body: [.26, .4, .26], leg: [.17, .048], head: [.4, .36, .36], headAt: [.22, .36], snout: [.36, .13], snoutAt: [.62, .3],
+               ears: 'pointed', earK: 1.9, tail: 'bushy', tailK: 1.25, tailUp: true, fur: 'foxFur', light: 'white', legMat: 'dark',
+               eye: [.9, .36, .2], headPatch: { dir: [0, -.5, -.86], th: .5 }, browColor: '#3a1a0c' }),
+    bear:    Object.assign({}, BIG, { body: [.36, .44, .34], leg: [.15, .075], head: [.43, .39, .39], headAt: [.2, .34], snout: [.24, .17], snoutAt: [.6, .32],
+               ears: 'round', earK: 1.7, tail: 'stub', fur: 'bearFur', light: 'bearLight', eye: [.9, .38, .24], browColor: '#1f1108' }),
+    rabbit:  Object.assign({}, BIG, { body: [.3, .36, .3], leg: [.1, .065], head: [.4, .37, .37], headAt: [.16, .34], snout: [.16, .13], snoutAt: [.62, .34],
+               ears: 'long', earK: 1.45, tail: 'puff', fur: 'rabbitFur', light: 'white', nose: 'pink', eye: [.9, .38, .2],
+               headPatch: { dir: [0, -.5, -.86], th: .55 }, browColor: '#4a3626' }),
+    monster: { body: [.4, .5, .38], leg: [.2, .1], head: [.46, .42, .4], headAt: [.24, .32], snout: [.32, .19], snoutAt: [.6, .32],
+               ears: 'horns', earK: 1.35, tail: 'long', fur: 'monster', light: 'monsterBelly', plates: true, face: 'monster', eye: [.86, .42, .28] },
+    // classic proportions (approved sample 4) — for large illustrations
+    bearClassic:    { body: [.52, .8, .5], leg: [.3, .085], head: [.3, .27, .26], headAt: [.45, .3], snout: [.15, .09], ears: 'round', tail: 'stub', fur: 'bearFur', light: 'bearLight', face: 'animal' },
+    foxClassic:     { body: [.3, .78, .3], leg: [.34, .042], head: [.2, .22, .18], headAt: [.46, .26], snout: [.22, .065], ears: 'pointed', tail: 'bushy', fur: 'foxFur', light: 'white', legMat: 'dark', face: 'animal' },
+    rabbitClassic:  { body: [.44, .6, .44], leg: [.12, .07], head: [.25, .24, .23], headAt: [.33, .3], snout: [.07, .075], ears: 'long', tail: 'puff', fur: 'rabbitFur', light: 'white', face: 'animal' },
+    monsterClassic: { body: [.62, .9, .55], leg: [.32, .11], head: [.36, .34, .3], headAt: [.5, .28], snout: [.12, .15], ears: 'horns', tail: 'long', fur: 'monster', light: 'monsterBelly', plates: true, face: 'monster' },
   };
+  SPECIES.foxBig = SPECIES.fox; // name used by the first test page
   make.critter = function (o) {
     const sp = Object.assign({}, SPECIES[o.kind] || SPECIES.bear, o.species), S = o.size || 160, seed = o.seed || 1, t = o.t || 0;
     const rand = rng(seed * 79), d = clampD(o.detail == null ? 1 : o.detail), fur = mat[sp.fur], light = mat[sp.light];
@@ -632,19 +644,19 @@
     const sa = sp.snoutAt || [.55, .3];
     const s0 = [hc[0], hc[1] - hl * S * sa[0], hc[2] - hh * S * sa[1]], s1 = [s0[0], s0[1] - sp.snout[0] * S, s0[2] - sp.snout[0] * S * .15];
     const snout = limb(s0, s1, sp.snout[1] * S, sp.snout[1] * S * .55, light, seed * 79 + 32, 6); snout.bias = S * .05; meshes.push(snout);
-    const nose = icosphere(0, mat.dark, seed * 79 + 33).scale(sp.snout[1] * S * (sp.noMouth ? .7 : .55)).move(s1[0], s1[1] - sp.snout[1] * S * .1, s1[2] + sp.snout[1] * S * .15); nose.bias = S * .1; meshes.push(nose);
+    const nose = icosphere(0, mat[sp.nose] || mat.dark, seed * 79 + 33).scale(sp.snout[1] * S * (sp.noMouth ? .7 : .55)).move(s1[0], s1[1] - sp.snout[1] * S * .1, s1[2] + sp.snout[1] * S * .15); nose.bias = S * .1; meshes.push(nose);
     // ears / horns
     [-1, 1].forEach((sx, i) => {
-      if (sp.ears === 'round') meshes.push(icosphere(0, fur, seed * 79 + 40 + i).scale(.07 * S, .035 * S, .07 * S).move(sx * hw * S * .62, hc[1] + hl * S * .1, hc[2] + hh * S * .78));
       const eK = sp.earK || 1;
+      if (sp.ears === 'round') meshes.push(icosphere(0, fur, seed * 79 + 40 + i).scale(.07 * S * eK, .035 * S * eK, .07 * S * eK).move(sx * hw * S * .62, hc[1] + hl * S * .1, hc[2] + hh * S * .78));
       if (sp.ears === 'pointed') meshes.push(cone(4, fur, seed * 79 + 40 + i, rand, .5).scale(.06 * S * eK, .03 * S * eK, .14 * S * eK).move(sx * hw * S * .5, hc[1] + hl * S * .05, hc[2] + hh * S * .55));
       if (sp.ears === 'long') {
-        const b = [sx * hw * S * .35, hc[1] + .02 * S, hc[2] + hh * S * .7], tp = [b[0] + sx * .07 * S, b[1] + .06 * S, b[2] + .4 * S];
-        meshes.push(limb(b, tp, .045 * S, .02 * S, fur, seed * 79 + 40 + i, 5));
-        const inner = limb([b[0], b[1] - .016 * S, b[2] + .03 * S], [tp[0], tp[1] - .016 * S, tp[2] - .03 * S], .028 * S, .01 * S, mat.pink, seed * 79 + 42 + i, 4);
+        const b = [sx * hw * S * .35, hc[1] + .02 * S, hc[2] + hh * S * .7], tp = [b[0] + sx * .07 * S * eK, b[1] + .06 * S * eK, b[2] + .4 * S * eK];
+        meshes.push(limb(b, tp, .045 * S * eK, .02 * S * eK, fur, seed * 79 + 40 + i, 5));
+        const inner = limb([b[0], b[1] - .016 * S * eK, b[2] + .03 * S], [tp[0], tp[1] - .016 * S * eK, tp[2] - .03 * S * eK], .028 * S * eK, .01 * S * eK, mat.pink, seed * 79 + 42 + i, 4);
         inner.bias = S * .05; meshes.push(inner);
       }
-      if (sp.ears === 'horns') meshes.push(limb([sx * hw * S * .45, hc[1], hc[2] + hh * S * .6], [sx * hw * S * 1.0, hc[1] + .02 * S, hc[2] + hh * S * 1.7], .05 * S, .006 * S, mat.horn, seed * 79 + 40 + i, 5));
+      if (sp.ears === 'horns') meshes.push(limb([sx * hw * S * .45, hc[1], hc[2] + hh * S * .6], [sx * hw * S * (1 + .3 * (eK - 1)), hc[1] + .02 * S, hc[2] + hh * S * (.6 + 1.1 * eK)], .05 * S * eK, .006 * S, mat.horn, seed * 79 + 40 + i, 5));
     });
     // tail
     const tb = [0, bl * S * .48, zc + bh * S * .15], wag = Math.sin(t * (walk ? 8 : 4)) * .04 * S;
@@ -682,7 +694,8 @@
     const S = o.size || 80, seed = o.seed || 1, t = o.t || 0, rand = rng(seed * 83), d = clampD(o.detail == null ? 1 : o.detail);
     const fur = o.mat || mat.birdBlue, hop = Math.max(0, Math.sin(t * 5)) * (Math.sin(t * 1.3) > .3 ? .12 * S : 0), meshes = [];
     // o.big: big-head test — small body, huge head with a front face; beak, wings, fan tail and thin legs stay
-    const B = o.big
+    const big = o.big !== false;
+    const B = big
       ? { zc: .3, body: [.17, .2, .17], hc: [-.06, .33], hr: [.3, .28, .28], peck: .05, beak: [.2, .6, .14], wing: [.05, .17, .11, .17], hipZ: .13, tail: [.14, .34, .3, .09] }
       : { zc: .42, body: [.22, .3, .23], hc: [-.22, .22], hr: [.15, .15, .14], peck: .12, beak: [.11, .27, .05], wing: [.05, .24, .13, .2], hipZ: .18, tail: [.24, .5, .14, .07] };
     const zc = S * B.zc + hop, peck = Math.max(0, Math.sin(t * 1.3 + 2)) * .5;
@@ -690,7 +703,7 @@
     body.patch = { mat: o.belly || mat.birdBelly, dir: [0, -.6, -.8], th: .35 };
     const hc = [0, S * B.hc[0], zc + S * B.hc[1] - peck * S * B.peck];
     const head = icosphere(d, fur, seed * 83 + 2).jitter(.04, rand).scale(S * B.hr[0], S * B.hr[1], S * B.hr[2]).move(hc[0], hc[1], hc[2]);
-    if (o.big) head.patch = { mat: o.belly || mat.birdBelly, dir: [0, -.45, -.9], th: .55 };
+    if (big) head.patch = { mat: o.belly || mat.birdBelly, dir: [0, -.45, -.9], th: .55 };
     const beak = limb([0, hc[1] - S * B.beak[0], hc[2] - S * .03], [0, hc[1] - S * B.beak[1], hc[2] - S * .06 - peck * S * .05], S * B.beak[2], S * .005, mat.beak, seed * 83 + 3, 4);
     beak.bias = S * .1;
     meshes.push(body, head, beak);
@@ -704,7 +717,7 @@
     [-1, 0, 1].forEach((k, i) => meshes.push(limb([0, S * B.tail[0], zc + S * .02], [k * S * B.tail[3], S * B.tail[1], zc + S * B.tail[2]], S * .04, S * .012, fur, seed * 83 + 10 + i, 4)));
     const obj = place(meshes, Object.assign({ rot: 0 }, o), S * .2, { ordered: 'depth' });
     const r = o.rot || 0, C = Math.cos(r), Sn = Math.sin(r);
-    obj.face = o.big
+    obj.face = big
       ? { c: [obj.x + hc[0] * C - hc[1] * Sn, obj.y + hc[0] * Sn + hc[1] * C, obj.z + hc[2]], r: S * B.hr[0], k: [B.hr[1] / B.hr[0], 1, B.hr[2] / B.hr[0]], f: [Sn, -C, 0], u: [C, Sn, 0],
           style: 'buddy', eye: [.88, .42, .24], eyeK: 1.2, noMouth: true, noCheeks: true, browColor: '#0f2a52', expr: o.expression || 'happy' } // the beak is the mouth
       : { c: [obj.x + hc[0] * C - hc[1] * Sn, obj.y + hc[0] * Sn + hc[1] * C, obj.z + hc[2]], r: S * .15, k: [1, 1, .93], f: [Sn, -C, 0], u: [C, Sn, 0], style: 'animal' };
@@ -975,7 +988,7 @@
       out += `<circle cx="${f1(e[0])}" cy="${f1(e[1])}" r="${f1(s * .32)}" fill="#fff"/><circle cx="${f1(e[0])}" cy="${f1(e[1] + s * .03)}" r="${f1(s * .19)}" fill="#7b3fd1"/>`;
       out += `<circle cx="${f1(e[0])}" cy="${f1(e[1] + s * .04)}" r="${f1(s * .1)}" fill="${E}"/><circle cx="${f1(e[0] + s * .07)}" cy="${f1(e[1] - s * .06)}" r="${f1(s * .055)}" fill="#fff"/>`;
       if (m.vis) out += P(`M${f1(m[0] - s * .13)},${f1(m[1] - s * .02)} Q${f1(m[0])},${f1(m[1] + s * .12)} ${f1(m[0] + s * .13)},${f1(m[1] - s * .02)}`, .05);
-      { const w = s * .34, y = e[1] - s * .44, t = s * .1; // one wide brow
+      { const w = s * .4, y = e[1] - s * .46, t = s * .13; // one wide brow
         out += `<path d="M${f1(e[0] - w)},${f1(y + t * .4)} Q${f1(e[0])},${f1(y - s * .12)} ${f1(e[0] + w)},${f1(y + t * .4)} L${f1(e[0] + w * .9)},${f1(y + t * 1.1)} Q${f1(e[0])},${f1(y - s * .12 + t * 1.4)} ${f1(e[0] - w * .9)},${f1(y + t * 1.1)} Z" fill="#124d2c" stroke="#124d2c" stroke-width="${f1(s * .02)}" stroke-linejoin="round"/>`; }
       return `<g class="face">${out}</g>`;
     }

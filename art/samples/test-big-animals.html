@@ -48,9 +48,9 @@ function scene(t) {
   svg += LP.draw(M.ridge({ width: 1200, h: 190, count: 6, seed: 12, fog: .5, snow: .74 }), bg);
   const island = M.island({ rx: 290, ry: 120, depth: 150, seed: 8 });
   const items = [
-    M.critter({ kind: 'fox', x: -230, y: 10, size: 120, rot: -.6, pose, t, seed: 2 }),
+    M.critter({ kind: 'foxClassic', x: -230, y: 10, size: 120, rot: -.6, pose, t, seed: 2 }),
     M.critter({ kind: 'foxBig', x: -60, y: -10, size: 150, rot: -.45, pose, t: t + .3, seed: 2, expression: EXPR }),
-    M.bird({ x: 100, y: 20, size: 60, rot: -.7, t, seed: 4 }),
+    M.bird({ big: false, x: 100, y: 20, size: 60, rot: -.7, t, seed: 4 }),
     M.bird({ big: true, x: 210, y: -10, size: 90, rot: -.5, t: t + .4, seed: 4, expression: EXPR }),
   ].sort((a, b) => b.y - a.y);
   svg += LP.draw(island, cam);
@@ -65,7 +65,7 @@ LP.useTheme('day');
 $('small').innerHTML = '<span></span>' + EXPRS.map(([, he]) => `<span>${he}</span>`).join('')
   + '<b>שועל</b>' + EXPRS.map(([e]) => tiny(LP.make.critter({ kind: 'foxBig', size: 150, rot: -.35, expression: e }))).join('')
   + '<b>ציפור</b>' + EXPRS.map(([e]) => tiny(LP.make.bird({ big: true, size: 90, rot: -.35, expression: e }))).join('')
-  + '<b>שועל רגיל</b>' + EXPRS.map(() => tiny(LP.make.critter({ kind: 'fox', size: 120, rot: -.6 }))).join('');
+  + '<b>שועל רגיל</b>' + EXPRS.map(() => tiny(LP.make.critter({ kind: 'foxClassic', size: 120, rot: -.6 }))).join('');
 const t0 = performance.now(); let last = 0;
 (function frame(now) { if (now - last > 40) { last = now; $('scene').innerHTML = scene((now - t0) / 1000); } requestAnimationFrame(frame); })(0);
 </script>
