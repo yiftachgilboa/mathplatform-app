@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>בדיקה — דמות ראש־גוף</title>
+<style>
+  :root { --ink: #33373b; --muted: #6b7378; --line: #dfe7ea; --accent: #176fbe; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, "Segoe UI", Arial, sans-serif; color: var(--ink); background: #f3f7f8; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 0 16px 32px; }
+  h1 { font-size: 20px; margin: 16px 0 4px; }
+  h2 { font-size: 16px; margin: 18px 0 6px; }
+  p { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
+  .scene { width: 100%; height: auto; display: block; border-radius: 16px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chips button { min-height: 44px; padding: 0 14px; border-radius: 12px; border: 2px solid var(--line); background: #fff; color: var(--ink); font: inherit; cursor: pointer; }
+  .chips button[aria-pressed=true] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .small { display: grid; grid-template-columns: 60px repeat(5, 1fr); gap: 6px; align-items: center; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 10px; }
+  .small svg { width: 100%; height: 64px; display: block; }
+  .small span { font-size: 12px; color: var(--muted); text-align: center; }
+  .small b { font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>בדיקה — דמות ראש־גוף</h1>
+  <p>בלי בטן: הראש הוא הגוף, מהרגליים ועד הקודקוד, ולכן הפנים גדולות פי 2 בערך. אותו שלד ואותן תנוחות והבעות. ליד — הילד הרגיל באותו גובה.</p>
+  <svg id="scene" class="scene" viewBox="0 0 800 480" role="img" aria-label="דמות ראש־גוף ליד הילד"></svg>
+  <div class="chips" id="poses"></div>
+  <div class="chips" id="exprs"></div>
+  <h2>בגודל של משחק (64 פיקסלים)</h2>
+  <p>אותן הבעות, בגודל שבו הדמות מופיעה במשחק בטלפון.</p>
+  <div class="small" id="small"></div>
+</div>
+<script src="../lowpoly.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const POSES = [['stand', 'עומד'], ['walk', 'הולך'], ['jump', 'קופץ'], ['cheer', 'שמחה'], ['scared', 'מפוחד'], ['wave', 'מנופף']];
+const EXPRS = [['auto', 'לפי התנוחה'], ['happy', 'שמח'], ['joy', 'צוחק'], ['surprised', 'מופתע'], ['scared', 'מפוחד'], ['sad', 'עצוב']];
+const S = { pose: 'walk', expr: 'auto' };
+function chips(el, items, key) {
+  $(el).innerHTML = items.map(([v, he]) => `<button type="button" data-v="${v}" aria-pressed="${S[key] === v}">${he}</button>`).join('');
+  $(el).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S[key] = b.dataset.v; $(el).querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+}
+chips('poses', POSES, 'pose'); chips('exprs', EXPRS, 'expr');
+
+function scene(t) {
+  const T = LP.useTheme('day');
+  const cam = LP.camera({ a: .3, s: 1.3, ox: 400, oy: 370 }), bg = LP.camera({ a: .12, ox: 400, oy: 440 });
+  let svg = `<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${T.sky[0]}"/><stop offset=".6" stop-color="${T.sky[1]}"/><stop offset="1" stop-color="${T.sky[2]}"/></linearGradient></defs><rect width="800" height="480" fill="url(#sky)"/><circle cx="660" cy="90" r="42" fill="${T.sun}"/>`;
+  svg += LP.draw(LP.make.ridge({ width: 1100, h: 190, count: 5, seed: 9, fog: .5, snow: .74 }), bg);
+  const island = LP.make.island({ rx: 240, ry: 110, depth: 150, seed: 6 });
+  const expression = S.expr === 'auto' ? null : S.expr;
+  const items = [
+    LP.make.buddy({ x: -70, y: 0, size: 180, rot: -.35, pose: S.pose, t, expression }),
+    LP.make.kid({ x: 120, y: -10, size: 180, rot: .35, pose: S.pose, t: t + .25, expression, seed: 3 }),
+    LP.make.bush({ x: -200, y: 60, size: 46, seed: 2 }), LP.make.pine({ x: 200, y: 80, size: 120, seed: 5 }),
+  ].sort((a, b) => b.y - a.y);
+  svg += LP.draw(island, cam);
+  svg += `<clipPath id="top"><polygon points="${LP.outline(island.top, cam)}"/></clipPath><g clip-path="url(#top)" fill="${T.shadow}" opacity=".36">${items.map(o => LP.castShadow(o, cam)).join('')}</g>`;
+  return svg + items.map(o => LP.draw(o, cam) + LP.face(o, cam)).join('');
+}
+function tiny(obj) {
+  const cam = LP.camera({ a: .25 }), list = LP.facets(obj, cam), b = LP.bounds(list), p = b.h * .06;
+  return `<svg viewBox="${(b.x + b.w / 2 - b.h / 2 - p).toFixed(0)} ${(b.y - p).toFixed(0)} ${(b.h + 2 * p).toFixed(0)} ${(b.h + 2 * p).toFixed(0)}">${LP.polys(list)}${LP.face(obj, cam)}</svg>`;
+}
+LP.useTheme('day');
+const ex = EXPRS.slice(1);
+$('small').innerHTML = '<span></span>' + ex.map(([, he]) => `<span>${he}</span>`).join('')
+  + '<b>ראש־גוף</b>' + ex.map(([e]) => tiny(LP.make.buddy({ size: 180, rot: -.25, pose: 'stand', expression: e }))).join('')
+  + '<b>ילד</b>' + ex.map(([e]) => tiny(LP.make.kid({ size: 180, rot: -.25, pose: 'stand', expression: e, seed: 3 }))).join('');
+const t0 = performance.now(); let last = 0;
+(function frame(now) { if (now - last > 40) { last = now; $('scene').innerHTML = scene((now - t0) / 1000); } requestAnimationFrame(frame); })(0);
+</script>
+</body>
+</html>

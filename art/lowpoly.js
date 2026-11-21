@@ -108,6 +108,7 @@
     birdBlue: M(['#173c78', '#2563b0', '#3f86d6', '#86c4f2'], .07), birdBelly: M(['#c06a1c', '#e8902e', '#f6b356', '#ffd690'], .05),
     monster: M(['#2f1846', '#52287a', '#7a42a8', '#a874d1'], .07), monsterBelly: M(['#5b7a12', '#86a822', '#b2cf3a', '#dcef7a'], .05),
     horn: M(['#8a7a5c', '#bfae88', '#e6d9b8', '#fbf3dc'], .04),
+    buddy: M(['#9c1d24', '#d63a3a', '#f05a50', '#ff8c7e'], .05), buddyFace: M(['#e58a74', '#f8b49c', '#ffd3c0', '#ffeae0'], .03),
     alien: M(['#17603a', '#249050', '#43bb6c', '#8fe39f'], .06), alienBelly: M(['#5aa86a', '#8fd09a', '#bfe9c4', '#e6f8e8'], .04),
   };
   const mat = {};
@@ -820,12 +821,55 @@
     return obj;
   };
 
+  // head-body character (test): one big egg from the legs to the top of the head, so the face is as big as possible.
+  // short arms and legs on the kid's skeleton (same poses), light face patch, tuft on top. Less human, more readable small.
+  make.buddy = function (o) {
+    const H = o.size || 160, seed = o.seed || 1, d = clampD(o.detail == null ? 1 : o.detail);
+    const P = Object.assign({ legL: 0, legR: 0, kneeL: 0, kneeR: 0, armL: 0, armR: 0, elbowL: .2, elbowR: .2, sideL: .25, sideR: .25, bob: 0 },
+      (poses[o.pose || 'stand'] || poses.stand)(o.t || 0));
+    const body = o.mat || mat.buddy, faceM = o.faceMat || mat.buddyFace, meshes = [];
+    const chain = (g, parts) => parts.forEach((m, i) => { m.group = g; m.order = i; meshes.push(m); });
+    const ball = (p, r, m, sd) => icosphere(0, m, sd).scale(r).move(p[0], p[1], p[2]);
+    const rx = .37 * H, rz = .42 * H, legL = .1 * H, zc = .16 * H + rz + P.bob * H;
+    // legs: two short segments + shoe; a body-colored cover hides the hip
+    [[-1, 'L'], [1, 'R']].forEach(([s, k]) => {
+      const hip = [s * .14 * H, 0, zc - rz * .82];
+      const knee = limbEnd(hip, P['leg' + k], .05, s, legL), ankle = limbEnd(knee, P['leg' + k] - P['knee' + k], .05, s, legL);
+      const shoe = icosphere(0, mat.shoe, seed * 37 + 4 + s).scale(.075 * H, .11 * H, .05 * H).move(ankle[0], ankle[1] - .035 * H, ankle[2] - .01 * H);
+      chain('leg' + k, [limb(hip, knee, .055 * H, .05 * H, body, seed * 37 + s), limb(knee, ankle, .05 * H, .045 * H, body, seed * 37 + 2 + s), shoe,
+        ball(knee, .052 * H, body, seed * 37 + 90 + s), ball(hip, .075 * H, body, seed * 37 + 92 + s)]);
+    });
+    // the head-body
+    const egg = icosphere(Math.max(d, 1), body, seed * 37 + 10).jitter(.03, rng(seed * 37 + 11)).scale(rx, rx * .9, rz).move(0, 0, zc);
+    egg.patch = { mat: faceM, dir: [0, -1, .15], th: .66 }; // light face area so the eyes and mouth read from far
+    meshes.push(egg);
+    // arms: short, from the sides at mid height
+    [[-1, 'L'], [1, 'R']].forEach(([s, k]) => {
+      const sh = [s * rx * .9, 0, zc - rz * .12];
+      const el = limbEnd(sh, P['arm' + k], P['side' + k] + .35, s, .1 * H);
+      const wr = limbEnd(el, P['arm' + k] + P['elbow' + k], P['side' + k] + .35 + (P['elbowSide' + k] || 0), s, .09 * H);
+      const hd = norm(sub(wr, el)), hand = icosphere(0, body, seed * 37 + 14 + s).scale(.055 * H).move(wr[0] + hd[0] * .02 * H, wr[1] + hd[1] * .02 * H, wr[2] + hd[2] * .02 * H);
+      chain('arm' + k, [limb(sh, el, .045 * H, .04 * H, body, seed * 37 + 20 + s), limb(el, wr, .04 * H, .036 * H, body, seed * 37 + 22 + s), hand,
+        ball(el, .043 * H, body, seed * 37 + 94 + s), ball(sh, .06 * H, body, seed * 37 + 96 + s)]);
+    });
+    // tuft on top: three little leaves
+    [-1, 0, 1].forEach((k, i) => {
+      const b = [k * .04 * H, .02 * H, zc + rz * .95], tip = [k * .12 * H, .03 * H - (k ? 0 : .02 * H), zc + rz + .13 * H - Math.abs(k) * .03 * H];
+      const leaf = limb(b, tip, .035 * H, .006 * H, body, seed * 37 + 30 + i, 4); leaf.bias = H * .1; meshes.push(leaf);
+    });
+    const obj = place(meshes, Object.assign({ rot: 0 }, o), .3 * H, { ordered: 'depth' });
+    const r = o.rot || 0;
+    obj.face = { c: [obj.x, obj.y, obj.z + zc], r: rx, k: [.9, 1, rz / rx], f: [Math.sin(r), -Math.cos(r), 0], u: [Math.cos(r), Math.sin(r), 0],
+      style: 'buddy', eyeK: 1.4, expr: o.expression || poseExpression[o.pose || 'stand'] || 'happy' };
+    return obj;
+  };
+
   // flat face layer on the low-poly head (eyes, brows, mouth, cheeks)
   function face(obj, cam) {
     const F = obj.face; if (!F) return '';
     const toCam = [0, -Math.cos(cam.a), Math.sin(cam.a)];
     const style = F.style || 'kid';
-    if (style === 'kid' && dot(F.f, toCam) < .15) return ''; // facing away
+    if ((style === 'kid' || style === 'buddy') && dot(F.f, toCam) < .15) return ''; // facing away
     // a point on the head surface (head ellipsoid radii = F.r × F.k); .vis = it faces the camera
     const K = F.k || [.93, 1, 1.02];
     const at = (fw, sd, up) => {
@@ -835,13 +879,13 @@
       q.vis = dot(v, toCam) > .2; return q;
     };
     const s = F.r * cam.s, E = '#2b2f33', R = '#8a2f35';
-    const EYE = { kid: [.93, .36, .06], animal: [.62, .78, .22], monster: [.85, .45, .22], cyclops: [.97, 0, .12] }[style];
-    const both = [at(EYE[0], -EYE[1], EYE[2]), at(EYE[0], EYE[1], EYE[2])], m = at(.95, 0, style === 'monster' ? -.3 : style === 'cyclops' ? -.42 : -.36);
+    const EYE = { kid: [.93, .36, .06], buddy: [.92, .33, .2], animal: [.62, .78, .22], monster: [.85, .45, .22], cyclops: [.97, 0, .12] }[style];
+    const both = [at(EYE[0], -EYE[1], EYE[2]), at(EYE[0], EYE[1], EYE[2])], m = at(.95, 0, style === 'monster' ? -.3 : style === 'cyclops' ? -.42 : style === 'buddy' ? -.12 : -.36);
     const eyes = both.filter(e => e.vis);
     both.forEach((e, i) => { e.inner = Math.sign(both[1 - i][0] - e[0]) || 1; });
     const f1 = n => n.toFixed(1);
     const P = (d, w, fill) => `<path d="${d}" fill="${fill || 'none'}" stroke="${fill ? 'none' : E}" stroke-width="${f1(s * (w || .055))}" stroke-linecap="round" stroke-linejoin="round"/>`;
-    const dotEye = (e, k) => `<ellipse cx="${f1(e[0])}" cy="${f1(e[1])}" rx="${f1(s * .085 * k)}" ry="${f1(s * .125 * k)}" fill="${E}"/><circle cx="${f1(e[0] + s * .03 * k)}" cy="${f1(e[1] - s * .045 * k)}" r="${f1(s * .03 * k)}" fill="#fff"/>`;
+    const dotEye = (e, k) => (k *= F.eyeK || 1, `<ellipse cx="${f1(e[0])}" cy="${f1(e[1])}" rx="${f1(s * .085 * k)}" ry="${f1(s * .125 * k)}" fill="${E}"/><circle cx="${f1(e[0] + s * .03 * k)}" cy="${f1(e[1] - s * .045 * k)}" r="${f1(s * .03 * k)}" fill="#fff"/>`);
     const cheeks = eyes.map(e => `<ellipse cx="${f1(e[0])}" cy="${f1(e[1] + s * .2)}" rx="${f1(s * .1)}" ry="${f1(s * .06)}" fill="#ff7b7b" opacity=".45"/>`).join('');
     // innerUp > 0: inner end raised (worried/sad); < 0: lowered (angry)
     const brow = (e, innerUp, lift) => P(`M${f1(e[0] - e.inner * s * .1)},${f1(e[1] - s * (lift - innerUp))} L${f1(e[0] + e.inner * s * .1)},${f1(e[1] - s * (lift + innerUp))}`, .045);
