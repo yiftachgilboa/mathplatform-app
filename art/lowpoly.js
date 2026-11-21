@@ -117,6 +117,7 @@
     sandstone: M(['#86663f', '#b38d58', '#d6b47b', '#efd5a0'], .06),
     marbleWarm: M(['#9c8f80', '#cdbfae', '#e7dccd', '#fbf4ea'], .03), marbleShade: M(['#8a8f96', '#a9aeb5', '#c3c7cc', '#d8dbdf'], .02),
     sandstoneLight: M(['#9e8256', '#c9a873', '#e4c995', '#f6e3b8'], .04), sandstoneShade: M(['#7a5d3a', '#9c7a50', '#b8956a', '#cfae82'], .03),
+    stoneDark: M(['#241a12', '#3a2c21', '#524032'], .02),
     officeWhite: M(['#b9c0c8', '#e3e7ec', '#f6f8fa', '#ffffff'], .02),
     plasterShade: M(['#a38e70', '#c4af8f', '#dcc9a9', '#eee2ca'], .02), mushroom: M(['#7e1c1c', '#c43a2e', '#e8604a', '#ff9078'], .05),
     ballWhite: M(['#b9bec4', '#dfe2e6', '#f4f6f8', '#ffffff'], .02), basket: M(['#9a3f0e', '#d4621c', '#f08a3c', '#ffb878'], .03),
@@ -1322,17 +1323,26 @@
         }
       };
       const R = S * .14, side = rand() < .5 ? -1 : 1;
-      part(0, S, R, (rand() - .5) * .03, seed * 179, o.top || (rand() < .5 ? 'helipad' : 'antenna'));
-      // the sides go wild: crystal shards leaning out at different heights (the front keeps its windows)
-      const shard = (x, y, H, r, lean, sd) => {
-        const c = drum(6, [[r, 0], [r * (.85 + rand() * .15), H * .45], [r * (.62 + rand() * .15), H * .78]], body, sd, rand, null, null, { lean, apex: H, jr: .14 });
-        meshes.push(c.move(x, y, 0));
+      part(0, S, R, 0, seed * 179, o.top || (rand() < .5 ? 'helipad' : 'antenna'));
+      // wings: each starts exactly on the tower's side wall at the roof line and slopes down and out in big facets —
+      // a continuation of the tower's shape, not a separate crystal
+      const hw0 = R * Math.SQRT1_2, hwH = R * .86 * Math.SQRT1_2; // tower half-width at the bottom and at the top
+      const wing = (sx, H1, H2, ww, sd) => {
+        const m = new Mesh(body, sd), X = q => [sx * q[0], q[1], q[2]];
+        const xin = z => hw0 + (hwH - hw0) * z / S; // inner face lies on the tower's (slightly tapering) side
+        const A = m.add(X([xin(0), -hw0 * .98, 0])), B = m.add(X([xin(0), hw0 * .98, 0]));
+        const Cc = m.add(X([xin(H1), -hwH * .96, H1])), Dd = m.add(X([xin(H1), hwH * .96, H1]));
+        const E = m.add(X([xin(0) + ww, -hw0 * .55, 0])), F = m.add(X([xin(0) + ww, hw0 * .55, 0]));
+        const G = m.add(X([xin(0) + ww * .62, -hw0 * .3, H2])), Hh = m.add(X([xin(0) + ww * .62, hw0 * .3, H2]));
+        const P = m.add(X([xin(H1 * .82) + ww * .18, -hw0 * .05, H1 * .9]));
+        m.tri(A, E, G).tri(A, G, Cc).tri(Cc, G, P);                  // front: two big facets and a top facet
+        m.tri(B, Dd, Hh).tri(B, Hh, F).tri(Dd, P, Hh);              // back
+        m.tri(E, F, Hh).tri(E, Hh, G).tri(G, Hh, P).tri(Cc, P, Dd);  // outer and top
+        m.center = X([xin(0) + ww * .4, 0, H1 * .4]);
+        meshes.push(m);
       };
-      [-1, 1].forEach((sx, k) => {
-        shard(sx * R * 1.0, R * .1, S * (.62 + rand() * .22), R * .62, sx * (.06 + rand() * .06), seed * 179 + 10 + k);
-        shard(sx * R * 1.55, -R * .05, S * (.3 + rand() * .2), R * .48, sx * (.1 + rand() * .08), seed * 179 + 20 + k);
-      });
-      shard(side * R * .4, R * .7, S * (1.05 + rand() * .1), R * .55, side * .04, seed * 179 + 30); // one taller shard behind
+      wing(side, S * (.92 + rand() * .06), S * (.45 + rand() * .12), R * (.9 + rand() * .3), seed * 179 + 10);
+      wing(-side, S * (.62 + rand() * .12), S * (.25 + rand() * .1), R * (1.1 + rand() * .3), seed * 179 + 11);
       return place(meshes, Object.assign({ rot: 0 }, o), R * 2, { ordered: 'depth' });
     },
     // stepped temple (after the jungle-temple reference): a flat-fronted rocky plinth facing the camera (fits the
@@ -1340,30 +1350,38 @@
     // sandstone tones, stairs up the lit face, a round shrine on top, rocks, bushes and palms around
     stepTemple(o) {
       const S = o.size || 280, seed = o.seed || 1, rand = rng(seed * 181), C = Math.SQRT1_2, meshes = [];
-      const bw = S * 1.05, bd = S * .72, bh = S * .16, baseR = bw / 2 / C;
+      const bw = S * .85, bd = S * .6, bh = S * .13, baseR = bw / 2 / C;
       meshes.push(drum(4, [[baseR, 0], [baseR * .95, bh]], mat.sandstone, seed * 181, rand, null, null, { offAll: .5, ry: bd / bw, jr: .03 }));
       [[-.46, -.3, .2], [.5, -.25, .16], [-.36, .3, .14], [.42, .32, .18]].forEach(([x, y, k], i) =>
         meshes.push(make.rock({ size: S * k, h: .8, seed: seed * 181 + 70 + i, mat: mat.sandstone }).meshes[0].move(x * bw, y * bd, 0)));
-      // the temple, built facing −y, then turned
-      const up = [], tiers = 4, tH = S * .085;
-      let z = bh, wTop = 0;
-      for (let i = 0; i < tiers; i++) {
-        const w = S * (.62 - i * .12), R = w / 2 / C;
-        up.push(drum(4, [[R, z], [R * .94, z + tH]], i % 2 ? mat.sandstoneLight : mat.sandstone, seed * 181 + 1 + i, rand, null, null, { clean: true, offAll: .5 }));
-        z += tH; wTop = w;
-      }
-      const nSteps = tiers * 2, sw = S * .15;
-      for (let k = 0; k < nSteps; k++) {
-        const zz = bh + k * tH / 2, wk = S * (.62 - .12 * (k / 2));
-        up.push(box(sw, S * .045, tH / 2, mat.sandstoneLight, seed * 181 + 20 + k, .03).move(0, -wk / 2 - S * .015, zz));
-      }
-      const zr = z;
-      up.push(drum(10, [[wTop * .62, zr], [wTop * .58, zr + S * .04]], mat.sandstoneLight, seed * 181 + 40, rand, null, null, { clean: true }));
-      up.push(drum(10, [[wTop * .48, zr + S * .04], [wTop * .45, zr + S * .08]], mat.sandstone, seed * 181 + 41, rand, null, null, { clean: true }));
-      up.push(block(wTop * .5, wTop * .44, S * .09, S * .09, mat.sandstoneLight, seed * 181 + 42).move(0, 0, zr + S * .08));
-      const dr = box(wTop * .16, 2, S * .06, mat.windowDark, seed * 181 + 43, 0).move(0, -wTop * .22 - 1.5, zr + S * .08); dr.bias = 3; up.push(dr);
-      up.push(drum(10, [[wTop * .34, zr + S * .17], [wTop * .3, zr + S * .2]], mat.sandstone, seed * 181 + 44, rand, null, null, { clean: true }));
-      up.push(drum(10, [[wTop * .22, zr + S * .2], [wTop * .12, zr + S * .25]], mat.sandstoneLight, seed * 181 + 45, rand, null, null, { clean: true }));
+      // the shrine, built facing −y, then turned: thin wide stone slabs, column stories in front of a dark recess
+      // (the dark breaks the stone into layers and reads as wide entrances), a round story and a roof
+      const up = [], C2 = C, sq = (w, z0, h, m, sd) => drum(4, [[w / 2 / C2, z0], [w / 2 / C2 * .99, z0 + h]], m, sd, rand, null, null, { clean: true, offAll: .5 });
+      const rnd = (r, z0, h, m, sd, r2) => drum(10, [[r, z0], [r2 == null ? r * .98 : r2, z0 + h]], m, sd, rand, null, null, { clean: true });
+      const L = mat.sandstoneLight, D = mat.sandstone, K = mat.stoneDark;
+      let z = bh;
+      const slab = (w, h, m) => { up.push(sq(w, z, h, m, seed * 181 + up.length)); z += h; };
+      const story = (w, h, n) => { // dark recessed core + thin columns along the front and both sides
+        up.push(sq(w * .78, z, h, K, seed * 181 + up.length));
+        const half = w / 2 * .9, col = (x, y) => up.push(drum(4, [[w * .028 / C2, z], [w * .025 / C2, z + h]], L, seed * 181 + up.length, rand, null, null, { clean: true, offAll: .5 }).move(x, y, 0));
+        for (let i = 0; i < n; i++) col(-half + i * 2 * half / (n - 1), -half);
+        for (let i = 1; i < n - 1; i++) { col(-half, -half + i * 2 * half / (n - 1)); col(half, -half + i * 2 * half / (n - 1)); }
+        z += h;
+      };
+      const W = S * .5;
+      slab(W * 1.06, S * .035, L); slab(W, S * .028, D);
+      story(W * .92, S * .11, 5);
+      slab(W * .98, S * .03, L); slab(W * .88, S * .026, D); slab(W * .8, S * .024, L);
+      // round story and roof
+      const rr = W * .3;
+      up.push(rnd(rr * .8, z, S * .08, K, seed * 181 + 50));
+      for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + (i - 4.5) * .32; if (Math.sin(a) > .2) continue; up.push(drum(4, [[S * .009, z], [S * .008, z + S * .08]], L, seed * 181 + 51 + i, rand, null, null, { clean: true }).move(Math.cos(a) * rr * .95, Math.sin(a) * rr * .95, 0)); }
+      z += S * .08;
+      up.push(rnd(rr * 1.18, z, S * .028, L, seed * 181 + 70)); z += S * .028;
+      up.push(rnd(rr * 1.0, z, S * .022, D, seed * 181 + 71)); z += S * .022;
+      up.push(rnd(rr * .72, z, S * .05, L, seed * 181 + 72, rr * .42)); z += S * .05;
+      up.push(rnd(rr * .3, z, S * .03, D, seed * 181 + 73, rr * .12));
+      if (o.stairs !== false) for (let k = 0; k < 4; k++) up.push(box(W * .3, S * .04, S * .0155, L, seed * 181 + 80 + k, .03).move(0, -W * .53 - S * .04 * (3 - k) * .6, bh + k * S * .0155));
       const turn = o.turn == null ? -.6 : o.turn;
       up.forEach(m => { m.rotZ(turn); meshes.push(m); });
       // bushes on the plinth and palms around
