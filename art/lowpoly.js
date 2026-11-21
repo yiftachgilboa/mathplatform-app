@@ -711,7 +711,8 @@
   };
 
   // ---------- characters ----------
-  // a pose = joint angles (radians). leg/arm: swing forward; knee/elbow: bend; side: raise outward (π ≈ straight up); bob: body lift (× height)
+  // a pose = joint angles (radians). leg/arm: swing forward; knee/elbow: bend forward; elbowSide: forearm turns further up/in (for raised arms);
+  // side: raise outward (π ≈ straight up); bob: body lift (× height)
   const poses = {
     stand: t => ({ bob: .004 * Math.sin(t * 2.2), armL: .05, armR: .05, elbowL: .25, elbowR: .25 }),
     walk: t => {
@@ -722,17 +723,17 @@
     jump: t => {
       const p = (t % 1), up = Math.max(0, Math.sin(p * Math.PI * 2)), crouch = Math.max(0, -Math.sin(p * Math.PI * 2));
       return { bob: .2 * up, kneeL: .25 + .9 * crouch + .3 * up, kneeR: .25 + .9 * crouch + .3 * up, legL: .2 * up + .4 * crouch, legR: .1 * up + .4 * crouch,
-        sideL: 2.5 * up + .3, sideR: 2.5 * up + .3, armL: .2, armR: .2, elbowL: .2, elbowR: .2 };
+        sideL: 2.5 * up + .3, sideR: 2.5 * up + .3, armL: .2, armR: .2, elbowL: .2 * (1 - up), elbowR: .2 * (1 - up), elbowSideL: .25 * up, elbowSideR: .25 * up };
     },
     cheer: t => {
       const w = Math.sin(t * 9);
-      return { sideL: 2.55 + .15 * w, sideR: 2.55 - .15 * w, armL: .25, armR: .25, elbowL: .35, elbowR: .35, bob: .03 * Math.abs(Math.sin(t * 4.5)) };
+      return { sideL: 2.55 + .15 * w, sideR: 2.55 - .15 * w, armL: .15, armR: .15, elbowL: .05, elbowR: .05, elbowSideL: .3, elbowSideR: .3, bob: .03 * Math.abs(Math.sin(t * 4.5)) };
     },
     scared: t => {
       const tr = Math.sin(t * 45) * .015;
       return { armL: 1.25, armR: 1.25, sideL: .55 + tr, sideR: .55 - tr, elbowL: 1.9, elbowR: 1.9, kneeL: .35, kneeR: .35, legL: .18, legR: .18, bob: -.02 };
     },
-    wave: t => ({ sideR: 2.25, armR: .3, elbowR: .7 + .5 * Math.sin(t * 8), armL: .05, elbowL: .25, bob: .004 * Math.sin(t * 2.2) }),
+    wave: t => ({ sideR: 2.1, armR: .2, elbowR: .1, elbowSideR: .75 + .4 * Math.sin(t * 8), armL: .05, elbowL: .25, bob: .004 * Math.sin(t * 2.2) }),
   };
   const poseExpression = { stand: 'happy', walk: 'happy', jump: 'joy', cheer: 'joy', scared: 'scared', wave: 'happy' };
 
@@ -775,7 +776,8 @@
     [[-1, 'L'], [1, 'R']].forEach(([s, k]) => {
       const sh = [s * .125 * H, 0, hipZ + .28 * H];
       const el = limbEnd(sh, P['arm' + k], P['side' + k], s, .15 * H);
-      const wr = limbEnd(el, P['arm' + k] + P['elbow' + k], P['side' + k], s, .14 * H);
+      // elbow bends forward (elbow) and/or toward the head (elbowSide) — a raised arm bends up/in, never back
+      const wr = limbEnd(el, P['arm' + k] + P['elbow' + k], P['side' + k] + (P['elbowSide' + k] || 0), s, .14 * H);
       const hand = icosphere(0, skin, seed * 31 + 14 + s).scale(.036 * H);
       const hd = norm(sub(wr, el)); hand.move(wr[0] + hd[0] * .02 * H, wr[1] + hd[1] * .02 * H, wr[2] + hd[2] * .02 * H);
       // sleeve, forearm, hand, then the cuff (elbow) and shoulder covers on top
