@@ -746,7 +746,8 @@
     const H = o.size || 200, seed = o.seed || 1, d = clampD(o.detail == null ? 1 : o.detail);
     const P = Object.assign({ legL: 0, legR: 0, kneeL: 0, kneeR: 0, armL: 0, armR: 0, elbowL: .2, elbowR: .2, sideL: .12, sideR: .12, bob: 0 },
       (poses[o.pose || 'stand'] || poses.stand)(o.t || 0));
-    const skin = o.skin || mat.skin, shirt = o.shirt || mat.shirt, pants = o.pants || mat.pants, hair = o.hair || mat.hair;
+    // outfit options (test): o.robe = material (long robe, sleeves too), o.hat = 'wizard', o.beard = material, o.staff = true
+    const robe = o.robe, skin = o.skin || mat.skin, shirt = robe || o.shirt || mat.shirt, pants = o.pants || mat.pants, hair = o.hair || mat.hair;
     const meshes = [], hipZ = .44 * H + P.bob * H;
     const chain = (g, parts) => parts.forEach((m, i) => { m.group = g; m.order = i; meshes.push(m); });
     const ball = (p, r, m, sd) => icosphere(0, m, sd).scale(r).move(p[0], p[1], p[2]); // joint cover
@@ -757,12 +758,18 @@
       const ankle = limbEnd(knee, P['leg' + k] - P['knee' + k], .04, s, .2 * H);
       const shoe = icosphere(0, mat.shoe, seed * 31 + 4 + s).scale(.05 * H, .08 * H, .036 * H);
       shoe.move(ankle[0], ankle[1] - .028 * H, ankle[2] - .006 * H);
+      if (robe) { meshes.push(shoe); return; } // under a robe only the shoes show
       chain('leg' + k, [limb(hip, knee, .05 * H, .042 * H, pants, seed * 31 + s), limb(knee, ankle, .042 * H, .034 * H, pants, seed * 31 + 2 + s), shoe,
         ball(knee, .045 * H, pants, seed * 31 + 90 + s), ball(hip, .056 * H, pants, seed * 31 + 92 + s)]);
     });
-    // body: hips (pants) + shirt + neck
-    meshes.push(cylinder(6, 1, pants, seed * 31 + 7).scale(.1 * H, .07 * H, .1 * H).move(0, 0, hipZ - .04 * H));
-    meshes.push(cylinder(6, .88, shirt, seed * 31 + 8).scale(.112 * H, .075 * H, .27 * H).move(0, 0, hipZ + .04 * H));
+    // body: hips (pants) + shirt + neck — or one long robe from the ground to the shoulders
+    if (robe) {
+      const rb = cylinder(8, .52, robe, seed * 31 + 7).scale(.2 * H, .16 * H, hipZ + .3 * H - .03 * H).move(0, 0, .03 * H);
+      rb.center = [0, 0, hipZ * .9]; meshes.push(rb);
+    } else {
+      meshes.push(cylinder(6, 1, pants, seed * 31 + 7).scale(.1 * H, .07 * H, .1 * H).move(0, 0, hipZ - .04 * H));
+      meshes.push(cylinder(6, .88, shirt, seed * 31 + 8).scale(.112 * H, .075 * H, .27 * H).move(0, 0, hipZ + .04 * H));
+    }
     meshes.push(limb([0, 0, hipZ + .29 * H], [0, 0, hipZ + .37 * H], .034 * H, .03 * H, skin, seed * 31 + 9));
     // arms: sleeve + forearm + hand
     [[-1, 'L'], [1, 'R']].forEach(([s, k]) => {
@@ -772,8 +779,14 @@
       const hand = icosphere(0, skin, seed * 31 + 14 + s).scale(.036 * H);
       const hd = norm(sub(wr, el)); hand.move(wr[0] + hd[0] * .02 * H, wr[1] + hd[1] * .02 * H, wr[2] + hd[2] * .02 * H);
       // sleeve, forearm, hand, then the cuff (elbow) and shoulder covers on top
-      chain('arm' + k, [limb(sh, el, .04 * H, .033 * H, shirt, seed * 31 + 10 + s), limb(el, wr, .029 * H, .025 * H, skin, seed * 31 + 12 + s), hand,
-        ball(el, .036 * H, shirt, seed * 31 + 94 + s), ball(sh, .05 * H, shirt, seed * 31 + 96 + s)]);
+      const parts = [limb(sh, el, .04 * H, .033 * H, shirt, seed * 31 + 10 + s), limb(el, wr, .029 * H, .025 * H, skin, seed * 31 + 12 + s)];
+      if (o.staff && k === 'R') { // staff held in the right hand, gem on top; the hand is drawn over it
+        const top = [wr[0], wr[1] - .03 * H, Math.max(wr[2] + .45 * H, .95 * H)];
+        parts.push(limb([wr[0], wr[1] - .03 * H, 0], top, .02 * H, .016 * H, mat.wood, seed * 31 + 98, 5));
+        parts.push(icosphere(0, mat.gemBlue, seed * 31 + 99).scale(.045 * H, .045 * H, .06 * H).move(top[0], top[1], top[2] + .04 * H));
+      }
+      parts.push(hand, ball(el, .036 * H, shirt, seed * 31 + 94 + s), ball(sh, .05 * H, shirt, seed * 31 + 96 + s));
+      chain('arm' + k, parts);
     });
     // head + hair cap (cut higher at the front so the face stays clear)
     const hz = hipZ + .5 * H, hr = .145 * H;
@@ -786,10 +799,22 @@
     hairM.scale(hr * 1.06, hr * 1.02, hr * 1.05).move(0, hr * .05, hz + hr * .03);
     hairM.bias = hr * .7; // drawn after the head, but hands in front of the face still win
     meshes.push(head, hairM);
+    if (o.hat === 'wizard') { // tall pointed hat that bends back, on a wide brim
+      const hb = hz + hr * .5;
+      const brim = cylinder(10, .95, robe || mat.shirt, seed * 31 + 20).scale(.25 * H, .23 * H, .025 * H).move(0, hr * .05, hb);
+      const cone0 = cone(7, robe || mat.shirt, seed * 31 + 21, rng(seed * 31 + 22), .55);
+      const hat = cone0.scale(.16 * H, .15 * H, .42 * H).map(p => [p[0], p[1] + Math.pow(p[2] / (.42 * H), 2) * .12 * H, p[2]]).move(0, hr * .05, hb);
+      brim.bias = hr * 1.2; hat.bias = hr * 1.3;
+      meshes.push(brim, hat);
+    }
+    if (o.beard) { // pointed beard under the chin (it hides the mouth)
+      const bd = limb([0, -hr * .55, hz - hr * .3], [0, -hr * .78, hz - hr * 1.6], .1 * H, .008 * H, o.beard, seed * 31 + 23, 6);
+      bd.bias = hr * .9; meshes.push(bd);
+    }
     const obj = place(meshes, Object.assign({ rot: 0 }, o), .14 * H, { ordered: 'depth' });
     const r = o.rot || 0;
     obj.face = { c: [obj.x, obj.y, obj.z + hz], r: hr, f: [Math.sin(r), -Math.cos(r), 0], u: [Math.cos(r), Math.sin(r), 0],
-      expr: o.expression || poseExpression[o.pose || 'stand'] || 'happy' };
+      expr: o.expression || poseExpression[o.pose || 'stand'] || 'happy', noMouth: !!o.beard };
     return obj;
   };
 
@@ -876,7 +901,8 @@
         break;
       default: // happy
         out += eyes.map(e => dotEye(e, 1)).join('');
-        out += P(`M${f1(m[0] - s * .18)},${f1(m[1] - s * .03)} Q${f1(m[0])},${f1(m[1] + s * .15)} ${f1(m[0] + s * .18)},${f1(m[1] - s * .03)}`) + cheeks;
+        if (!F.noMouth) out += P(`M${f1(m[0] - s * .18)},${f1(m[1] - s * .03)} Q${f1(m[0])},${f1(m[1] + s * .15)} ${f1(m[0] + s * .18)},${f1(m[1] - s * .03)}`);
+        out += cheeks;
     }
     return `<g class="face">${out}</g>`;
   }

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>בדיקה — מכשף</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, "Segoe UI", Arial, sans-serif; color: #33373b; background: #f3f7f8; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 0 16px 32px; }
+  h1 { font-size: 20px; margin: 16px 0 4px; }
+  p { margin: 0 0 10px; color: #6b7378; font-size: 14px; }
+  .scene { width: 100%; height: auto; display: block; border-radius: 16px; }
+  .row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+  .row svg { width: 100%; height: 170px; background: linear-gradient(#cdebef, #eef8f8); border-radius: 12px; display: block; }
+  .row b { display: block; text-align: center; font-size: 13px; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>בדיקה — מכשף על בסיס הדמות</h1>
+  <p>אותו שלד ואותן תנוחות של הילד, עם 4 תוספות: גלימה, כובע מחודד, זקן ומטה עם יהלום. ליד — הילד לשם השוואה.</p>
+  <svg id="scene" class="scene" viewBox="0 0 800 520" role="img" aria-label="מכשף low poly"></svg>
+  <div class="row" id="row"></div>
+</div>
+<script src="../lowpoly.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const robe = LP.material(['#2c1a52', '#46297e', '#6a44b0', '#9a78dc'], .05);
+const grey = LP.material(['#8d949b', '#b7bdc2', '#dde1e4', '#f6f7f8'], .04);
+const wizard = (o, t) => LP.make.kid(Object.assign({ size: 210, seed: 5, robe, hat: 'wizard', beard: LP.mat.white, hair: grey, staff: true }, o, { t }));
+
+function scene(t) {
+  const T = LP.useTheme('sunset');
+  const cam = LP.camera({ a: .3, s: 1.35, ox: 400, oy: 400 }), bg = LP.camera({ a: .12, ox: 400, oy: 470 });
+  let svg = `<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${T.sky[0]}"/><stop offset=".6" stop-color="${T.sky[1]}"/><stop offset="1" stop-color="${T.sky[2]}"/></linearGradient></defs><rect width="800" height="520" fill="url(#sky)"/><circle cx="640" cy="110" r="50" fill="${T.sun}"/>`;
+  svg += LP.draw(LP.make.ridge({ width: 1100, h: 200, count: 5, seed: 7, fog: .5, snow: .74 }), bg);
+  const island = LP.make.island({ rx: 230, ry: 110, depth: 150, seed: 4 });
+  const items = [
+    wizard({ x: -60, y: 0, rot: -.45, pose: 'wave' }, t),
+    LP.make.kid({ x: 110, y: -20, size: 150, rot: .6, pose: 'cheer', t, seed: 3 }),
+    LP.make.tree({ kind: 'bare', x: -170, y: 70, size: 150, seed: 2 }), LP.make.rock({ x: 170, y: 60, size: 50, seed: 3 }),
+  ].sort((a, b) => b.y - a.y);
+  svg += LP.draw(island, cam);
+  svg += `<clipPath id="top"><polygon points="${LP.outline(island.top, cam)}"/></clipPath><g clip-path="url(#top)" fill="${T.shadow}" opacity=".36">${items.map(o => LP.castShadow(o, cam)).join('')}</g>`;
+  svg += items.map(o => LP.draw(o, cam) + LP.face(o, cam)).join('');
+  return svg;
+}
+function card(obj) {
+  const cam = LP.camera({ a: .25 }), list = LP.facets(obj, cam), b = LP.bounds(list), p = Math.max(b.w, b.h) * .08;
+  return `<svg viewBox="${(b.x - p).toFixed(0)} ${(b.y - p).toFixed(0)} ${(b.w + 2 * p).toFixed(0)} ${(b.h + 2 * p).toFixed(0)}">${LP.polys(list)}${LP.face(obj, cam)}</svg>`;
+}
+LP.useTheme('day');
+$('row').innerHTML = [[0, 'מקדימה'], [-.7, 'שלושה רבעים'], [-1.4, 'מהצד']].map(([r, he]) => `<div>${card(wizard({ rot: r, pose: 'stand' }, 0))}<b>${he}</b></div>`).join('');
+const t0 = performance.now(); let last = 0;
+(function frame(now) { if (now - last > 40) { last = now; $('scene').innerHTML = scene((now - t0) / 1000); } requestAnimationFrame(frame); })(0);
+</script>
+</body>
+</html>
