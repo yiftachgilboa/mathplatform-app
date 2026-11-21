@@ -115,7 +115,7 @@
     windowDark: M(['#121a2b', '#1c2840', '#2b3c5e'], .02), windowLight: M(['#b8a776', '#e2d29e', '#f8eec8'], .02),
     marble: M(['#8e949c', '#c4c9cf', '#e6e9ec', '#ffffff'], .04), ice: M(['#6ea6c8', '#9ccbe4', '#cbe6f4', '#f2faff'], .05),
     sandstone: M(['#86663f', '#b38d58', '#d6b47b', '#efd5a0'], .06),
-    plasterShade: M(['#8f7a60', '#ad9878', '#c6b190', '#dccaa8'], .03), mushroom: M(['#7e1c1c', '#c43a2e', '#e8604a', '#ff9078'], .05),
+    plasterShade: M(['#a38e70', '#c4af8f', '#dcc9a9', '#eee2ca'], .02), mushroom: M(['#7e1c1c', '#c43a2e', '#e8604a', '#ff9078'], .05),
     ballWhite: M(['#b9bec4', '#dfe2e6', '#f4f6f8', '#ffffff'], .02), basket: M(['#9a3f0e', '#d4621c', '#f08a3c', '#ffb878'], .03),
     // animals and creatures (identity colors)
     dark: M(['#1c1d21', '#2f3137', '#474a52'], .03), white: M(['#b9bec4', '#dcdfe3', '#f2f4f6', '#ffffff'], .03),
@@ -1122,21 +1122,18 @@
       meshes.push(box(w, d, h, mat.plaster, seed * 97 + 1, .02).move(0, 0, S * .05));
       const tilt = (rand() - .5) * .06; // a little crooked
       const fy = -d / 2, zb = S * .05, zt = zb + h, gh = H * (w / 2) / (w / 2 + over);
-      if (o.top === 'cloud') { // a cloud for a roof
-        make.cloud({ size: w * 1.35, seed: seed * 97 + 2 }).meshes.forEach(m => { m.move(0, 0, zt - S * .03); meshes.push(m); });
-      } else {
+      {
         const roofParts = [gableWall(w, d, gh, mat.plaster, seed * 97 + 2).move(0, 0, zt)]
           .concat(roofSlabs(w, d, H, over, S * .09, roofM, seed * 97 + 3, zt + H));
         const ch = box(S * .13, S * .13, S * .42, mat.masonry, seed * 97 + 6, .04).rotY(.05).move(w * .24, d * .12, h + H * .35);
         const chTop = box(S * .17, S * .17, S * .05, mat.masonry, seed * 97 + 7, .08).move(w * .24 + S * .02, d * .12, h + H * .35 + S * .42);
         roofParts.push(ch, chTop);
-        // shade under half of the gable (the side away from the light) — big shape, not noise
-        roofParts.push(decal([[0, zt + gh * .96], [w / 2 * .98, zt + 1], [w / 2 * .98, zt - S * .2], [w * .12, zt - S * .02]], fy, mat.plasterShade, seed * 97 + 8));
+        // the half of the gable away from the light, a shade darker — exactly along the gable's edges
+        roofParts.push(decal([[0, zt + gh], [w / 2, zt], [0, zt]], fy, mat.plasterShade, seed * 97 + 8));
         roofParts.forEach(m => { m.rotZ(tilt); meshes.push(m); });
       }
-      // facade shade shapes: a corner at the bottom, small wedges under the windows
-      meshes.push(decal([[-w / 2 * .98, zb + 1], [-w / 2 + w * .34, zb + 1], [-w / 2 * .98, zb + S * .26]], fy, mat.plasterShade, seed * 97 + 9));
-      [-1, 1].forEach((sx, i) => meshes.push(decal([[sx * w * .3 - S * .11, S * .3], [sx * w * .3 + S * .11, S * .3], [sx * w * .3 + sx * S * .02, S * .2]], fy, mat.plasterShade, seed * 97 + 12 + i)));
+      // small light wedges hanging from the bottom of each window frame
+      [-1, 1].forEach((sx, i) => meshes.push(decal([[sx * w * .3 - S * .1, S * .3], [sx * w * .3 + S * .1, S * .3], [sx * w * .3, S * .25]], fy, mat.plasterShade, seed * 97 + 12 + i)));
       door(0, fy, S * .06, S * .24, S * .26, seed * 97 + 10).forEach(m => meshes.push(m));
       [-1, 1].forEach((sx, i) => windowOn([sx * w * .3, fy, S * .4], [0, -1, 0], S * .2, seed * 97 + 20 + 4 * i).forEach(m => meshes.push(m)));
       // annex on one side: lower, with its own slanted roof — breaks the symmetry
@@ -1288,6 +1285,30 @@
       if (rand() < .7) meshes.push(crystal(-side * r * 1.3, S * (.3 + rand() * .15), r * .65, -side * (.04 + rand() * .05), seed * 137 + 2));
       return place(meshes, Object.assign({ rot: 0 }, o), r * 2, { ordered: 'depth' });
     },
+    // tall tower of a few big polygons in palette tones (like the low-poly trees and refs 30/39). o.style:
+    //   twist   — a square prism whose rings turn half a step each level → big triangle facets, short pyramid top
+    //   tiers   — stacked tapering tiers, like a pine
+    //   setback — a wide base, narrower middle, slim top and a needle
+    tallTower(o) {
+      const S = o.size || 380, seed = o.seed || 1, rand = rng(seed * 173), body = mat[o.mat || 'towerBlue'], r = o.width || S * .16, meshes = [];
+      const style = o.style || 'twist', lean = (rand() - .5) * .04;
+      if (style === 'twist') {
+        meshes.push(drum(4, [[r, 0], [r * .97, S * .3], [r * .93, S * .58], [r * .86, S * .84]], body, seed * 173, rand, null, null, { apex: S, jr: .02, lean }));
+      } else if (style === 'tiers') {
+        const n = 3;
+        for (let i = 0; i < n; i++) {
+          const z0 = S * (i * .3), h = S * (.36 - i * .02), rr = r * (1.25 - i * .3);
+          const top = i === n - 1 ? { apex: z0 + h + S * .12, jr: .03, lean } : { jr: .03, lean };
+          meshes.push(drum(5, [[rr, z0], [rr * .78, z0 + h]], body, seed * 173 + i, rand, null, null, top));
+        }
+      } else { // setback
+        meshes.push(drum(4, [[r * 1.3, 0], [r * 1.22, S * .4]], body, seed * 173, rand, null, null, { jr: .02 }));
+        meshes.push(drum(4, [[r * .95, S * .4], [r * .9, S * .7]], body, seed * 173 + 1, rand, null, null, { jr: .02, lean }));
+        meshes.push(drum(4, [[r * .6, S * .7], [r * .5, S * .86]], body, seed * 173 + 2, rand, null, null, { jr: .02, apex: S * .93, lean }));
+        meshes.push(limb([lean * S * .93, 0, S * .92], [lean * S, 0, S * 1.08], r * .07, r * .02, mat.metal, seed * 173 + 3, 4));
+      }
+      return place(meshes, Object.assign({ rot: 0 }, o), r * 1.6, { ordered: 'depth' });
+    },
     // marble temple: steps, columns (each leans a hair), a pediment set slightly askew
     temple(o) {
       const S = o.size || 240, seed = o.seed || 1, rand = rng(seed * 139), W = S, D = S * .6, mm = mat.marble, meshes = [];
@@ -1307,16 +1328,18 @@
     // stump house: a fat tree stump with roots, a cut top, a leafy crown, a door and a window
     stumpHouse(o) {
       const S = o.size || 180, seed = o.seed || 1, rand = rng(seed * 149), meshes = [];
-      meshes.push(drum(9, [[S * .34, 0], [S * .29, S * .3], [S * .31, S * .5]], mat.trunk, seed * 149, rand, mat.woodEnd));
+      meshes.push(drum(9, [[S * .27, 0], [S * .23, S * .26], [S * .25, S * .44]], mat.trunk, seed * 149, rand, mat.woodEnd));
       for (let i = 0; i < 5; i++) {
         const a = i / 5 * 6.28 + rand() * .6;
         meshes.push(limb([Math.cos(a) * S * .25, Math.sin(a) * S * .2, S * .1], [Math.cos(a) * S * .45, Math.sin(a) * S * .36, 0], S * .07, S * .025, mat.trunk, seed * 149 + 10 + i, 5));
       }
       const leaf = mat[['leaf', 'leafYellow', 'leafTeal'][Math.floor(rand() * 3)]];
-      [[0, 0, S * .68, S * .3], [-S * .2, S * .05, S * .6, S * .2], [S * .18, S * .04, S * .62, S * .18]].forEach(([x, y, z, rr], i) =>
-        meshes.push(icosphere(1, leaf, seed * 149 + 20 + i).jitter(.14, rand).scale(rr, rr * .9, rr * .8).move(x, y, z)));
-      door(-S * .04, -S * .3, S * .02, S * .17, S * .17, seed * 149 + 30).forEach(m => meshes.push(m));
-      windowOn([S * .16, -S * .27, S * .36], [0, -1, 0], S * .12, seed * 149 + 40).forEach(m => meshes.push(m));
+      // the crown is a cap: about twice as wide as the stump and overhanging it (the mushroom proportion)
+      const crown = icosphere(2, leaf, seed * 149 + 20).jitter(.07, rand).floor(-.3);
+      crown.scale(S * .5, S * .47, S * .32).move(0, 0, S * .5); meshes.push(crown);
+      meshes.push(icosphere(1, leaf, seed * 149 + 21).jitter(.12, rand).scale(S * .17, S * .16, S * .13).move(S * .12, S * .04, S * .78));
+      door(-S * .03, -S * .23, S * .02, S * .15, S * .15, seed * 149 + 30).forEach(m => meshes.push(m));
+      windowOn([S * .13, -S * .21, S * .3], [0, -1, 0], S * .1, seed * 149 + 40).forEach(m => meshes.push(m));
       return place(meshes, Object.assign({ rot: 0 }, o), S * .4, { ordered: 'depth' });
     },
     // mushroom house: a cream stalk with a door and a round window, a big red spotted cap
@@ -1337,18 +1360,18 @@
     },
     // round building with a giant ball for a dome. o.ball: soccer | basket
     dome(o) {
-      const S = o.size || 200, seed = o.seed || 1, rand = rng(seed * 167), R = S * .34, meshes = [], ball = o.ball || 'soccer';
-      meshes.push(drum(9, [[R, 0], [R * .97, S * .16], [R * .9, S * .3]], mat[o.wall || 'plaster'], seed * 167, rand, null, null, { jr: .04 }));
+      const S = o.size || 200, seed = o.seed || 1, rand = rng(seed * 167), R = S * .24, meshes = [], ball = o.ball || 'soccer';
+      meshes.push(drum(9, [[R, 0], [R * .93, S * .18], [R * .97, S * .32]], mat[o.wall || 'plaster'], seed * 167, rand, null, null, { jr: .04 }));
       const b = icosphere(2, ball === 'basket' ? mat.basket : mat.ballWhite, seed * 167 + 1);
       b.f.forEach(f => {
         if (ball === 'soccer') { if (f[0] < 12 || f[1] < 12 || f[2] < 12) f[3] = mat.dark; } // a black pentagon around each of the 12 corners
         else { const cross = k => { const q = [b.v[f[0]][k], b.v[f[1]][k], b.v[f[2]][k]].map(x => x - .021); return Math.min(...q) < 0 && Math.max(...q) > 0; }; if (cross(0) || cross(2)) f[3] = mat.dark; } // seams: the faces that cross two great circles
       });
-      const Rb = R * .95;
-      b.scale(Rb).rotZ(.4).move(0, 0, S * .3 + Rb * .55);
+      const Rb = R * 1.75; // the ball is the cap: much wider than the base
+      b.scale(Rb).rotZ(.4).move(0, 0, S * .3 + Rb * .82);
       meshes.push(b);
-      door(0, -R * .96, 0, S * .16, S * .12, seed * 167 + 10).forEach(m => meshes.push(m));
-      [-1, 1].forEach((sx, i) => windowOn([sx * R * .6, -R * .76, S * .17], [0, -1, 0], S * .09, seed * 167 + 20 + 4 * i).forEach(m => meshes.push(m)));
+      door(0, -R * .95, 0, S * .14, S * .12, seed * 167 + 10).forEach(m => meshes.push(m));
+      windowOn([R * .55, -R * .82, S * .2], [0, -1, 0], S * .07, seed * 167 + 20).forEach(m => meshes.push(m));
       return place(meshes, Object.assign({ rot: 0 }, o), R, { ordered: 'depth' });
     },
     // igloo: a dome of ice facets, an entrance tunnel, a little second dome for fun
