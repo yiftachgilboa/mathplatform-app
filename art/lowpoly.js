@@ -242,6 +242,8 @@
     if (obj.ordered === 'depth') {
       const items = meshes.map(m => ({ m, d: project(centerOf(m), cam)[2] + (m.bias || 0) })), gk = {};
       items.forEach(x => { const g = x.m.group; if (g != null) gk[g] = Math.max(gk[g] == null ? -Infinity : gk[g], x.d); });
+      // a held object (and its arm) goes in front of the head, hat and every item, when that arm is on the near side
+      if (obj.front && gk[obj.front.group] != null && gk[obj.front.group] >= project(centerOf(obj.front.ref), cam)[2] - (obj.front.margin || 0)) gk[obj.front.group] = Infinity;
       items.forEach(x => { x.k = x.m.group != null ? gk[x.m.group] : x.d; });
       meshes = items.sort((a, b) => a.k - b.k || (a.m.order || 0) - (b.m.order || 0)).map(x => x.m);
     }
@@ -820,8 +822,9 @@
       bd.bias = hr * .9; meshes.push(bd);
     }
     const obj = place(meshes, Object.assign({ rot: 0 }, o), .14 * H, { ordered: 'depth' });
+    if (o.staff) obj.front = { group: 'armR', ref: head, margin: hr * .4 };
     const r = o.rot || 0;
-    obj.face = { c: [obj.x, obj.y, obj.z + hz], r: hr, f: [Math.sin(r), -Math.cos(r), 0], u: [Math.cos(r), Math.sin(r), 0],
+    obj.face = { c: [obj.x, obj.y, obj.z + hz], r: hr, browColor: '#3a271b', f: [Math.sin(r), -Math.cos(r), 0], u: [Math.cos(r), Math.sin(r), 0],
       expr: o.expression || poseExpression[o.pose || 'stand'] || 'happy', noMouth: !!o.beard };
     return obj;
   };
@@ -900,9 +903,10 @@
       brim.bias = rz * 1.2; hat.bias = rz * 1.3; meshes.push(brim, hat);
     }
     const obj = place(meshes, Object.assign({ rot: 0 }, o), .3 * H, { ordered: 'depth' });
+    if (outfit === 'wizard') obj.front = { group: 'armR', ref: egg, margin: rx * .3 };
     const r = o.rot || 0;
-    obj.face = { c: [obj.x, obj.y, obj.z + zc], r: rx, k: [.9, 1, rz / rx], f: [Math.sin(r), -Math.cos(r), 0], u: [Math.cos(r), Math.sin(r), 0],
-      style: 'buddy', eyeK: 1.4, noMouth: outfit === 'wizard', brows: outfit === 'wizard' ? '#f4f5f6' : null,
+    obj.face = { c: [obj.x, obj.y, obj.z + zc], r: rx, browColor: outfit === 'wizard' ? '#f4f5f6' : outfit === 'kid' ? '#3a271b' : '#4a1216', k: [.9, 1, rz / rx], f: [Math.sin(r), -Math.cos(r), 0], u: [Math.cos(r), Math.sin(r), 0],
+      style: 'buddy', eyeK: 1.4, noMouth: outfit === 'wizard',
       expr: o.expression || poseExpression[o.pose || 'stand'] || 'happy' };
     return obj;
   };
@@ -932,19 +936,34 @@
     const cheeks = eyes.map(e => `<ellipse cx="${f1(e[0])}" cy="${f1(e[1] + s * .2)}" rx="${f1(s * .1)}" ry="${f1(s * .06)}" fill="#ff7b7b" opacity=".45"/>`).join('');
     // innerUp > 0: inner end raised (worried/sad); < 0: lowered (angry)
     const brow = (e, innerUp, lift) => P(`M${f1(e[0] - e.inner * s * .1)},${f1(e[1] - s * (lift - innerUp))} L${f1(e[0] + e.inner * s * .1)},${f1(e[1] - s * (lift + innerUp))}`, .045);
+    // BIG thick brows: a tapered, slightly arched wedge, thick at the inner end. Their shape carries the expression.
+    // innerUp > 0 raises the inner end (worried, sad), < 0 lowers it (angry); lift = height above the eye; arch = bow
+    const kE = F.eyeK || 1, BC = F.browColor || E;
+    const bigBrow = (e, innerUp, lift, arch, k, color) => {
+      k = (k || 1) * kE;
+      const w = s * .17 * k, t0 = s * .05 * k, t1 = s * .11 * k, o0 = e[0] - e.inner * w, i0 = e[0] + e.inner * w * .85;
+      const yo = e[1] - s * (lift - innerUp) * kE, yi = e[1] - s * (lift + innerUp) * kE, cx = (o0 + i0) / 2, cy = (yo + yi) / 2 - s * arch * kE;
+      const d = `M${f1(o0)},${f1(yo)} Q${f1(cx)},${f1(cy)} ${f1(i0)},${f1(yi)} L${f1(i0)},${f1(yi + t1)} Q${f1(cx)},${f1(cy + (t0 + t1) * .5)} ${f1(o0)},${f1(yo + t0)} Z`;
+      return `<path d="${d}" fill="${color || BC}" stroke="${color || BC}" stroke-width="${f1(s * .025 * k)}" stroke-linejoin="round"/>`;
+    };
+    // per expression: [innerUp, lift, arch]
+    const BROW = { happy: [0, .3, .07], joy: [-.01, .37, .12], surprised: [.03, .46, .12], scared: [.13, .37, .03], sad: [.12, .29, -.01] };
+    const brows = (key, k) => { const b = BROW[key] || BROW.happy; return eyes.map(e => bigBrow(e, b[0], b[1], b[2], k)).join(''); };
     if (!m.vis && !eyes.length) return '';
     let out = '';
-    if (style === 'animal') return `<g class="face">${eyes.map(e => dotEye(e, .85)).join('')}</g>`;
+    if (style === 'animal') return `<g class="face">${eyes.map(e => dotEye(e, .85) + bigBrow(e, .03, .24, .05, .75, '#2b2f33')).join('')}</g>`;
     if (style === 'cyclops') {
       const e = both[0]; if (!e.vis) return '';
       out += `<circle cx="${f1(e[0])}" cy="${f1(e[1])}" r="${f1(s * .32)}" fill="#fff"/><circle cx="${f1(e[0])}" cy="${f1(e[1] + s * .03)}" r="${f1(s * .19)}" fill="#7b3fd1"/>`;
       out += `<circle cx="${f1(e[0])}" cy="${f1(e[1] + s * .04)}" r="${f1(s * .1)}" fill="${E}"/><circle cx="${f1(e[0] + s * .07)}" cy="${f1(e[1] - s * .06)}" r="${f1(s * .055)}" fill="#fff"/>`;
       if (m.vis) out += P(`M${f1(m[0] - s * .13)},${f1(m[1] - s * .02)} Q${f1(m[0])},${f1(m[1] + s * .12)} ${f1(m[0] + s * .13)},${f1(m[1] - s * .02)}`, .05);
+      { const w = s * .34, y = e[1] - s * .44, t = s * .1; // one wide brow
+        out += `<path d="M${f1(e[0] - w)},${f1(y + t * .4)} Q${f1(e[0])},${f1(y - s * .12)} ${f1(e[0] + w)},${f1(y + t * .4)} L${f1(e[0] + w * .9)},${f1(y + t * 1.1)} Q${f1(e[0])},${f1(y - s * .12 + t * 1.4)} ${f1(e[0] - w * .9)},${f1(y + t * 1.1)} Z" fill="#124d2c" stroke="#124d2c" stroke-width="${f1(s * .02)}" stroke-linejoin="round"/>`; }
       return `<g class="face">${out}</g>`;
     }
     if (style === 'monster') {
       out += eyes.map(e => `<ellipse cx="${f1(e[0])}" cy="${f1(e[1])}" rx="${f1(s * .1)}" ry="${f1(s * .085)}" fill="#ffd23f"/><ellipse cx="${f1(e[0])}" cy="${f1(e[1])}" rx="${f1(s * .028)}" ry="${f1(s * .07)}" fill="${E}"/>`).join('');
-      out += eyes.map(e => brow(e, -.07, .15)).join('');
+      out += eyes.map(e => bigBrow(e, -.12, .17, 0, .95, '#1f1030')).join('');
       const Mo = F.mouth;
       if (Mo) {
         // a corner shows only when its side of the snout faces the camera (profile → half a mouth)
@@ -971,26 +990,26 @@
     }
     switch (F.expr) {
       case 'joy':
-        out += eyes.map(e => P(`M${f1(e[0] - s * .1)},${f1(e[1] + s * .03)} Q${f1(e[0])},${f1(e[1] - s * .13)} ${f1(e[0] + s * .1)},${f1(e[1] + s * .03)}`)).join('');
-        out += P(`M${f1(m[0] - s * .2)},${f1(m[1] - s * .07)} Q${f1(m[0])},${f1(m[1] + s * .32)} ${f1(m[0] + s * .2)},${f1(m[1] - s * .07)} Z`, 0, R);
-        out += `<ellipse cx="${f1(m[0])}" cy="${f1(m[1] + s * .1)}" rx="${f1(s * .08)}" ry="${f1(s * .045)}" fill="#ef7f86"/>` + cheeks;
+        out += eyes.map(e => P(`M${f1(e[0] - s * .1 * kE)},${f1(e[1] + s * .03)} Q${f1(e[0])},${f1(e[1] - s * .13 * kE)} ${f1(e[0] + s * .1 * kE)},${f1(e[1] + s * .03)}`)).join('') + brows('joy');
+        if (!F.noMouth) out += P(`M${f1(m[0] - s * .2)},${f1(m[1] - s * .07)} Q${f1(m[0])},${f1(m[1] + s * .32)} ${f1(m[0] + s * .2)},${f1(m[1] - s * .07)} Z`, 0, R)
+          + `<ellipse cx="${f1(m[0])}" cy="${f1(m[1] + s * .1)}" rx="${f1(s * .08)}" ry="${f1(s * .045)}" fill="#ef7f86"/>`;
+        out += cheeks;
         break;
       case 'surprised':
-        out += eyes.map(e => dotEye(e, 1.3)).join('') + eyes.map(e => brow(e, .02, .26)).join('');
-        out += `<ellipse cx="${f1(m[0])}" cy="${f1(m[1])}" rx="${f1(s * .07)}" ry="${f1(s * .1)}" fill="${R}"/>`;
+        out += eyes.map(e => dotEye(e, 1.3)).join('') + brows('surprised');
+        if (!F.noMouth) out += `<ellipse cx="${f1(m[0])}" cy="${f1(m[1])}" rx="${f1(s * .07)}" ry="${f1(s * .1)}" fill="${R}"/>`;
         break;
       case 'scared':
-        out += eyes.map(e => `<ellipse cx="${f1(e[0])}" cy="${f1(e[1])}" rx="${f1(s * .12)}" ry="${f1(s * .16)}" fill="#fff" stroke="${E}" stroke-width="${f1(s * .03)}"/><circle cx="${f1(e[0])}" cy="${f1(e[1] + s * .02)}" r="${f1(s * .045)}" fill="${E}"/>`).join('');
-        out += eyes.map(e => brow(e, .06, .27)).join('');
-        out += P(`M${f1(m[0] - s * .16)},${f1(m[1])} q${f1(s * .04)},${f1(-s * .06)} ${f1(s * .08)},0 t${f1(s * .08)},0 t${f1(s * .08)},0 t${f1(s * .08)},0`, .045);
+        out += eyes.map(e => `<ellipse cx="${f1(e[0])}" cy="${f1(e[1])}" rx="${f1(s * .12 * kE)}" ry="${f1(s * .16 * kE)}" fill="#fff" stroke="${E}" stroke-width="${f1(s * .03)}"/><circle cx="${f1(e[0])}" cy="${f1(e[1] + s * .02)}" r="${f1(s * .045 * kE)}" fill="${E}"/>`).join('');
+        out += brows('scared');
+        if (!F.noMouth) out += P(`M${f1(m[0] - s * .16)},${f1(m[1])} q${f1(s * .04)},${f1(-s * .06)} ${f1(s * .08)},0 t${f1(s * .08)},0 t${f1(s * .08)},0 t${f1(s * .08)},0`, .045);
         break;
       case 'sad':
-        out += eyes.map(e => dotEye(e, .9)).join('') + eyes.map(e => brow(e, .06, .22)).join('');
-        out += P(`M${f1(m[0] - s * .14)},${f1(m[1] + s * .06)} Q${f1(m[0])},${f1(m[1] - s * .08)} ${f1(m[0] + s * .14)},${f1(m[1] + s * .06)}`);
+        out += eyes.map(e => dotEye(e, .9)).join('') + brows('sad');
+        if (!F.noMouth) out += P(`M${f1(m[0] - s * .14)},${f1(m[1] + s * .06)} Q${f1(m[0])},${f1(m[1] - s * .08)} ${f1(m[0] + s * .14)},${f1(m[1] + s * .06)}`);
         break;
       default: // happy
-        out += eyes.map(e => dotEye(e, 1)).join('');
-        if (F.brows) out += eyes.map(e => `<path d="M${f1(e[0] - e.inner * s * .16)},${f1(e[1] - s * .2)} Q${f1(e[0])},${f1(e[1] - s * .3)} ${f1(e[0] + e.inner * s * .14)},${f1(e[1] - s * .26)}" fill="none" stroke="${F.brows}" stroke-width="${f1(s * .09)}" stroke-linecap="round"/>`).join(''); // bushy brows
+        out += eyes.map(e => dotEye(e, 1)).join('') + brows('happy');
         if (!F.noMouth) out += P(`M${f1(m[0] - s * .18)},${f1(m[1] - s * .03)} Q${f1(m[0])},${f1(m[1] + s * .15)} ${f1(m[0] + s * .18)},${f1(m[1] - s * .03)}`);
         out += cheeks;
     }
