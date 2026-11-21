@@ -511,6 +511,8 @@
     mesh.center = [0, 0, lh * .4];
     return mesh;
   }
+  // a band that wraps a box drawn on top of it: drop its side faces (±x), which would sit inside the box and show as grey panels
+  const noEnds = mesh => { mesh.f = mesh.f.filter(f => { const a = mesh.v[f[0]], n = norm(cross(sub(mesh.v[f[1]], a), sub(mesh.v[f[2]], a))); return Math.abs(n[0]) < .7; }); return mesh; };
   const hingeX = (mesh, yh, zh, phi) => mesh.map(p => {
     const dy = p[1] - yh, dz = p[2] - zh, c = Math.cos(phi), s = Math.sin(phi);
     return [p[0], yh + dy * c + dz * s, zh - dy * s + dz * c];
@@ -531,11 +533,11 @@
     chest(o) {
       const S = o.size || 120, seed = o.seed || 1, w = S, d = S * .62, h = S * .5, lh = S * .26, phi = o.open || 0;
       const meshes = [box(w, d, h, mat.wood, seed * 41, .08)];
-      [-1, 1].forEach((s, i) => { const b = box(w * .09, d * 1.04, h * 1.02, mat.metal, seed * 41 + 1 + i, .04).move(s * w * .32, 0, 0); b.bias = S; meshes.push(b); });
+      [-1, 1].forEach((s, i) => { const b = noEnds(box(w * .09, d * 1.04, h * 1.02, mat.metal, seed * 41 + 1 + i, .04)).move(s * w * .32, 0, 0); b.bias = S; meshes.push(b); });
       const lid = hingeX(lidPrism(w * 1.02, d * 1.02, lh, 4, mat.wood, seed * 41 + 3, mat.woodInner).move(0, 0, h), d * .51, h, phi);
       meshes.push(lid);
       [-1, 1].forEach((s, i) => {
-        const band = hingeX(lidPrism(w * .09, d * 1.06, lh * 1.05, 4, mat.metal, seed * 41 + 4 + i).move(s * w * .32, 0, h), d * .53, h, phi);
+        const band = hingeX(noEnds(lidPrism(w * .09, d * 1.06, lh * 1.05, 4, mat.metal, seed * 41 + 4 + i)).move(s * w * .32, 0, h), d * .53, h, phi);
         band.bias = S * 2; meshes.push(band);
       });
       if (phi > .3) { // gold heap inside
@@ -1519,22 +1521,19 @@
   Object.assign(charMat, {
     fire: M(['#9c2a14', '#e0541f', '#ff8a2e', '#ffd23f'], .06), ember: M(['#5a1a10', '#8e2a18', '#c2402a'], .05),
     swamp: M(['#2f4a1c', '#4d6e2a', '#7a9a3e', '#a8c46a'], .07),
-    // number planks keep the game's three colors (a child tells the original planks apart by color)
-    plankCoral: M(['#a8321f', '#e8523e', '#ff7a66', '#ffb0a2'], .03), plankBlue: M(['#1d3f96', '#2f5fd0', '#5a86ee', '#a0bcff'], .03),
-    plankPurple: M(['#47258f', '#6c3fd0', '#9068f2', '#c2a8ff'], .03),
   });
   Object.assign(make, {
-    // a stretch of land seen from the side: grass top (depth o.depth), a grass lip, an earth front face with a few
-    // stones. x 0 → o.w, top at z = 0, front face down to z = −o.h. edgeL / edgeR = a pit on that side (jagged edge)
+    // a stretch of land seen from the side: grass top (depth o.depth), a grass lip, a smooth earth front face in a few
+    // big facets (no noise). x 0 → o.w, top at z = 0, front face down to z = −o.h. edgeL / edgeR = a pit on that side
     ground(o) {
       const w = o.w || 400, h = o.h || 150, D = o.depth || 40, seed = o.seed || 1, rand = rng(seed * 137);
       const top = o.top || mat.grass, lipM = o.lip || mat.grassSide, side = o.side || mat.earth, rock = o.rock || mat.stone;
-      const n = Math.max(1, Math.round(w / (o.step || 56))), lip = o.lipH == null ? Math.min(10, h * .08) : o.lipH;
+      const n = Math.max(1, Math.round(w / (o.step || 150))), lip = o.lipH == null ? Math.min(10, h * .08) : o.lipH;
       // two meshes, each with its center far away on its inner side (a wide slab has no single center that orients every facet)
       const topM = new Mesh(top, seed * 137), face = new Mesh(side, seed * 137 + 1);
       topM.center = [w / 2, D / 2, -1e6]; face.center = [w / 2, 1e6, -h / 2];
       const xs = []; for (let i = 0; i <= n; i++) xs.push(i === 0 ? 0 : i === n ? w : (i + (rand() - .5) * .5) * w / n);
-      const jag = (i, k) => (i === 0 && o.edgeL ? (rand() - .5) * 14 + (k % 2 ? 5 : -2) : i === n && o.edgeR ? (rand() - .5) * 14 - (k % 2 ? 5 : -2) : 0);
+      const jag = (i, k) => (i === 0 && o.edgeL ? (k % 2 ? 4 : -2) : i === n && o.edgeR ? (k % 2 ? -4 : 2) : 0);
       const grid = (mesh, rows, at) => rows.map((r, k) => xs.map((x, i) => at(x + jag(i, k), r, i, k)));
       const tri4 = (mesh, P, pick) => {
         const id = P.map(row => row.map(p => mesh.add(p)));
@@ -1544,13 +1543,13 @@
         }
       };
       // top: front edge (y 0) → back (y D), bumpy so the grass gets several shades
-      const T = grid(topM, [0, D * .5, D], (x, y, i, k) => [x, y, k ? (rand() - .5) * D * .14 : 0]);
+      const T = grid(topM, [0, D], (x, y, i, k) => [x, y, k ? (rand() - .5) * D * .1 : 0]);
       tri4(topM, T, () => top);
       // lip + front face (y ≈ 0, jittered in depth so every facet catches the light differently)
-      const zs = [0, -lip, -lip - (h - lip) * (.3 + (rand() - .5) * .1), -lip - (h - lip) * (.64 + (rand() - .5) * .1), -h];
-      const F = grid(face, zs, (x, z, i, k) => [x, k === 0 || k === zs.length - 1 ? 0 : (rand() - .5) * 16 - 2, z + (k > 0 && k < zs.length - 1 ? (rand() - .5) * 10 : 0)]);
+      const zs = [0, -lip, -h * .55, -h];
+      const F = grid(face, zs, (x, z, i, k) => [x, k === 0 || k === zs.length - 1 ? 0 : (rand() - .5) * 8 - 1, z + (k === 2 ? (rand() - .5) * h * .2 : 0)]);
       F[0] = T[0];
-      tri4(face, F, k => (k === 0 ? lipM : rand() < (k === zs.length - 2 ? .14 : .05) ? rock : side));
+      tri4(face, F, k => (k === 0 ? lipM : o.rocks && rand() < o.rocks ? rock : side));
       return place([topM, face], o, 0);
     },
     // a flame: a pointed cone in fire colors with a glowing core (draw each flame in its own group to flicker it)
@@ -1574,7 +1573,23 @@
     },
   });
 
-  const LP = { rng, camera, poses, face, project, facets, polys, draw, bounds, hull, castShadow, outline, material, mat, themes, useTheme, make, Mesh, icosphere, cone, cylinder, limb, ring, stitch, fan, hex2rgb, rgb2hex };
+  // ---------- flat side-view parts (2D, for game layers that must line up exactly with the play grid) ----------
+  const flat = {
+    // a thin bridge seen from the side (approved design from the bridge game): a deck in one color per segment,
+    // a post on every unit, a wooden rail on top. segs = [{n, color}], unit = px per unit. → {svg, w, h}
+    bridge(o) {
+      const U = o.unit || 40, segs = o.segs || [{ n: 5, color: '#ad7a45' }], n = segs.reduce((s, g) => s + g.n, 0), w = n * U, H = 24, deckY = 14;
+      const post = o.post || '#8A5A34', rail = o.rail || '#A06A40';
+      let el = '', x = 0;
+      segs.forEach(g => { const sw = g.n * U; el += `<rect x="${x}" y="${deckY}" width="${sw}" height="8" fill="${g.color}"/><rect x="${x}" y="${deckY}" width="${sw}" height="3" fill="rgba(255,255,255,.35)"/>`; x += sw; });
+      el += `<rect x="0" y="${deckY + 6}" width="${w}" height="2" fill="rgba(0,0,0,.18)"/>`;
+      for (let i = 0; i <= n; i++) { const px = Math.min(w - 3, Math.max(0, i * U - 1.5)); el += `<rect x="${px}" y="3" width="3" height="${deckY - 2}" fill="${post}"/>`; }
+      el += `<rect x="0" y="2" width="${w}" height="3" rx="1.5" fill="${rail}"/>`;
+      return { svg: `<svg width="${w}" height="${H}" viewBox="0 0 ${w} ${H}" style="display:block;overflow:visible">${el}</svg>`, w, h: H, deckY };
+    },
+  };
+
+  const LP = { flat, rng, camera, poses, face, project, facets, polys, draw, bounds, hull, castShadow, outline, material, mat, themes, useTheme, make, Mesh, icosphere, cone, cylinder, limb, ring, stitch, fan, hex2rgb, rgb2hex };
   root.LP = LP;
   useTheme('day');
 })(typeof window !== 'undefined' ? window : globalThis);
