@@ -105,7 +105,7 @@
     gemGreen: M(['#0e5a3a', '#1f9a5f', '#4fd08c', '#c4f5d9'], .04),
     woodEnd: M(['#a8733f', '#cf9c62', '#ebc48a', '#f8dfb0'], .05), petal: M(['#c2410c', '#ea6a1a', '#f79a2e', '#ffd166'], .07),
     // buildings (toy village)
-    plaster: M(['#b7a184', '#dccab0', '#f1e5d1', '#fff8ea'], .04), masonry: M(['#5e5a57', '#87817a', '#b1a99f', '#d6cfc4'], .08),
+    plaster: M(['#b39b7c', '#d8c4a6', '#efe0c8', '#fff6e4'], .08), masonry: M(['#5e5a57', '#87817a', '#b1a99f', '#d6cfc4'], .08),
     roofRed: M(['#6e2419', '#a63a28', '#d45a3a', '#ef8a5c'], .06), roofBlue: M(['#1d3a66', '#2c5694', '#4a7cc2', '#83abe0'], .06),
     roofGreen: M(['#24502a', '#357a3b', '#55a454', '#94cf82'], .06), glass: M(['#16304f', '#24507e', '#3f78ad', '#86b6de'], .03),
     flag: M(['#8f1c22', '#cf3535', '#ef5c55', '#ff8d80'], .03),
@@ -454,12 +454,28 @@
 
   // ---------- game objects ----------
   // "pillow" box: every side gets a center point pushed out a little → 4 soft facets per side instead of a flat square
-  function box(w, d, h, m, seed, bulge) {
-    const mesh = new Mesh(m, seed), b = (bulge == null ? .06 : bulge) * Math.min(w, d, h);
+  // facet: true → each side gets two jittered inner points at different depths → 6 triangles in varied shades
+  // (the triangle-faceted facades of the city references), instead of 4 even facets
+  function box(w, d, h, m, seed, bulge, facet) {
+    const mesh = new Mesh(m, seed), b = (bulge == null ? .06 : bulge) * Math.min(w, d, h), rand = rng((seed || 1) * 131 + 7);
     const X = [-w / 2, w / 2], Y = [-d / 2, d / 2], Z = [0, h], c = {};
     for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) for (let k = 0; k < 2; k++) c[i + '' + j + k] = mesh.add([X[i], Y[j], Z[k]]);
     const side = (a, b2, c2, d2, n) => {
       const ps = [a, b2, c2, d2].map(i => mesh.v[i]);
+      if (facet) {
+        let q = [a, b2, c2, d2];
+        if (rand() < .5) q = [b2, c2, d2, a]; // random diagonal
+        const P = q.map(i => mesh.v[i]);
+        const pt = (t, dep) => {
+          const jx = (rand() - .5) * .22, jy = (rand() - .5) * .22;
+          const x = P[0][0] + (P[2][0] - P[0][0]) * t, y = P[0][1] + (P[2][1] - P[0][1]) * t, z = P[0][2] + (P[2][2] - P[0][2]) * t;
+          const u = [P[1][0] - P[0][0], P[1][1] - P[0][1], P[1][2] - P[0][2]], v = [P[3][0] - P[0][0], P[3][1] - P[0][1], P[3][2] - P[0][2]];
+          return mesh.add([x + u[0] * jx + v[0] * jy + n[0] * b * dep, y + u[1] * jx + v[1] * jy + n[1] * b * dep, z + u[2] * jx + v[2] * jy + n[2] * b * dep]);
+        };
+        const p1 = pt(.33 + (rand() - .5) * .1, .4 + rand() * 1.2), p2 = pt(.67 + (rand() - .5) * .1, .4 + rand() * 1.2);
+        mesh.tri(q[0], q[1], p1).tri(q[1], p2, p1).tri(q[1], q[2], p2).tri(q[2], q[3], p2).tri(q[3], p1, p2).tri(q[3], q[0], p1);
+        return;
+      }
       const cc = mesh.add([(ps[0][0] + ps[2][0]) / 2 + n[0] * b, (ps[0][1] + ps[2][1]) / 2 + n[1] * b, (ps[0][2] + ps[2][2]) / 2 + n[2] * b]);
       [a, b2, c2, d2].forEach((v, i, arr) => mesh.tri(cc, v, arr[(i + 1) % 4]));
     };
@@ -1061,7 +1077,7 @@
   // a gable roof as two thick slabs from the ridge down to the eaves (ridge along y, so the front shows the gable)
   function roofSlabs(w, d, H, over, t, m, seed, ridgeZ) {
     const hw = w / 2 + over, L = Math.hypot(hw, H), a = Math.atan2(H, hw), e = t * .6;
-    return [1, -1].map((sx, i) => box(L + e, d + 2 * over, t, m, seed + i, .12).move((L + e) / 2 - e, 0, 0).rotY(-a)
+    return [1, -1].map((sx, i) => box(L + e, d + 2 * over, t, m, seed + i, .25, true).move((L + e) / 2 - e, 0, 0).rotY(-a)
       .map(p => [p[0] * sx, p[1], p[2] + ridgeZ]));
   }
   // triangle wall under the roof (front and back gables)
@@ -1094,12 +1110,12 @@
     house(o) {
       const S = o.size || 160, seed = o.seed || 1, rand = rng(seed * 97), w = S, d = S * .78, h = S * .55, H = S * .42, over = S * .1;
       const roofM = mat['roof' + ({ blue: 'Blue', green: 'Green' }[o.roof] || 'Red')], meshes = [];
-      meshes.push(box(w * 1.06, d * 1.06, S * .07, mat.masonry, seed * 97, .1));
-      meshes.push(box(w, d, h, mat.plaster, seed * 97 + 1, .05).move(0, 0, S * .05));
+      meshes.push(box(w * 1.06, d * 1.06, S * .07, mat.masonry, seed * 97, .1, true));
+      meshes.push(box(w, d, h, mat.plaster, seed * 97 + 1, .17, true).move(0, 0, S * .05));
       const tilt = (rand() - .5) * .06; // a little crooked
       const roofParts = [gableWall(w, d, H * (w / 2) / (w / 2 + over), mat.plaster, seed * 97 + 2).move(0, 0, h + S * .05)]
         .concat(roofSlabs(w, d, H, over, S * .09, roofM, seed * 97 + 3, h + S * .05 + H));
-      const ch = box(S * .13, S * .13, S * .42, mat.masonry, seed * 97 + 6, .08).rotY(.05).move(w * .24, d * .12, h + H * .35);
+      const ch = box(S * .13, S * .13, S * .42, mat.masonry, seed * 97 + 6, .12, true).rotY(.05).move(w * .24, d * .12, h + H * .35);
       const chTop = box(S * .17, S * .17, S * .05, mat.masonry, seed * 97 + 7, .08).move(w * .24 + S * .02, d * .12, h + H * .35 + S * .42);
       roofParts.push(ch, chTop);
       roofParts.forEach(m => { m.rotZ(tilt); meshes.push(m); });

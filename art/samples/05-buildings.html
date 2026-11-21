@@ -30,7 +30,7 @@
 <div class="wrap">
   <header>
     <h1>דוגמת מופת 5 — מבנים</h1>
-    <p>כפר ״צעצוע״, ברוח הדמויות: פרופורציות מוגזמות מעט — גג עבה עם שוליים רחבים, דלת קשתית וחלונות גדולים, וקצת עקום. אותם גופים ואותו אור, צבעים קבועים (המים מתחלפים עם ערכת הצבע).</p>
+    <p>כפר ״צעצוע״, ברוח הדמויות. המבנים עומדים חזיתית — שטוח עם הטעיית עומק מהפאות, לא 2.5D: פרופורציות מוגזמות מעט — גג עבה עם שוליים רחבים, דלת קשתית וחלונות גדולים, וקצת עקום. אותם גופים ואותו אור, צבעים קבועים (המים מתחלפים עם ערכת הצבע).</p>
   </header>
   <svg id="scene" class="scene" viewBox="0 0 1000 640" role="img" aria-label="כפר על אי"></svg>
   <div class="controls" id="themes">
@@ -61,7 +61,7 @@ function mainSVG(t) {
   const items = [
     M.house({ x: -215, y: 90, size: 175, roof: 'red', seed: 1 }),
     M.tower({ x: 285, y: 130, size: 250, roof: 'blue', t, seed: 2 }),
-    M.house({ x: 40, y: 140, size: 120, roof: 'green', seed: 3, rot: .15 }),
+    M.house({ x: 40, y: 140, size: 120, roof: 'green', seed: 3 }),
     M.well({ x: -60, y: -110, size: 80, seed: 4 }),
     M.fence({ x: -260, y: -150, length: 200, height: 40, seed: 5 }),
     M.bridge({ x: 120, y: -10, length: 300, width: 70, seed: 6 }),
@@ -78,21 +78,21 @@ function mainSVG(t) {
   return svg;
 }
 function card(obj, he, code, a, extra) {
-  const cam = LP.camera({ a: a == null ? .35 : a }), list = LP.facets(obj, cam).concat(extra ? LP.facets(extra, cam) : []), b = LP.bounds(list), p = Math.max(b.w, b.h) * .1, T = LP.theme;
+  const cam = LP.camera({ a: a == null ? .4 : a }), list = LP.facets(obj, cam).concat(extra ? LP.facets(extra, cam) : []), b = LP.bounds(list), p = Math.max(b.w, b.h) * .1, T = LP.theme;
   const under = extra ? LP.polys(LP.facets(extra, cam)) : '';
   return `<div class="card"><svg viewBox="${(b.x - p).toFixed(0)} ${(b.y - p).toFixed(0)} ${(b.w + 2 * p).toFixed(0)} ${(b.h + 2 * p).toFixed(0)}" style="background:linear-gradient(${T.sky[1]},${T.sky[2]})">${under}${LP.draw(obj, cam)}</svg><b>${he}</b><code>${code}</code></div>`;
 }
 function gallery() {
   LP.useTheme(THEME);
   $('gallery').innerHTML = [
-    card(M.house({ size: 160, rot: -.45 }), 'בית', "house({roof:'red'})"),
-    card(M.house({ size: 160, rot: .45, roof: 'blue', seed: 5 }), 'בית — גג כחול', "house({roof:'blue'})"),
-    card(M.tower({ size: 240, rot: -.3 }), 'מגדל', 'tower()'),
-    card(M.well({ size: 100, rot: -.4 }), 'באר', 'well()'),
-    card(M.fence({ length: 200, height: 50, rot: -.25 }), 'גדר', 'fence()'),
-    card(M.bridge({ length: 260, rot: -.3 }), 'גשר', 'bridge()', .4, M.water({ rx: 120, ry: 70, rot: -.3 })),
+    card(M.house({ size: 160 }), 'בית', "house({roof:'red'})"),
+    card(M.house({ size: 160, roof: 'blue', seed: 5 }), 'בית — גג כחול', "house({roof:'blue'})"),
+    card(M.tower({ size: 240 }), 'מגדל', 'tower()'),
+    card(M.well({ size: 100 }), 'באר', 'well()'),
+    card(M.fence({ length: 200, height: 50 }), 'גדר', 'fence()'),
+    card(M.bridge({ length: 260 }), 'גשר', 'bridge()', .4, M.water({ rx: 120, ry: 70 })),
     card(M.water({ rx: 120, ry: 70 }), 'מים', 'water()', .4),
-    card(M.house({ size: 160, rot: -.2, roof: 'green', seed: 9 }), 'בית — גג ירוק', "house({roof:'green'})"),
+    card(M.house({ size: 160, roof: 'green', seed: 9 }), 'בית — גג ירוק', "house({roof:'green'})"),
   ].join('');
 }
 $('themes').addEventListener('click', e => {
