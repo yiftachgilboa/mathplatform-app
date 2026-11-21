@@ -108,6 +108,7 @@
     birdBlue: M(['#173c78', '#2563b0', '#3f86d6', '#86c4f2'], .07), birdBelly: M(['#c06a1c', '#e8902e', '#f6b356', '#ffd690'], .05),
     monster: M(['#2f1846', '#52287a', '#7a42a8', '#a874d1'], .07), monsterBelly: M(['#5b7a12', '#86a822', '#b2cf3a', '#dcef7a'], .05),
     horn: M(['#8a7a5c', '#bfae88', '#e6d9b8', '#fbf3dc'], .04),
+    robe: M(['#2c1a52', '#46297e', '#6a44b0', '#9a78dc'], .05),
     buddy: M(['#9c1d24', '#d63a3a', '#f05a50', '#ff8c7e'], .05), buddyFace: M(['#e58a74', '#f8b49c', '#ffd3c0', '#ffeae0'], .03),
     alien: M(['#17603a', '#249050', '#43bb6c', '#8fe39f'], .06), alienBelly: M(['#5aa86a', '#8fd09a', '#bfe9c4', '#e6f8e8'], .04),
   };
@@ -123,6 +124,7 @@
   Mesh.prototype.scale = function (x, y, z) { if (y == null) y = z = x; return this.map(p => [p[0] * x, p[1] * y, p[2] * z]); };
   Mesh.prototype.move = function (x, y, z) {
     if (this.snow) this.snow.z += (z || 0);
+    if (this.bands) this.bands.forEach(b => { b.z += (z || 0); });
     return this.map(p => [p[0] + x, p[1] + y, p[2] + (z || 0)]);
   };
   Mesh.prototype.rotZ = function (t) {
@@ -258,6 +260,7 @@
         let fm = f[3] || m;
         if (mesh.snow && cen[2] > mesh.snow.z && n[2] > .15) fm = mat.snow; // snow sits on upward faces above the line
         if (mesh.patch && dot(n, mesh.patch.dir) > mesh.patch.th) fm = mesh.patch.mat; // color patch by region (belly, chest, tail tip)
+        if (mesh.bands) for (const b of mesh.bands) if (cen[2] < b.z) { fm = b.mat; break; } // clothes as height bands (lowest first)
         const lam = dot(n, cam.L);
         let t = cam.ambient + (1 - cam.ambient) * Math.max(0, Math.min(1, 0.5 + 0.5 * cam.contrast * lam));
         t += (jit - .5) * 2 * fm.v * cam.vary;
@@ -821,46 +824,82 @@
     return obj;
   };
 
-  // head-body character (test): one big egg from the legs to the top of the head, so the face is as big as possible.
-  // short arms and legs on the kid's skeleton (same poses), light face patch, tuft on top. Less human, more readable small.
+  // head-body character: one big egg from the legs to the top of the head, so the face is as big as possible
+  // (readable small in a game). Same skeleton and poses as the kid. o.outfit:
+  //   none     - red player: light face oval + tuft
+  //   'kid'    - skin head, hair cap, shirt and pants as color bands on the egg, sleeves, pants legs
+  //   'wizard' - robe-colored egg, skin face, big white beard, pointed hat, white brows, staff
   make.buddy = function (o) {
-    const H = o.size || 160, seed = o.seed || 1, d = clampD(o.detail == null ? 1 : o.detail);
+    const H = o.size || 160, seed = o.seed || 1, d = clampD(o.detail == null ? 1 : o.detail), outfit = o.outfit;
     const P = Object.assign({ legL: 0, legR: 0, kneeL: 0, kneeR: 0, armL: 0, armR: 0, elbowL: .2, elbowR: .2, sideL: .25, sideR: .25, bob: 0 },
       (poses[o.pose || 'stand'] || poses.stand)(o.t || 0));
-    const body = o.mat || mat.buddy, faceM = o.faceMat || mat.buddyFace, meshes = [];
+    const skin = o.skin || mat.skin, shirt = o.shirt || mat.shirt, pants = o.pants || mat.pants, robe = o.robe || mat.robe;
+    const base = outfit === 'kid' ? skin : outfit === 'wizard' ? robe : (o.mat || mat.buddy);
+    const legM = outfit === 'kid' ? pants : base, sleeveM = outfit === 'kid' ? shirt : base, handM = outfit ? skin : base;
+    const meshes = [];
     const chain = (g, parts) => parts.forEach((m, i) => { m.group = g; m.order = i; meshes.push(m); });
     const ball = (p, r, m, sd) => icosphere(0, m, sd).scale(r).move(p[0], p[1], p[2]);
-    const rx = .37 * H, rz = .42 * H, legL = .1 * H, zc = .16 * H + rz + P.bob * H;
-    // legs: two short segments + shoe; a body-colored cover hides the hip
+    const rx = .37 * H, ry = rx * .9, rz = .42 * H, legL = .1 * H, zc = .16 * H + rz + P.bob * H;
+    // legs: two short segments + shoe; a cover hides the hip
     [[-1, 'L'], [1, 'R']].forEach(([s, k]) => {
       const hip = [s * .14 * H, 0, zc - rz * .82];
       const knee = limbEnd(hip, P['leg' + k], .05, s, legL), ankle = limbEnd(knee, P['leg' + k] - P['knee' + k], .05, s, legL);
       const shoe = icosphere(0, mat.shoe, seed * 37 + 4 + s).scale(.075 * H, .11 * H, .05 * H).move(ankle[0], ankle[1] - .035 * H, ankle[2] - .01 * H);
-      chain('leg' + k, [limb(hip, knee, .055 * H, .05 * H, body, seed * 37 + s), limb(knee, ankle, .05 * H, .045 * H, body, seed * 37 + 2 + s), shoe,
-        ball(knee, .052 * H, body, seed * 37 + 90 + s), ball(hip, .075 * H, body, seed * 37 + 92 + s)]);
+      chain('leg' + k, [limb(hip, knee, .055 * H, .05 * H, legM, seed * 37 + s), limb(knee, ankle, .05 * H, .045 * H, legM, seed * 37 + 2 + s), shoe,
+        ball(knee, .052 * H, legM, seed * 37 + 90 + s), ball(hip, .075 * H, legM, seed * 37 + 92 + s)]);
     });
     // the head-body
-    const egg = icosphere(Math.max(d, 1), body, seed * 37 + 10).jitter(.03, rng(seed * 37 + 11)).scale(rx, rx * .9, rz).move(0, 0, zc);
-    egg.patch = { mat: faceM, dir: [0, -1, .15], th: .66 }; // light face area so the eyes and mouth read from far
+    const egg = icosphere(Math.max(d, 1), base, seed * 37 + 10).jitter(.03, rng(seed * 37 + 11)).scale(rx, ry, rz).move(0, 0, zc);
+    if (!outfit) egg.patch = { mat: o.faceMat || mat.buddyFace, dir: [0, -1, .15], th: .66 }; // light face oval
+    if (outfit === 'wizard') egg.patch = { mat: skin, dir: [0, -1, .3], th: .62 };
+    if (outfit === 'kid') egg.bands = [{ z: zc - rz * .66, mat: pants }, { z: zc - rz * .24, mat: shirt }]; // clothes as bands below the face
     meshes.push(egg);
-    // arms: short, from the sides at mid height
+    // arms: short, from the sides at mid height; sleeve + forearm + hand
     [[-1, 'L'], [1, 'R']].forEach(([s, k]) => {
-      const sh = [s * rx * .9, 0, zc - rz * .12];
+      const sh = [s * rx * .9, 0, zc - rz * .2];
       const el = limbEnd(sh, P['arm' + k], P['side' + k] + .35, s, .1 * H);
       const wr = limbEnd(el, P['arm' + k] + P['elbow' + k], P['side' + k] + .35 + (P['elbowSide' + k] || 0), s, .09 * H);
-      const hd = norm(sub(wr, el)), hand = icosphere(0, body, seed * 37 + 14 + s).scale(.055 * H).move(wr[0] + hd[0] * .02 * H, wr[1] + hd[1] * .02 * H, wr[2] + hd[2] * .02 * H);
-      chain('arm' + k, [limb(sh, el, .045 * H, .04 * H, body, seed * 37 + 20 + s), limb(el, wr, .04 * H, .036 * H, body, seed * 37 + 22 + s), hand,
-        ball(el, .043 * H, body, seed * 37 + 94 + s), ball(sh, .06 * H, body, seed * 37 + 96 + s)]);
+      const hd = norm(sub(wr, el)), hand = icosphere(0, handM, seed * 37 + 14 + s).scale(.055 * H).move(wr[0] + hd[0] * .02 * H, wr[1] + hd[1] * .02 * H, wr[2] + hd[2] * .02 * H);
+      const parts = [limb(sh, el, .05 * H, .045 * H, sleeveM, seed * 37 + 20 + s), limb(el, wr, .04 * H, .036 * H, outfit === 'kid' ? skin : sleeveM, seed * 37 + 22 + s)];
+      if (outfit === 'wizard' && k === 'R') { // staff in the right hand, gem on top
+        const top = [wr[0], wr[1] - .03 * H, Math.max(wr[2] + .5 * H, 1.1 * H)];
+        parts.push(limb([wr[0], wr[1] - .03 * H, 0], top, .025 * H, .02 * H, mat.wood, seed * 37 + 40, 5));
+        parts.push(icosphere(0, mat.gemBlue, seed * 37 + 41).scale(.06 * H, .06 * H, .08 * H).move(top[0], top[1], top[2] + .05 * H));
+      }
+      parts.push(hand, ball(el, .047 * H, sleeveM, seed * 37 + 94 + s), ball(sh, .065 * H, sleeveM, seed * 37 + 96 + s));
+      chain('arm' + k, parts);
     });
-    // tuft on top: three little leaves
-    [-1, 0, 1].forEach((k, i) => {
+    if (!outfit) [-1, 0, 1].forEach((k, i) => { // tuft: three little leaves
       const b = [k * .04 * H, .02 * H, zc + rz * .95], tip = [k * .12 * H, .03 * H - (k ? 0 : .02 * H), zc + rz + .13 * H - Math.abs(k) * .03 * H];
-      const leaf = limb(b, tip, .035 * H, .006 * H, body, seed * 37 + 30 + i, 4); leaf.bias = H * .1; meshes.push(leaf);
+      const leaf = limb(b, tip, .035 * H, .006 * H, base, seed * 37 + 30 + i, 4); leaf.bias = H * .1; meshes.push(leaf);
     });
+    if (outfit === 'kid') { // hair cap: low at the back, a fringe high above the eyes
+      const hairM = icosphere(Math.max(d, 1), o.hair || mat.hair, seed * 37 + 50).jitter(.05, rng(seed * 37 + 51));
+      const cut = new Set();
+      hairM.v = hairM.v.map((p, i) => { const z0 = .3 - .42 * p[1]; if (p[2] < z0) { cut.add(i); return [p[0], p[1], z0]; } return p; });
+      hairM.f = hairM.f.filter(f => !(cut.has(f[0]) && cut.has(f[1]) && cut.has(f[2])));
+      hairM.center = [0, 0, 0];
+      hairM.scale(rx * 1.05, ry * 1.06, rz * 1.04).move(0, ry * .03, zc);
+      hairM.bias = rz * .6; meshes.push(hairM);
+      [[-.06, .05, .18], [.05, .08, .14]].forEach(([x, y, h], i) => { // cowlick
+        const tf = limb([x * H, y * H, zc + rz * .9], [x * H * 2.2, y * H + .05 * H, zc + rz + h * H], .05 * H, .006 * H, o.hair || mat.hair, seed * 37 + 52 + i, 4);
+        tf.bias = rz * .7; meshes.push(tf);
+      });
+    }
+    if (outfit === 'wizard') {
+      const beard = limb([0, -ry * .8, zc - rz * .12], [0, -ry * .98, zc - rz * 1.05], .19 * H, .01 * H, o.beard || mat.white, seed * 37 + 60, 7);
+      beard.bias = rz * .5; meshes.push(beard);
+      const hb = zc + rz * .74;
+      const brim = cylinder(10, .95, robe, seed * 37 + 61).scale(.46 * H, .42 * H, .035 * H).move(0, ry * .05, hb);
+      const hat = cone(7, robe, seed * 37 + 62, rng(seed * 37 + 63), .55).scale(.27 * H, .25 * H, .62 * H)
+        .map(p => [p[0], p[1] + Math.pow(p[2] / (.62 * H), 2) * .2 * H, p[2]]).move(0, ry * .05, hb);
+      brim.bias = rz * 1.2; hat.bias = rz * 1.3; meshes.push(brim, hat);
+    }
     const obj = place(meshes, Object.assign({ rot: 0 }, o), .3 * H, { ordered: 'depth' });
     const r = o.rot || 0;
     obj.face = { c: [obj.x, obj.y, obj.z + zc], r: rx, k: [.9, 1, rz / rx], f: [Math.sin(r), -Math.cos(r), 0], u: [Math.cos(r), Math.sin(r), 0],
-      style: 'buddy', eyeK: 1.4, expr: o.expression || poseExpression[o.pose || 'stand'] || 'happy' };
+      style: 'buddy', eyeK: 1.4, noMouth: outfit === 'wizard', brows: outfit === 'wizard' ? '#f4f5f6' : null,
+      expr: o.expression || poseExpression[o.pose || 'stand'] || 'happy' };
     return obj;
   };
 
@@ -947,6 +986,7 @@
         break;
       default: // happy
         out += eyes.map(e => dotEye(e, 1)).join('');
+        if (F.brows) out += eyes.map(e => `<path d="M${f1(e[0] - e.inner * s * .16)},${f1(e[1] - s * .2)} Q${f1(e[0])},${f1(e[1] - s * .3)} ${f1(e[0] + e.inner * s * .14)},${f1(e[1] - s * .26)}" fill="none" stroke="${F.brows}" stroke-width="${f1(s * .09)}" stroke-linecap="round"/>`).join(''); // bushy brows
         if (!F.noMouth) out += P(`M${f1(m[0] - s * .18)},${f1(m[1] - s * .03)} Q${f1(m[0])},${f1(m[1] + s * .15)} ${f1(m[0] + s * .18)},${f1(m[1] - s * .03)}`);
         out += cheeks;
     }

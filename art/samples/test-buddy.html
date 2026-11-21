@@ -25,8 +25,8 @@
 <body>
 <div class="wrap">
   <h1>בדיקה — דמות ראש־גוף</h1>
-  <p>בלי בטן: הראש הוא הגוף, מהרגליים ועד הקודקוד, ולכן הפנים גדולות פי 2 בערך. אותו שלד ואותן תנוחות והבעות. ליד — הילד הרגיל באותו גובה.</p>
-  <svg id="scene" class="scene" viewBox="0 0 800 480" role="img" aria-label="דמות ראש־גוף ליד הילד"></svg>
+  <p>בלי בטן: הראש הוא הגוף, מהרגליים ועד הקודקוד, ולכן הפנים גדולות פי 2 בערך. ילד (שיער, חולצה, מכנסיים) ומכשף (גלימה, כובע, זקן, מטה) על אותו בסיס, עם אותן תנוחות והבעות.</p>
+  <svg id="scene" class="scene" viewBox="0 0 800 480" role="img" aria-label="ילד ומכשף בסגנון ראש־גוף"></svg>
   <div class="chips" id="poses"></div>
   <div class="chips" id="exprs"></div>
   <h2>בגודל של משחק (64 פיקסלים)</h2>
@@ -53,8 +53,8 @@ function scene(t) {
   const island = LP.make.island({ rx: 240, ry: 110, depth: 150, seed: 6 });
   const expression = S.expr === 'auto' ? null : S.expr;
   const items = [
-    LP.make.buddy({ x: -70, y: 0, size: 180, rot: -.35, pose: S.pose, t, expression }),
-    LP.make.kid({ x: 120, y: -10, size: 180, rot: .35, pose: S.pose, t: t + .25, expression, seed: 3 }),
+    LP.make.buddy({ x: -90, y: 0, size: 170, rot: -.35, pose: S.pose, t, expression, outfit: 'kid' }),
+    LP.make.buddy({ x: 110, y: -10, size: 190, rot: .35, pose: S.pose, t: t + .25, expression, outfit: 'wizard' }),
     LP.make.bush({ x: -200, y: 60, size: 46, seed: 2 }), LP.make.pine({ x: 200, y: 80, size: 120, seed: 5 }),
   ].sort((a, b) => b.y - a.y);
   svg += LP.draw(island, cam);
@@ -68,8 +68,9 @@ function tiny(obj) {
 LP.useTheme('day');
 const ex = EXPRS.slice(1);
 $('small').innerHTML = '<span></span>' + ex.map(([, he]) => `<span>${he}</span>`).join('')
-  + '<b>ראש־גוף</b>' + ex.map(([e]) => tiny(LP.make.buddy({ size: 180, rot: -.25, pose: 'stand', expression: e }))).join('')
-  + '<b>ילד</b>' + ex.map(([e]) => tiny(LP.make.kid({ size: 180, rot: -.25, pose: 'stand', expression: e, seed: 3 }))).join('');
+  + '<b>ילד</b>' + ex.map(([e]) => tiny(LP.make.buddy({ size: 180, rot: -.25, pose: 'stand', expression: e, outfit: 'kid' }))).join('')
+  + '<b>מכשף</b>' + ex.map(([e]) => tiny(LP.make.buddy({ size: 180, rot: -.25, pose: 'stand', expression: e, outfit: 'wizard' }))).join('')
+  + '<b>שחקן</b>' + ex.map(([e]) => tiny(LP.make.buddy({ size: 180, rot: -.25, pose: 'stand', expression: e }))).join('');
 const t0 = performance.now(); let last = 0;
 (function frame(now) { if (now - last > 40) { last = now; $('scene').innerHTML = scene((now - t0) / 1000); } requestAnimationFrame(frame); })(0);
 </script>
