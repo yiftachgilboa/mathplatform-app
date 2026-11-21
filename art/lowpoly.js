@@ -1322,41 +1322,68 @@
         }
       };
       const R = S * .14, side = rand() < .5 ? -1 : 1;
-      part(0, S, R, (rand() - .5) * .05, seed * 179, o.top || (rand() < .5 ? 'helipad' : 'antenna'));
-      part(side * R * 1.5, S * (.55 + rand() * .15), R * .8, side * .03, seed * 179 + 1, 'antenna');
-      if (rand() < .6) part(-side * R * 1.35, S * (.35 + rand() * .12), R * .65, -side * .03, seed * 179 + 2, 'helipad');
+      part(0, S, R, (rand() - .5) * .03, seed * 179, o.top || (rand() < .5 ? 'helipad' : 'antenna'));
+      // the sides go wild: crystal shards leaning out at different heights (the front keeps its windows)
+      const shard = (x, y, H, r, lean, sd) => {
+        const c = drum(6, [[r, 0], [r * (.85 + rand() * .15), H * .45], [r * (.62 + rand() * .15), H * .78]], body, sd, rand, null, null, { lean, apex: H, jr: .14 });
+        meshes.push(c.move(x, y, 0));
+      };
+      [-1, 1].forEach((sx, k) => {
+        shard(sx * R * 1.0, R * .1, S * (.62 + rand() * .22), R * .62, sx * (.06 + rand() * .06), seed * 179 + 10 + k);
+        shard(sx * R * 1.55, -R * .05, S * (.3 + rand() * .2), R * .48, sx * (.1 + rand() * .08), seed * 179 + 20 + k);
+      });
+      shard(side * R * .4, R * .7, S * (1.05 + rand() * .1), R * .55, side * .04, seed * 179 + 30); // one taller shard behind
       return place(meshes, Object.assign({ rot: 0 }, o), R * 2, { ordered: 'depth' });
     },
-    // stepped temple (layered, after the jungle-temple reference): stacked tiers with a face toward the camera,
-    // alternating sandstone tones, painted depth on each tier front, a central staircase, a round shrine on top, plants
+    // stepped temple (after the jungle-temple reference): a flat-fronted rocky plinth facing the camera (fits the
+    // flat style), and on it the temple turned at an angle — a lit face and a face in shadow — with tiers in two
+    // sandstone tones, stairs up the lit face, a round shrine on top, rocks, bushes and palms around
     stepTemple(o) {
-      const S = o.size || 260, seed = o.seed || 1, rand = rng(seed * 181), tiers = 5, tH = S * .1, W0 = S, D0 = S * .78, C = Math.SQRT1_2, meshes = [];
-      let z = 0, wTop = 0, dTop = 0;
+      const S = o.size || 280, seed = o.seed || 1, rand = rng(seed * 181), C = Math.SQRT1_2, meshes = [];
+      const bw = S * 1.05, bd = S * .72, bh = S * .16, baseR = bw / 2 / C;
+      meshes.push(drum(4, [[baseR, 0], [baseR * .95, bh]], mat.sandstone, seed * 181, rand, null, null, { offAll: .5, ry: bd / bw, jr: .03 }));
+      [[-.46, -.3, .2], [.5, -.25, .16], [-.36, .3, .14], [.42, .32, .18]].forEach(([x, y, k], i) =>
+        meshes.push(make.rock({ size: S * k, h: .8, seed: seed * 181 + 70 + i, mat: mat.sandstone }).meshes[0].move(x * bw, y * bd, 0)));
+      // the temple, built facing −y, then turned
+      const up = [], tiers = 4, tH = S * .085;
+      let z = bh, wTop = 0;
       for (let i = 0; i < tiers; i++) {
-        const w = W0 * (1 - i * .17), d = D0 * (1 - i * .17), R = w / 2 / C, m = i % 2 ? mat.sandstoneLight : mat.sandstone;
-        meshes.push(drum(4, [[R, z], [R * .97, z + tH]], m, seed * 181 + i, rand, null, null, { clean: true, offAll: .5, ry: d / w }));
-        meshes.push(decal([[w / 2 * .985, z + 1], [w / 2 - S * .1, z + 1], [w / 2 * .97, z + tH * .97]], -d / 2 * .985, mat.sandstoneShade, seed * 181 + 10 + i));
-        z += tH; wTop = w; dTop = d;
+        const w = S * (.62 - i * .12), R = w / 2 / C;
+        up.push(drum(4, [[R, z], [R * .94, z + tH]], i % 2 ? mat.sandstoneLight : mat.sandstone, seed * 181 + 1 + i, rand, null, null, { clean: true, offAll: .5 }));
+        z += tH; wTop = w;
       }
-      // central staircase: steps that climb inward up the front
-      const nSteps = tiers * 2, sw = S * .2;
+      const nSteps = tiers * 2, sw = S * .15;
       for (let k = 0; k < nSteps; k++) {
-        const zz = k * tH / 2, dk = D0 * (1 - .17 * (zz / tH)), st = box(sw * (1 - k * .03), S * .05, tH / 2, mat.sandstoneLight, seed * 181 + 20 + k, .03).move(0, -dk / 2 - S * .02, zz);
-        st.bias = 2; meshes.push(st);
+        const zz = bh + k * tH / 2, wk = S * (.62 - .12 * (k / 2));
+        up.push(box(sw, S * .045, tH / 2, mat.sandstoneLight, seed * 181 + 20 + k, .03).move(0, -wk / 2 - S * .015, zz));
       }
-      // round shrine on top: stacked discs and a little room with a dark doorway
       const zr = z;
-      meshes.push(drum(10, [[wTop * .42, zr], [wTop * .4, zr + S * .035]], mat.sandstoneLight, seed * 181 + 40, rand, null, null, { clean: true }));
-      meshes.push(drum(10, [[wTop * .32, zr + S * .035], [wTop * .3, zr + S * .07]], mat.sandstone, seed * 181 + 41, rand, null, null, { clean: true }));
-      meshes.push(block(wTop * .36, wTop * .3, S * .08, S * .08, mat.sandstoneLight, seed * 181 + 42).move(0, 0, zr + S * .07));
-      const dr = box(wTop * .12, 2, S * .055, mat.windowDark, seed * 181 + 43, 0).move(0, -wTop * .15 - 1.5, zr + S * .07); dr.bias = 3; meshes.push(dr);
-      meshes.push(drum(10, [[wTop * .24, zr + S * .15], [wTop * .16, zr + S * .19]], mat.sandstone, seed * 181 + 44, rand, null, null, { clean: true }));
-      // plants on the ledges
-      for (let i = 0; i < 5; i++) {
-        const ti = Math.floor(rand() * 3), w = W0 * (1 - ti * .17), d = D0 * (1 - ti * .17), sx = rand() < .5 ? -1 : 1;
-        make.bush({ size: S * (.07 + rand() * .05), seed: seed * 181 + 60 + i }).meshes.forEach(mm => { mm.move(sx * w * (.3 + rand() * .15), -d / 2 * .8, (ti + 1) * tH); meshes.push(mm); });
+      up.push(drum(10, [[wTop * .62, zr], [wTop * .58, zr + S * .04]], mat.sandstoneLight, seed * 181 + 40, rand, null, null, { clean: true }));
+      up.push(drum(10, [[wTop * .48, zr + S * .04], [wTop * .45, zr + S * .08]], mat.sandstone, seed * 181 + 41, rand, null, null, { clean: true }));
+      up.push(block(wTop * .5, wTop * .44, S * .09, S * .09, mat.sandstoneLight, seed * 181 + 42).move(0, 0, zr + S * .08));
+      const dr = box(wTop * .16, 2, S * .06, mat.windowDark, seed * 181 + 43, 0).move(0, -wTop * .22 - 1.5, zr + S * .08); dr.bias = 3; up.push(dr);
+      up.push(drum(10, [[wTop * .34, zr + S * .17], [wTop * .3, zr + S * .2]], mat.sandstone, seed * 181 + 44, rand, null, null, { clean: true }));
+      up.push(drum(10, [[wTop * .22, zr + S * .2], [wTop * .12, zr + S * .25]], mat.sandstoneLight, seed * 181 + 45, rand, null, null, { clean: true }));
+      const turn = o.turn == null ? -.6 : o.turn;
+      up.forEach(m => { m.rotZ(turn); meshes.push(m); });
+      // bushes on the plinth and palms around
+      for (let i = 0; i < 5; i++) make.bush({ size: S * (.07 + rand() * .05), seed: seed * 181 + 60 + i }).meshes.forEach(mm => { mm.move((rand() - .5) * bw * .9, -bd * (.25 + rand() * .2), bh); meshes.push(mm); });
+      [[-.52, .05, .55], [.55, .1, .5], [.3, .35, .62]].forEach(([x, y, k], i) => make.palm({ size: S * k, seed: seed * 181 + 80 + i }).meshes.forEach(mm => { mm.move(x * bw, y * bd, bh * .6); meshes.push(mm); }));
+      return place(meshes, Object.assign({ rot: 0 }, o), bw * .55, { ordered: 'depth' });
+    },
+    // palm tree: a curved trunk and drooping fronds
+    palm(o) {
+      const S = o.size || 200, seed = o.seed || 1, rand = rng(seed * 191), meshes = [], bend = (rand() < .5 ? -1 : 1) * S * (.12 + rand() * .1);
+      const pts = [0, 1, 2, 3, 4].map(i => [bend * (i / 4) ** 2, 0, i / 4 * S * .78]);
+      for (let i = 0; i < 4; i++) meshes.push(limb(pts[i], pts[i + 1], S * (.05 - i * .006), S * (.044 - i * .006), mat.trunk, seed * 191 + i, 5));
+      const top = pts[4];
+      for (let i = 0; i < 6; i++) {
+        const a = i / 6 * 6.28 + rand() * .4, mid = [top[0] + Math.cos(a) * S * .2, top[1] + Math.sin(a) * S * .14, top[2] + S * .05];
+        const tip = [top[0] + Math.cos(a) * S * .38, top[1] + Math.sin(a) * S * .26, top[2] - S * (.1 + rand() * .08)];
+        meshes.push(limb(top, mid, S * .055, S * .045, mat.leaf, seed * 191 + 10 + i, 3), limb(mid, tip, S * .045, S * .006, mat.leaf, seed * 191 + 20 + i, 3));
       }
-      return place(meshes, Object.assign({ rot: 0 }, o), W0 * .55, { ordered: 'depth' });
+      meshes.push(icosphere(0, mat.trunk, seed * 191 + 40).scale(S * .045).move(top[0] + S * .03, top[1] - S * .02, top[2] - S * .03));
+      return place(meshes, Object.assign({ rot: 0 }, o), S * .15, { ordered: 'depth' });
     },
     // tall tower of a few big polygons in palette tones (like the low-poly trees and refs 30/39). o.style:
     //   twist   — a square prism whose rings turn half a step each level → big triangle facets, short pyramid top
@@ -1383,27 +1410,6 @@
         meshes.push(limb([lean * S * .93, 0, S * .92], [lean * S, 0, S * 1.08], r * .07, r * .02, mat.metal, seed * 173 + 3, 4));
       }
       return place(meshes, Object.assign({ rot: 0 }, o), r * 1.6, { ordered: 'depth' });
-    },
-    // marble temple, in the tower language: big planes in a few marble tones — warm steps and cella,
-    // thick square columns with a half-step twist (big triangle facets), a gable with its far half shaded
-    temple(o) {
-      const S = o.size || 240, seed = o.seed || 1, rand = rng(seed * 139), W = S, D = S * .58, mm = mat.marble, mw = mat.marbleWarm, meshes = [];
-      for (let i = 0; i < 3; i++) meshes.push(box(W * (1.08 - i * .05), D * (1.1 - i * .07), S * .05, i % 2 ? mm : mw, seed * 139 + i, .02).move(0, 0, i * S * .05));
-      const z0 = S * .15, cH = S * .4, r = S * .058, n = 4;
-      meshes.push(block(W * .72, D * .5, cH, cH, mw, seed * 139 + 5).move(0, D * .14, z0));
-      for (let i = 0; i < n; i++) {
-        const x = -W * .38 + i * W * .76 / (n - 1), y = -D * .3, lean = (rand() - .5) * .025;
-        meshes.push(box(r * 2.5, r * 2.5, S * .035, mw, seed * 139 + 10 + i, .02).move(x, y, z0));
-        meshes.push(drum(4, [[r, z0 + S * .035], [r * .9, z0 + cH - S * .035]], mm, seed * 139 + 30 + i, rand, null, null, { clean: true, off0: i % 2, lean }).move(x, y, 0));
-        meshes.push(box(r * 2.7, r * 2.7, S * .04, mw, seed * 139 + 50 + i, .02).move(x + lean * cH, y, z0 + cH - S * .04));
-      }
-      const zt = z0 + cH, tilt = (rand() - .5) * .05, gw = W * .92, gd = D * .8, gh = S * .17;
-      const top = [box(W * .96, D * .86, S * .07, mw, seed * 139 + 70, .02).move(0, 0, zt),
-        gableWall(gw, gd, gh, mm, seed * 139 + 71).move(0, 0, zt + S * .07),
-        decal([[0, zt + S * .07 + gh], [gw / 2, zt + S * .07], [0, zt + S * .07]], -gd / 2, mat.marbleShade, seed * 139 + 73)]
-        .concat(roofSlabs(gw, gd, gh * 1.05, S * .03, S * .04, mw, seed * 139 + 72, zt + S * .07 + gh * 1.05));
-      top.forEach(m => { m.rotZ(tilt).move(W * .015, 0, 0); meshes.push(m); });
-      return place(meshes, Object.assign({ rot: 0 }, o), W * .55, { ordered: 'depth' });
     },
     // stump house: a fat tree stump with roots, a cut top, a leafy crown, a door and a window
     stumpHouse(o) {
