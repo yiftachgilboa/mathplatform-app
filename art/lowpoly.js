@@ -435,12 +435,14 @@
       }
       return place(meshes, o, 0);
     },
-    // a row of mountain peaks (background). o.width, o.h, o.count, o.snow (0..1 of height, false = none)
+    // a row of mountain peaks (background). o.width, o.h, o.count, o.snow (0..1 of height, false = none), o.skirt (extend down)
     ridge(o) {
       const W = o.width || 1400, H = o.h || 260, n = o.count || 6, rand = rng(o.seed || 1), meshes = [];
       for (let i = 0; i < n; i++) {
         const w = W / n * (.75 + rand() * .6), h = H * (.55 + rand() * .45);
         const m = cone(5, o.mat || mat.mountain, (o.seed || 1) * 19 + i, rand, .55).scale(w * .95, w * .4, h);
+        // o.skirt: the base ring goes further down along the same slope (the mountain continues below the frame)
+        if (o.skirt) { const k = 1 + o.skirt / h; m.map(p => (p[2] < 1e-6 ? [p[0] * k, p[1] * k, -o.skirt] : p)); }
         m.rotZ(rand() * 6.28);
         if (o.snow !== false) m.snow = { z: h * (o.snow || .62) };
         m.move(-W / 2 + (i + .5) * W / n + (rand() - .5) * W / n * .4, (rand() - .5) * 60, 0);
@@ -1611,8 +1613,8 @@
 
   // ---------- backdrops (whole scenes) ----------
   const scenes = {
-    // meadow backdrop (approved in the bridge game, 21.11.2026): sky and sun glow from the theme, a far floating island
-    // with a snowy ridge in fog and two rows of green hills on it, drifting clouds of three kinds, a few low-detail trees. Markup for viewBox 0 0 1200 800 (use preserveAspectRatio
+    // meadow backdrop (approved in the bridge game, 21.11.2026): sky and sun glow from the theme, a far snowy ridge in fog,
+    // two rows of green hills whose shapes run down to the bottom, drifting clouds of three kinds, a few low-detail trees. Markup for viewBox 0 0 1200 800 (use preserveAspectRatio
     // "xMidYMid slice"). Clouds come in <g class="cloud"> with a duration and delay: animate .cloud in the page to drift them.
     meadow(o) {
       o = o || {}; const T = theme, W = 1200, id = o.id || 'mdw';
@@ -1623,13 +1625,15 @@
       [[120, 130, 170, 140, 'long'], [560, 80, 120, 180, 'round'], [860, 210, 100, 110, 'tall'], [1060, 150, 150, 160, 'long']].forEach(([x, y, s, dur, kind], i) => {
         svg += `<g class="cloud" style="animation-duration:${dur}s;animation-delay:${-(x / 1400 * dur).toFixed(1)}s">${draw(make.cloud({ size: s, seed: i + 3, detail: 1, kind }), camera({ a: .16, ox: 0, oy: y }))}</g>`;
       });
-      // the mountains and hills stand on a far floating island (the land in the games floats too)
-      svg += draw(make.island({ rx: 540, ry: 110, depth: 210, seed: 4, fog: .4 }), camera({ a: .3, ox: W / 2, oy: 520 }));
-      svg += draw(make.ridge({ width: 920, h: 230, count: 4, seed: 5, fog: .55, snow: .74 }), camera({ a: .16, ox: W / 2, oy: 500 }));
-      svg += draw(make.ridge({ width: 960, h: 150, count: 5, seed: 13, fog: .34, snow: false, mat: mat.leaf }), camera({ a: .16, ox: W / 2, oy: 522 }));
-      svg += draw(make.ridge({ width: 980, h: 90, count: 7, seed: 21, fog: .2, snow: false, mat: mat.grass }), camera({ a: .16, ox: W / 2, oy: 540 }));
-      [[190, 548, 64, 1], [290, 540, 52, 2], [1000, 548, 66, 3], [910, 540, 50, 4], [380, 551, 46, 5], [820, 551, 48, 6]].forEach(([x, y, s, k]) => {
-        const t = k % 3 ? make.tree({ size: s, seed: k * 7, kind: 'round', detail: 0, fog: .3 }) : make.pine({ size: s * 1.1, seed: k * 7, fog: .3 });
+      // mountains and hills (approved), unchanged — only each cone's base continues down along its own slope to the bottom
+      // of the picture (no flat band under them)
+      const BASE = 860, ca = Math.cos(.16);
+      [{ oy: 540, width: 1700, h: 230, count: 5, seed: 5, fog: .55, snow: .74 }, { oy: 610, width: 1800, h: 190, count: 6, seed: 13, fog: .3, snow: false, mat: mat.leaf },
+       { oy: 650, width: 1900, h: 120, count: 8, seed: 21, fog: .1, snow: false, mat: mat.grass }].forEach(r => {
+        svg += draw(make.ridge(Object.assign({ skirt: (BASE - r.oy) / ca }, r)), camera({ a: .16, ox: W / 2, oy: r.oy }));
+      });
+      [[70, 640, 90, 1], [190, 625, 70, 2], [1110, 640, 95, 3], [1000, 628, 66, 4], [300, 648, 60, 5], [900, 646, 64, 6]].forEach(([x, y, s, k]) => {
+        const t = k % 3 ? make.tree({ size: s, seed: k * 7, kind: 'round', detail: 0, fog: .15 }) : make.pine({ size: s * 1.1, seed: k * 7, fog: .15 });
         svg += draw(t, camera({ a: .3, ox: x, oy: y }));
       });
       return svg;
