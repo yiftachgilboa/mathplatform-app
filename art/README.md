@@ -10,7 +10,7 @@
 
 ## מבנה
 
-- `lowpoly.js` — המנוע: גופים תלת־ממדיים פשוטים (כדור פוליגונים, חרוט, גליל, ענף, טבעות) ← תאורה אחת לכל הסצנה ← משולשי SVG. ערכות צבע (`LP.useTheme('day'|'sunset'|'ice')`), צל מוטל (`LP.castShadow`), קו שלג. האובייקטים: `LP.make.skyscraper`, `temple`, `cabin`, `igloo`, `ruin`, `LP.make.house`, `tower`, `well`, `fence`, `bridge`, `water`, `LP.make.critter` (bear/fox/rabbit/monster), `bird`, `alien`, `cactus`, `log`, `stump`, `flower`, `LP.make.chest`, `coin`, `star`, `gem`, `plank`, `LP.make.kid` (דמות: `pose`, `t`, `rot`, `expression`, `shirt`) + `LP.face`, `LP.make.tree` (round/tall/umbrella/branches), `pine` (בקומות), `rock`, `bush`, `cloud`, `ridge`, `island`.
+- `lowpoly.js` — המנוע: גופים תלת־ממדיים פשוטים (כדור פוליגונים, חרוט, גליל, ענף, טבעות) ← תאורה אחת לכל הסצנה ← משולשי SVG. ערכות צבע (`LP.useTheme('day'|'sunset'|'ice')`), צל מוטל (`LP.castShadow`), קו שלג. האובייקטים: `LP.make.skyscraper` (גבישים), `dome`, `mushroomHouse`, `stumpHouse`, `temple`, `igloo`, `ruin`, `LP.make.house`, `tower`, `well`, `fence`, `bridge`, `water`, `LP.make.critter` (bear/fox/rabbit/monster), `bird`, `alien`, `cactus`, `log`, `stump`, `flower`, `LP.make.chest`, `coin`, `star`, `gem`, `plank`, `LP.make.kid` (דמות: `pose`, `t`, `rot`, `expression`, `shirt`) + `LP.face`, `LP.make.tree` (round/tall/umbrella/branches), `pine` (בקומות), `rock`, `bush`, `cloud`, `ridge`, `island`.
 - `samples/` — דוגמאות המופת. נפתחות ישירות בדפדפן (קובץ מקומי).
 - `references/` — תמונות השראה. **השראה בלבד, לא מעתיקים.**
 
@@ -152,6 +152,9 @@
 
 ### עיר וחומרים — טיוטה (דוגמה 6, `samples/06-city.html`, ממתין לאישור)
 
-- `skyscraper({style:'bands'|'stripes'|'glass', mat:'towerBlue'|'coral'|'teal'|'violet'})` — מגדל נוטה עם גג משופע, מחט, ואגף נמוך בצבע אחר.
-- **חומרים:** `temple()` שיש (מדרגות, עמודים שכל אחד נוטה מעט, גמלון מוטה), `cabin()` עץ (בולי עץ עגולים עם פינות מוצלבות, גג משופע, ארובת אבן), `igloo()` קרח (כיפה מפוספסת, מנהרה, כיפה קטנה שנייה), `ruin()` אבן עתיקה (עמודים בגבהים שונים, חלקם שבורים, עמוד שנפל, אבנים פזורות).
+- **כיוון המפתח: האיגלו והעצים** (יפתח, 22.11.2026) — נפחים מפוסלים מפוליגונים מעניינים, **פחות פרטים קטנים**. לא פסי חלונות אופקיים, לא בולי עץ קטנים.
+- **מגדלי גבישים** (`skyscraper({mat})`): אשכול של 2–3 גבישים נוטים ומעוותים מטבעות (`drum`), כמו עץ עם כמה צמרות; הפאות שפונות אליך נעשות זכוכית.
+- **שובבות — חלקים עליונים מהטבע ומהספורט:** `mushroomHouse()` (גבעול עם דלת, כובע אדום מנוקד), `stumpHouse()` (גדם עם שורשים, חתך עליון וצמרת עלים), `house({top:'cloud'})` (ענן במקום גג), `dome({ball:'soccer'|'basket'})` (כדור ענק ככיפה — מחומשים שחורים / תפרים).
+- **חזית בלי רעש:** צורות צל גדולות בגוון כהה יותר (`decal`): משולש מתחת לחצי הגמלון (הצד הרחוק מהאור), פינה למטה, טריזים מתחת לחלונות.
+- **חומרים:** `temple()` שיש, `igloo()` קרח, `ruin()` אבן עתיקה עם בסיס מפוסל (לא משטח חד־גווני), `stumpHouse()` עץ.
 - הכל חזיתי; צבעי המבנים קבועים.

@@ -115,6 +115,8 @@
     windowDark: M(['#121a2b', '#1c2840', '#2b3c5e'], .02), windowLight: M(['#b8a776', '#e2d29e', '#f8eec8'], .02),
     marble: M(['#8e949c', '#c4c9cf', '#e6e9ec', '#ffffff'], .04), ice: M(['#6ea6c8', '#9ccbe4', '#cbe6f4', '#f2faff'], .05),
     sandstone: M(['#86663f', '#b38d58', '#d6b47b', '#efd5a0'], .06),
+    plasterShade: M(['#8f7a60', '#ad9878', '#c6b190', '#dccaa8'], .03), mushroom: M(['#7e1c1c', '#c43a2e', '#e8604a', '#ff9078'], .05),
+    ballWhite: M(['#b9bec4', '#dfe2e6', '#f4f6f8', '#ffffff'], .02), basket: M(['#9a3f0e', '#d4621c', '#f08a3c', '#ffb878'], .03),
     // animals and creatures (identity colors)
     dark: M(['#1c1d21', '#2f3137', '#474a52'], .03), white: M(['#b9bec4', '#dcdfe3', '#f2f4f6', '#ffffff'], .03),
     pink: M(['#c77c86', '#e8a0aa', '#f7c4ca'], .03), beak: M(['#9a5a0e', '#d48a1e', '#f2b544'], .03),
@@ -1119,13 +1121,22 @@
       meshes.push(box(w * 1.06, d * 1.06, S * .07, mat.masonry, seed * 97, .06));
       meshes.push(box(w, d, h, mat.plaster, seed * 97 + 1, .02).move(0, 0, S * .05));
       const tilt = (rand() - .5) * .06; // a little crooked
-      const roofParts = [gableWall(w, d, H * (w / 2) / (w / 2 + over), mat.plaster, seed * 97 + 2).move(0, 0, h + S * .05)]
-        .concat(roofSlabs(w, d, H, over, S * .09, roofM, seed * 97 + 3, h + S * .05 + H));
-      const ch = box(S * .13, S * .13, S * .42, mat.masonry, seed * 97 + 6, .04).rotY(.05).move(w * .24, d * .12, h + H * .35);
-      const chTop = box(S * .17, S * .17, S * .05, mat.masonry, seed * 97 + 7, .08).move(w * .24 + S * .02, d * .12, h + H * .35 + S * .42);
-      roofParts.push(ch, chTop);
-      roofParts.forEach(m => { m.rotZ(tilt); meshes.push(m); });
-      const fy = -d / 2;
+      const fy = -d / 2, zb = S * .05, zt = zb + h, gh = H * (w / 2) / (w / 2 + over);
+      if (o.top === 'cloud') { // a cloud for a roof
+        make.cloud({ size: w * 1.35, seed: seed * 97 + 2 }).meshes.forEach(m => { m.move(0, 0, zt - S * .03); meshes.push(m); });
+      } else {
+        const roofParts = [gableWall(w, d, gh, mat.plaster, seed * 97 + 2).move(0, 0, zt)]
+          .concat(roofSlabs(w, d, H, over, S * .09, roofM, seed * 97 + 3, zt + H));
+        const ch = box(S * .13, S * .13, S * .42, mat.masonry, seed * 97 + 6, .04).rotY(.05).move(w * .24, d * .12, h + H * .35);
+        const chTop = box(S * .17, S * .17, S * .05, mat.masonry, seed * 97 + 7, .08).move(w * .24 + S * .02, d * .12, h + H * .35 + S * .42);
+        roofParts.push(ch, chTop);
+        // shade under half of the gable (the side away from the light) — big shape, not noise
+        roofParts.push(decal([[0, zt + gh * .96], [w / 2 * .98, zt + 1], [w / 2 * .98, zt - S * .2], [w * .12, zt - S * .02]], fy, mat.plasterShade, seed * 97 + 8));
+        roofParts.forEach(m => { m.rotZ(tilt); meshes.push(m); });
+      }
+      // facade shade shapes: a corner at the bottom, small wedges under the windows
+      meshes.push(decal([[-w / 2 * .98, zb + 1], [-w / 2 + w * .34, zb + 1], [-w / 2 * .98, zb + S * .26]], fy, mat.plasterShade, seed * 97 + 9));
+      [-1, 1].forEach((sx, i) => meshes.push(decal([[sx * w * .3 - S * .11, S * .3], [sx * w * .3 + S * .11, S * .3], [sx * w * .3 + sx * S * .02, S * .2]], fy, mat.plasterShade, seed * 97 + 12 + i)));
       door(0, fy, S * .06, S * .24, S * .26, seed * 97 + 10).forEach(m => meshes.push(m));
       [-1, 1].forEach((sx, i) => windowOn([sx * w * .3, fy, S * .4], [0, -1, 0], S * .2, seed * 97 + 20 + 4 * i).forEach(m => meshes.push(m)));
       // annex on one side: lower, with its own slanted roof — breaks the symmetry
@@ -1207,6 +1218,27 @@
     },
   });
 
+  // decal: a flat polygon [x, z] lying just in front of a wall that faces −y (at y = fy), in its own material
+  function decal(pts, fy, m, seed) {
+    const mesh = new Mesh(m, seed), ids = pts.map(q => mesh.add([q[0], fy - .8, q[1]]));
+    for (let i = 1; i < ids.length - 1; i++) mesh.tri(ids[0], ids[i], ids[i + 1]);
+    const cx = pts.reduce((a, q) => a + q[0], 0) / pts.length, cz = pts.reduce((a, q) => a + q[1], 0) / pts.length;
+    mesh.center = [cx, fy + 40, cz]; mesh.bias = .6;
+    return mesh;
+  }
+  // a jittered round drum / pillar from rings (organic, like the trees): rs = [[radius, z], ...]
+  function drum(n, rs, m, seed, rand, capTop, capBottom, o) {
+    o = o || {};
+    const mesh = new Mesh(m, seed), R = rs.map((q, i) => ring(mesh, n, { r: q[0], z: q[1], off: i % 2 ? .5 : 0, jr: o.jr == null ? .07 : o.jr, ja: .25, jz: q[0] * .04, rx: 1, ry: o.ry || 1, x: (o.lean || 0) * q[1] }, rand));
+    for (let i = 0; i < R.length - 1; i++) stitch(mesh, R[i], R[i + 1]);
+    const last = rs[rs.length - 1];
+    if (o.apex != null) fan(mesh, mesh.add([(o.lean || 0) * o.apex, 0, o.apex]), R[R.length - 1]);
+    else fan(mesh, mesh.add([(o.lean || 0) * last[1], 0, last[1]]), R[R.length - 1], capTop);
+    fan(mesh, mesh.add([0, 0, rs[0][1]]), R[0], capBottom);
+    mesh.center = [0, 0, (rs[0][1] + last[1]) / 2];
+    return mesh;
+  }
+
   // ---------- playful blocks: big clean planes, crooked on purpose ----------
   // block: w × d footprint, front-left / front-right heights (a slanted top), o.lean shifts the top in x, o.back = [hBL, hBR]
   function block(w, d, hL, hR, m, seed, o) {
@@ -1238,21 +1270,23 @@
   }
   Object.assign(make, {
     // skyscraper: a leaning tower with a slanted top, a lower annex, a spire. o.style: bands | stripes | glass. o.mat: towerBlue | coral | teal | violet
+    // crystal tower: a cluster of 2–3 leaning, twisted faceted crystals (built like the trees and the igloo);
+    // the facets that face you turn to glass. o.mat: towerBlue | coral | teal | violet
     skyscraper(o) {
-      const S = o.size || 320, seed = o.seed || 1, rand = rng(seed * 137), W = o.width || S * .3, D = W * .8;
-      const style = o.style || ['bands', 'stripes', 'glass'][Math.floor(rand() * 3)], body = mat[o.mat || 'towerBlue'], meshes = [];
-      const hL = S * (.82 + rand() * .18), hR = S * (.6 + rand() * .22), lean = (rand() - .5) * W * .16, hm = Math.min(hL, hR), fy = -D / 2;
-      meshes.push(block(W, D, hL, hR, body, seed * 137, { lean }));
-      if (style === 'bands') panes(-W * .42, W * .42, S * .06, hm - S * .05, 1, Math.round(hm / (W * .16)), fy, mat.windowDark, seed * 137 + 10, { fill: .96, fillH: .45, lean, h: (hL + hR) / 2 }).forEach(m => meshes.push(m));
-      if (style === 'stripes') panes(-W * .42, W * .42, S * .06, hm - S * .06, 4, 1, fy, mat.windowLight, seed * 137 + 10, { fill: .32, fillH: .96, lean, h: (hL + hR) / 2 }).forEach(m => meshes.push(m));
-      if (style === 'glass') panes(-W * .42, W * .42, S * .06, hm - S * .05, 2, Math.round(hm / (W * .4)), fy, mat.glass, seed * 137 + 10, { fill: .86, fillH: .82, lean, h: (hL + hR) / 2 }).forEach(m => meshes.push(m));
-      const hi = hL > hR ? -1 : 1, top = [hi * W / 2 * .7 + lean, 0, Math.max(hL, hR) - S * .03];
-      meshes.push(limb(top, [top[0] + lean * .1, 0, top[2] + S * .16], W * .05, W * .008, mat.metal, seed * 137 + 20, 4));
-      const ax = rand() < .5 ? -1 : 1, aw = W * .62, aH = S * (.26 + rand() * .14), aL = aH * (.75 + rand() * .2);
-      const annex = block(aw, D * .9, ax < 0 ? aL : aH, ax < 0 ? aH : aL, mat[o.annex || (o.mat === 'coral' ? 'teal' : 'coral')], seed * 137 + 30).move(ax * (W / 2 + aw / 2 - W * .04), D * .02, 0);
-      meshes.push(annex);
-      panes(ax * (W / 2 + aw / 2 - W * .04) - aw * .38, ax * (W / 2 + aw / 2 - W * .04) + aw * .38, S * .05, Math.min(aH, aL) - S * .04, 1, 3, D * .02 - D * .45, mat.windowDark, seed * 137 + 40, { fill: .96, fillH: .4 }).forEach(m => meshes.push(m));
-      return place(meshes, Object.assign({ rot: 0 }, o), W * .8, { ordered: 'depth' });
+      const S = o.size || 320, seed = o.seed || 1, rand = rng(seed * 137), body = mat[o.mat || 'towerBlue'], meshes = [];
+      const crystal = (x, H, r, lean, sd) => {
+        const tw = rand() * .5;
+        const c = drum(6, [[r, 0], [r * (.9 + rand() * .1), H * .42], [r * (.7 + rand() * .12), H * .74], [r * .42, H * .88]], body, sd, rand, null, null, { lean, apex: H, jr: .1 });
+        c.move(x, 0, 0);
+        c.patch = { mat: mat.glass, dir: [0, -1, 0], th: .86 };
+        return c;
+      };
+      const r = S * .12;
+      meshes.push(crystal(0, S, r, (rand() - .5) * .08, seed * 137));
+      const side = rand() < .5 ? -1 : 1;
+      meshes.push(crystal(side * r * 1.45, S * (.5 + rand() * .2), r * .8, side * (.05 + rand() * .06), seed * 137 + 1));
+      if (rand() < .7) meshes.push(crystal(-side * r * 1.3, S * (.3 + rand() * .15), r * .65, -side * (.04 + rand() * .05), seed * 137 + 2));
+      return place(meshes, Object.assign({ rot: 0 }, o), r * 2, { ordered: 'depth' });
     },
     // marble temple: steps, columns (each leans a hair), a pediment set slightly askew
     temple(o) {
@@ -1270,21 +1304,52 @@
       top.forEach(m => { m.rotZ(tilt).move(W * .02, 0, 0); meshes.push(m); });
       return place(meshes, Object.assign({ rot: 0 }, o), W * .55, { ordered: 'depth' });
     },
-    // log cabin: stacked round logs with crossing corners, a slanted roof, stone chimney
-    cabin(o) {
-      const S = o.size || 180, seed = o.seed || 1, rand = rng(seed * 149), W = S, D = S * .68, r = S * .045, rows = 7, hW = rows * 2 * r, meshes = [];
-      for (let k = 0; k < rows; k++) {
-        const z = r + k * 2 * r;
-        [-1, 1].forEach((sy, j) => meshes.push(limb([-W / 2 - r * 1.6, sy * D / 2, z], [W / 2 + r * 1.6, sy * D / 2, z + (rand() - .5) * r * .3], r, r * .92, mat.wood, seed * 149 + k * 4 + j, 6, mat.woodEnd)));
-        [-1, 1].forEach((sx, j) => meshes.push(limb([sx * W / 2, -D / 2 - r * 1.6, z + r], [sx * W / 2, D / 2 + r * 1.6, z + r], r, r * .92, mat.wood, seed * 149 + k * 4 + 2 + j, 6, mat.woodEnd)));
+    // stump house: a fat tree stump with roots, a cut top, a leafy crown, a door and a window
+    stumpHouse(o) {
+      const S = o.size || 180, seed = o.seed || 1, rand = rng(seed * 149), meshes = [];
+      meshes.push(drum(9, [[S * .34, 0], [S * .29, S * .3], [S * .31, S * .5]], mat.trunk, seed * 149, rand, mat.woodEnd));
+      for (let i = 0; i < 5; i++) {
+        const a = i / 5 * 6.28 + rand() * .6;
+        meshes.push(limb([Math.cos(a) * S * .25, Math.sin(a) * S * .2, S * .1], [Math.cos(a) * S * .45, Math.sin(a) * S * .36, 0], S * .07, S * .025, mat.trunk, seed * 149 + 10 + i, 5));
       }
-      const gH = S * .28, gL = S * .06;
-      meshes.push(block(W, D, gH, gL, mat.wood, seed * 149 + 60).move(0, 0, hW));
-      meshes.push(monoRoof(-W / 2, W / 2, hW + gH, hW + gL, D, S * .09, S * .07, mat.roofGreen, seed * 149 + 61));
-      door(-W * .12, -D / 2 - r, r * .5, S * .22, S * .2, seed * 149 + 70).forEach(m => meshes.push(m));
-      windowOn([W * .26, -D / 2 - r, S * .3], [0, -1, 0], S * .17, seed * 149 + 80).forEach(m => meshes.push(m));
-      meshes.push(box(S * .14, S * .14, hW + S * .42, mat.masonry, seed * 149 + 90, .05).move(W / 2 + S * .06, D * .1, 0));
-      return place(meshes, Object.assign({ rot: 0 }, o), W * .6, { ordered: 'depth' });
+      const leaf = mat[['leaf', 'leafYellow', 'leafTeal'][Math.floor(rand() * 3)]];
+      [[0, 0, S * .68, S * .3], [-S * .2, S * .05, S * .6, S * .2], [S * .18, S * .04, S * .62, S * .18]].forEach(([x, y, z, rr], i) =>
+        meshes.push(icosphere(1, leaf, seed * 149 + 20 + i).jitter(.14, rand).scale(rr, rr * .9, rr * .8).move(x, y, z)));
+      door(-S * .04, -S * .3, S * .02, S * .17, S * .17, seed * 149 + 30).forEach(m => meshes.push(m));
+      windowOn([S * .16, -S * .27, S * .36], [0, -1, 0], S * .12, seed * 149 + 40).forEach(m => meshes.push(m));
+      return place(meshes, Object.assign({ rot: 0 }, o), S * .4, { ordered: 'depth' });
+    },
+    // mushroom house: a cream stalk with a door and a round window, a big red spotted cap
+    mushroomHouse(o) {
+      const S = o.size || 180, seed = o.seed || 1, rand = rng(seed * 163), meshes = [];
+      meshes.push(drum(8, [[S * .26, 0], [S * .22, S * .25], [S * .24, S * .44]], mat.plaster, seed * 163, rand));
+      const cap = icosphere(2, mat.mushroom, seed * 163 + 1).jitter(.04, rand).floor(-.25);
+      cap.scale(S * .48, S * .46, S * .32).move(0, 0, S * .46);
+      meshes.push(cap);
+      for (let i = 0; i < 7; i++) { // white spots on the cap
+        const a = rand() * 6.28, el = .35 + rand() * .9, n = [Math.cos(a) * Math.cos(el), Math.sin(a) * Math.cos(el), Math.sin(el)];
+        const sp = icosphere(0, mat.ballWhite, seed * 163 + 10 + i).scale(S * .055, S * .055, S * .022).move(n[0] * S * .48, n[1] * S * .46, S * .46 + n[2] * S * .32);
+        sp.bias = S * .05; meshes.push(sp);
+      }
+      door(0, -S * .23, 0, S * .16, S * .14, seed * 163 + 20).forEach(m => meshes.push(m));
+      windowOn([S * .13, -S * .21, S * .25], [0, -1, 0], S * .09, seed * 163 + 30).forEach(m => meshes.push(m));
+      return place(meshes, Object.assign({ rot: 0 }, o), S * .45, { ordered: 'depth' });
+    },
+    // round building with a giant ball for a dome. o.ball: soccer | basket
+    dome(o) {
+      const S = o.size || 200, seed = o.seed || 1, rand = rng(seed * 167), R = S * .34, meshes = [], ball = o.ball || 'soccer';
+      meshes.push(drum(9, [[R, 0], [R * .97, S * .16], [R * .9, S * .3]], mat[o.wall || 'plaster'], seed * 167, rand, null, null, { jr: .04 }));
+      const b = icosphere(2, ball === 'basket' ? mat.basket : mat.ballWhite, seed * 167 + 1);
+      b.f.forEach(f => {
+        if (ball === 'soccer') { if (f[0] < 12 || f[1] < 12 || f[2] < 12) f[3] = mat.dark; } // a black pentagon around each of the 12 corners
+        else { const cross = k => { const q = [b.v[f[0]][k], b.v[f[1]][k], b.v[f[2]][k]].map(x => x - .021); return Math.min(...q) < 0 && Math.max(...q) > 0; }; if (cross(0) || cross(2)) f[3] = mat.dark; } // seams: the faces that cross two great circles
+      });
+      const Rb = R * .95;
+      b.scale(Rb).rotZ(.4).move(0, 0, S * .3 + Rb * .55);
+      meshes.push(b);
+      door(0, -R * .96, 0, S * .16, S * .12, seed * 167 + 10).forEach(m => meshes.push(m));
+      [-1, 1].forEach((sx, i) => windowOn([sx * R * .6, -R * .76, S * .17], [0, -1, 0], S * .09, seed * 167 + 20 + 4 * i).forEach(m => meshes.push(m)));
+      return place(meshes, Object.assign({ rot: 0 }, o), R, { ordered: 'depth' });
     },
     // igloo: a dome of ice facets, an entrance tunnel, a little second dome for fun
     igloo(o) {
@@ -1305,7 +1370,9 @@
     // ancient stone ruin: a platform, columns of different heights (some broken), a fallen column, scattered blocks
     ruin(o) {
       const S = o.size || 240, seed = o.seed || 1, rand = rng(seed * 157), st = mat.sandstone, r = S * .05, meshes = [];
-      meshes.push(box(S, S * .45, S * .06, st, seed * 157, .05));
+      const base = icosphere(1, st, seed * 157).jitter(.16, rand).scale(1, 1, 1).floor(0); // sculpted stone, not a flat slab
+      base.scale(S * .56, S * .26, S * .1); meshes.push(base);
+      [[-S * .36, S * .06], [S * .4, -S * .04]].forEach(([x, y], i) => meshes.push(make.rock({ size: S * .14, h: .7, seed: seed * 157 + 70 + i, mat: st }).meshes[0].move(x, y, S * .04)));
       const hs = [1, .5, .82, .28], xs = [-.38, -.13, .13, .38];
       hs.forEach((k, i) => {
         const x = xs[i] * S, h = S * .5 * k;

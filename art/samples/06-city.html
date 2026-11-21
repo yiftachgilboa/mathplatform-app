@@ -30,7 +30,7 @@
 <div class="wrap">
   <header>
     <h1>דוגמת מופת 6 — עיר וחומרים</h1>
-    <p>משחקי צורות במקום רעש: משטחים גדולים ונקיים, כל אחד בגוון אחר, נפחים לא סימטריים (גג משופע, קיר נוטה, גוש צמוד בגובה אחר), וחזיתות עם פסי חלונות, פסים אנכיים או זכוכית. וחומרים שונים: שיש, עץ, קרח, אבן עתיקה. הכל חזיתי.</p>
+    <p>בכיוון האיגלו והעצים — נפחים מפוסלים מפוליגונים מעניינים, פחות פרטים קטנים. מגדלי גבישים, בית פטרייה, בית גדם, גג ענן וכיפות כדור. בחזית הבתים — צורות צל גדולות (לא רעש). קודם: משחקי צורות במקום רעש: משטחים גדולים ונקיים, כל אחד בגוון אחר, נפחים לא סימטריים (גג משופע, קיר נוטה, גוש צמוד בגובה אחר), וחזיתות עם פסי חלונות, פסים אנכיים או זכוכית. וחומרים שונים: שיש, עץ, קרח, אבן עתיקה. הכל חזיתי.</p>
   </header>
   <svg id="city" class="scene" viewBox="0 0 1000 560" role="img" aria-label="עיר"></svg>
   <div class="controls" id="themes">
@@ -61,14 +61,17 @@ function citySVG(t) {
   let svg = sky(T, 1000, 560, 'sk1') + `<circle cx="850" cy="90" r="46" fill="${T.sun}"/>` + LP.draw(M.ridge({ width: 1400, h: 200, count: 6, seed: 61, fog: .55, snow: .74 }), bg);
   const island = M.island({ rx: 470, ry: 170, depth: 200, seed: 31 });
   const items = [
-    M.skyscraper({ x: -300, y: 110, size: 330, style: 'bands', mat: 'towerBlue', seed: 1 }),
-    M.skyscraper({ x: -80, y: 130, size: 420, style: 'glass', mat: 'teal', seed: 2 }),
-    M.skyscraper({ x: 150, y: 120, size: 360, style: 'stripes', mat: 'violet', seed: 3 }),
-    M.skyscraper({ x: 360, y: 100, size: 300, style: 'bands', mat: 'coral', seed: 4 }),
-    M.house({ x: -230, y: -40, size: 120, roof: 'red', seed: 2 }),
-    M.house({ x: 260, y: -50, size: 110, roof: 'blue', seed: 7 }),
-    M.tree({ kind: 'round', x: -390, y: -60, size: 110, seed: 3 }), M.tree({ kind: 'tall', x: 30, y: -60, size: 110, seed: 4 }),
-    M.buddy({ x: -40 + Math.sin(t * .6) * 60, y: -110, size: 60, rot: Math.cos(t * .6) > 0 ? -1.2 : 1.2, pose: 'walk', t, outfit: 'kid' }),
+    M.skyscraper({ x: -310, y: 120, size: 330, mat: 'towerBlue', seed: 1 }),
+    M.skyscraper({ x: -60, y: 140, size: 400, mat: 'teal', seed: 2 }),
+    M.skyscraper({ x: 200, y: 130, size: 350, mat: 'violet', seed: 3 }),
+    M.skyscraper({ x: 380, y: 110, size: 260, mat: 'coral', seed: 4 }),
+    M.dome({ x: 90, y: 10, size: 150, ball: 'soccer', seed: 1 }),
+    M.dome({ x: -170, y: 0, size: 130, ball: 'basket', wall: 'coral', seed: 2 }),
+    M.mushroomHouse({ x: 300, y: -50, size: 120, seed: 3 }),
+    M.house({ x: -330, y: -50, size: 110, top: 'cloud', seed: 4 }),
+    M.house({ x: 0, y: -70, size: 100, roof: 'blue', seed: 6 }),
+    M.tree({ kind: 'round', x: -420, y: -90, size: 90, seed: 3 }), M.tree({ kind: 'tall', x: 200, y: -110, size: 90, seed: 4 }),
+    M.buddy({ x: -100 + Math.sin(t * .6) * 50, y: -130, size: 55, rot: Math.cos(t * .6) > 0 ? -1.2 : 1.2, pose: 'walk', t, outfit: 'kid' }),
   ];
   return svg + scene(items, island, cam, T, 'top1');
 }
@@ -78,10 +81,10 @@ function matsSVG(t) {
   const island = M.island({ rx: 470, ry: 180, depth: 190, seed: 41 });
   const items = [
     M.temple({ x: -290, y: 70, size: 230, seed: 1 }),
-    M.cabin({ x: -20, y: 90, size: 170, seed: 2 }),
+    M.stumpHouse({ x: -20, y: 90, size: 170, seed: 2 }),
     M.igloo({ x: 300, y: 80, size: 150, seed: 3 }),
     M.ruin({ x: 30, y: -100, size: 200, seed: 4 }),
-    M.pine({ x: -150, y: 130, size: 140, seed: 5 }), M.bush({ x: -330, y: -90, size: 40, seed: 6 }),
+    M.mushroomHouse({ x: -150, y: 140, size: 110, seed: 5 }), M.bush({ x: -330, y: -90, size: 40, seed: 6 }),
     M.buddy({ x: -170, y: -80, size: 60, rot: -.5, pose: 'wave', t, outfit: 'wizard' }),
     M.critter({ kind: 'bear', x: 400, y: -70, size: 80, rot: -.6, t, seed: 3 }),
   ];
@@ -94,14 +97,18 @@ function card(obj, he, code) {
 function gallery() {
   LP.useTheme(THEME);
   $('gallery').innerHTML = [
-    card(M.skyscraper({ size: 320, style: 'bands', mat: 'coral', seed: 4 }), 'גורד — פסי חלונות', "skyscraper({style:'bands'})"),
-    card(M.skyscraper({ size: 320, style: 'stripes', mat: 'violet', seed: 3 }), 'גורד — פסים', "skyscraper({style:'stripes'})"),
-    card(M.skyscraper({ size: 320, style: 'glass', mat: 'teal', seed: 2 }), 'גורד — זכוכית', "skyscraper({style:'glass'})"),
+    card(M.skyscraper({ size: 320, mat: 'teal', seed: 2 }), 'מגדל גבישים', "skyscraper({mat:'teal'})"),
+    card(M.skyscraper({ size: 320, mat: 'coral', seed: 4 }), 'מגדל גבישים', "skyscraper({mat:'coral'})"),
+    card(M.dome({ size: 200, ball: 'soccer' }), 'כיפת כדורגל', "dome({ball:'soccer'})"),
+    card(M.dome({ size: 200, ball: 'basket', wall: 'coral', seed: 2 }), 'כיפת כדורסל', "dome({ball:'basket'})"),
+    card(M.mushroomHouse({ size: 180 }), 'בית פטרייה', 'mushroomHouse()'),
+    card(M.stumpHouse({ size: 180 }), 'בית גדם', 'stumpHouse()'),
+    card(M.house({ size: 160, top: 'cloud', seed: 4 }), 'בית עם גג ענן', "house({top:'cloud'})"),
     card(M.house({ size: 160, seed: 3 }), 'בית עם אגף', 'house()'),
     card(M.temple({ size: 220 }), 'מקדש שיש', 'temple()'),
-    card(M.cabin({ size: 170 }), 'בקתת עץ', 'cabin()'),
     card(M.igloo({ size: 150 }), 'איגלו', 'igloo()'),
     card(M.ruin({ size: 220 }), 'חורבה עתיקה', 'ruin()'),
+    card(M.tower({ size: 240 }), 'מגדל אבן', 'tower()'),
   ].join('');
 }
 $('themes').addEventListener('click', e => {
