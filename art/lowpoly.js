@@ -115,6 +115,9 @@
     windowDark: M(['#121a2b', '#1c2840', '#2b3c5e'], .02), windowLight: M(['#b8a776', '#e2d29e', '#f8eec8'], .02),
     marble: M(['#8e949c', '#c4c9cf', '#e6e9ec', '#ffffff'], .04), ice: M(['#6ea6c8', '#9ccbe4', '#cbe6f4', '#f2faff'], .05),
     sandstone: M(['#86663f', '#b38d58', '#d6b47b', '#efd5a0'], .06),
+    marbleWarm: M(['#9c8f80', '#cdbfae', '#e7dccd', '#fbf4ea'], .03), marbleShade: M(['#8a8f96', '#a9aeb5', '#c3c7cc', '#d8dbdf'], .02),
+    sandstoneLight: M(['#9e8256', '#c9a873', '#e4c995', '#f6e3b8'], .04), sandstoneShade: M(['#7a5d3a', '#9c7a50', '#b8956a', '#cfae82'], .03),
+    officeWhite: M(['#b9c0c8', '#e3e7ec', '#f6f8fa', '#ffffff'], .02),
     plasterShade: M(['#a38e70', '#c4af8f', '#dcc9a9', '#eee2ca'], .02), mushroom: M(['#7e1c1c', '#c43a2e', '#e8604a', '#ff9078'], .05),
     ballWhite: M(['#b9bec4', '#dfe2e6', '#f4f6f8', '#ffffff'], .02), basket: M(['#9a3f0e', '#d4621c', '#f08a3c', '#ffb878'], .03),
     // animals and creatures (identity colors)
@@ -1226,7 +1229,10 @@
   // a jittered round drum / pillar from rings (organic, like the trees): rs = [[radius, z], ...]
   function drum(n, rs, m, seed, rand, capTop, capBottom, o) {
     o = o || {};
-    const mesh = new Mesh(m, seed), R = rs.map((q, i) => ring(mesh, n, { r: q[0], z: q[1], off: i % 2 ? .5 : 0, jr: o.jr == null ? .07 : o.jr, ja: .25, jz: q[0] * .04, rx: 1, ry: o.ry || 1, x: (o.lean || 0) * q[1] }, rand));
+    // o.clean: no jitter (exact joints) · o.offAll: every ring at the same angle (flat faces, e.g. .5 with n=4 → a face toward the camera)
+    // o.off0: shifts which rings get the half-step twist (so stacked drums continue the same pattern)
+    const mesh = new Mesh(m, seed), R = rs.map((q, i) => ring(mesh, n, { r: q[0], z: q[1], off: o.offAll != null ? o.offAll : ((i + (o.off0 || 0)) % 2 ? .5 : 0),
+      jr: o.clean ? 0 : (o.jr == null ? .07 : o.jr), ja: o.clean ? 0 : .25, jz: o.clean ? 0 : q[0] * .04, rx: 1, ry: o.ry || 1, x: (o.lean || 0) * q[1] }, rand));
     for (let i = 0; i < R.length - 1; i++) stitch(mesh, R[i], R[i + 1]);
     const last = rs[rs.length - 1];
     if (o.apex != null) fan(mesh, mesh.add([(o.lean || 0) * o.apex, 0, o.apex]), R[R.length - 1]);
@@ -1285,6 +1291,73 @@
       if (rand() < .7) meshes.push(crystal(-side * r * 1.3, S * (.3 + rand() * .15), r * .65, -side * (.04 + rand() * .05), seed * 137 + 2));
       return place(meshes, Object.assign({ rot: 0 }, o), r * 2, { ordered: 'depth' });
     },
+    // office tower: the crystal cluster turned into offices — square parts with a flat front facing you,
+    // a grid of white/yellow office windows, and on top a helipad or antennas. o.mat, o.windows: 'windowLight' | 'officeWhite'
+    officeTower(o) {
+      const S = o.size || 340, seed = o.seed || 1, rand = rng(seed * 179), body = mat[o.mat || 'towerBlue'], meshes = [];
+      const win = mat[o.windows || (rand() < .5 ? 'windowLight' : 'officeWhite')], C = Math.SQRT1_2;
+      const part = (x, H, R, lean, sd, top) => {
+        const rs = [[R, 0], [R * .93, H * .5], [R * .86, H]], Rz = z => z < H * .5 ? R + (R * .93 - R) * z / (H * .5) : R * .93 + (R * .86 - R * .93) * (z - H * .5) / (H * .5);
+        meshes.push(drum(4, rs, body, sd, rand, null, null, { clean: true, offAll: .5, lean }).move(x, 0, 0));
+        const rows = Math.max(3, Math.round(H / (R * .55))), cols = 3;
+        for (let rI = 0; rI < rows; rI++) {
+          const z = H * .07 + (rI + .5) * (H * .86 / rows), hw = Rz(z) * C, fy = -Rz(z) * C;
+          for (let c = 0; c < cols; c++) {
+            const cx = x + lean * z + (c - (cols - 1) / 2) * (hw * 2 * .78 / cols);
+            const pn = box(hw * 2 * .78 / cols * .62, 2, H * .86 / rows * .5, win, sd + 10 + rI * 7 + c, .02).move(cx, fy - 1.2, z - H * .86 / rows * .25);
+            pn.bias = 1; meshes.push(pn);
+          }
+        }
+        const tx = x + lean * H, Rt = R * .86 * C;
+        if (top === 'helipad') {
+          const pad = cylinder(10, 1, mat.dark, sd + 90).scale(Rt * .9, Rt * .9, S * .012).move(tx, 0, H); pad.bias = 2; meshes.push(pad);
+          [[-Rt * .28, 0, Rt * .08, Rt * .7], [Rt * .28, 0, Rt * .08, Rt * .7], [0, 0, Rt * .56, Rt * .1]].forEach(([dx, dy, w, d2], i) => {
+            const b = box(w, d2, S * .004, mat.officeWhite, sd + 91 + i, 0).move(tx + dx, dy, H + S * .012); b.bias = 3; meshes.push(b);
+          });
+        } else {
+          [[-Rt * .4, .2], [Rt * .3, .13]].forEach(([dx, h], i) => {
+            meshes.push(limb([tx + dx, 0, H], [tx + dx, 0, H + S * h], S * .008, S * .005, mat.metal, sd + 95 + i, 4));
+            const b = icosphere(0, mat.flag, sd + 97 + i).scale(S * .012).move(tx + dx, 0, H + S * h); b.bias = 2; meshes.push(b);
+          });
+        }
+      };
+      const R = S * .14, side = rand() < .5 ? -1 : 1;
+      part(0, S, R, (rand() - .5) * .05, seed * 179, o.top || (rand() < .5 ? 'helipad' : 'antenna'));
+      part(side * R * 1.5, S * (.55 + rand() * .15), R * .8, side * .03, seed * 179 + 1, 'antenna');
+      if (rand() < .6) part(-side * R * 1.35, S * (.35 + rand() * .12), R * .65, -side * .03, seed * 179 + 2, 'helipad');
+      return place(meshes, Object.assign({ rot: 0 }, o), R * 2, { ordered: 'depth' });
+    },
+    // stepped temple (layered, after the jungle-temple reference): stacked tiers with a face toward the camera,
+    // alternating sandstone tones, painted depth on each tier front, a central staircase, a round shrine on top, plants
+    stepTemple(o) {
+      const S = o.size || 260, seed = o.seed || 1, rand = rng(seed * 181), tiers = 5, tH = S * .1, W0 = S, D0 = S * .78, C = Math.SQRT1_2, meshes = [];
+      let z = 0, wTop = 0, dTop = 0;
+      for (let i = 0; i < tiers; i++) {
+        const w = W0 * (1 - i * .17), d = D0 * (1 - i * .17), R = w / 2 / C, m = i % 2 ? mat.sandstoneLight : mat.sandstone;
+        meshes.push(drum(4, [[R, z], [R * .97, z + tH]], m, seed * 181 + i, rand, null, null, { clean: true, offAll: .5, ry: d / w }));
+        meshes.push(decal([[w / 2 * .985, z + 1], [w / 2 - S * .1, z + 1], [w / 2 * .97, z + tH * .97]], -d / 2 * .985, mat.sandstoneShade, seed * 181 + 10 + i));
+        z += tH; wTop = w; dTop = d;
+      }
+      // central staircase: steps that climb inward up the front
+      const nSteps = tiers * 2, sw = S * .2;
+      for (let k = 0; k < nSteps; k++) {
+        const zz = k * tH / 2, dk = D0 * (1 - .17 * (zz / tH)), st = box(sw * (1 - k * .03), S * .05, tH / 2, mat.sandstoneLight, seed * 181 + 20 + k, .03).move(0, -dk / 2 - S * .02, zz);
+        st.bias = 2; meshes.push(st);
+      }
+      // round shrine on top: stacked discs and a little room with a dark doorway
+      const zr = z;
+      meshes.push(drum(10, [[wTop * .42, zr], [wTop * .4, zr + S * .035]], mat.sandstoneLight, seed * 181 + 40, rand, null, null, { clean: true }));
+      meshes.push(drum(10, [[wTop * .32, zr + S * .035], [wTop * .3, zr + S * .07]], mat.sandstone, seed * 181 + 41, rand, null, null, { clean: true }));
+      meshes.push(block(wTop * .36, wTop * .3, S * .08, S * .08, mat.sandstoneLight, seed * 181 + 42).move(0, 0, zr + S * .07));
+      const dr = box(wTop * .12, 2, S * .055, mat.windowDark, seed * 181 + 43, 0).move(0, -wTop * .15 - 1.5, zr + S * .07); dr.bias = 3; meshes.push(dr);
+      meshes.push(drum(10, [[wTop * .24, zr + S * .15], [wTop * .16, zr + S * .19]], mat.sandstone, seed * 181 + 44, rand, null, null, { clean: true }));
+      // plants on the ledges
+      for (let i = 0; i < 5; i++) {
+        const ti = Math.floor(rand() * 3), w = W0 * (1 - ti * .17), d = D0 * (1 - ti * .17), sx = rand() < .5 ? -1 : 1;
+        make.bush({ size: S * (.07 + rand() * .05), seed: seed * 181 + 60 + i }).meshes.forEach(mm => { mm.move(sx * w * (.3 + rand() * .15), -d / 2 * .8, (ti + 1) * tH); meshes.push(mm); });
+      }
+      return place(meshes, Object.assign({ rot: 0 }, o), W0 * .55, { ordered: 'depth' });
+    },
     // tall tower of a few big polygons in palette tones (like the low-poly trees and refs 30/39). o.style:
     //   twist   — a square prism whose rings turn half a step each level → big triangle facets, short pyramid top
     //   tiers   — stacked tapering tiers, like a pine
@@ -1295,11 +1368,13 @@
       if (style === 'twist') {
         meshes.push(drum(4, [[r, 0], [r * .97, S * .3], [r * .93, S * .58], [r * .86, S * .84]], body, seed * 173, rand, null, null, { apex: S, jr: .02, lean }));
       } else if (style === 'tiers') {
-        const n = 3;
-        for (let i = 0; i < n; i++) {
-          const z0 = S * (i * .3), h = S * (.36 - i * .02), rr = r * (1.25 - i * .3);
-          const top = i === n - 1 ? { apex: z0 + h + S * .12, jr: .03, lean } : { jr: .03, lean };
-          meshes.push(drum(5, [[rr, z0], [rr * .78, z0 + h]], body, seed * 173 + i, rand, null, null, top));
+        let rr = r * 1.25, z0 = 0;
+        for (let i = 0; i < 3; i++) {
+          const h = S * (.3 - i * .02), top = rr * .8;
+          const op = { clean: true, off0: i, lean };
+          if (i === 2) op.apex = z0 + h + S * .14;
+          meshes.push(drum(5, [[rr, z0], [top, z0 + h]], body, seed * 173 + i, rand, null, null, op));
+          z0 += h; rr = top * .9; // the next tier stands on a clean ledge, a little narrower, same angle
         }
       } else { // setback
         meshes.push(drum(4, [[r * 1.3, 0], [r * 1.22, S * .4]], body, seed * 173, rand, null, null, { jr: .02 }));
@@ -1309,20 +1384,25 @@
       }
       return place(meshes, Object.assign({ rot: 0 }, o), r * 1.6, { ordered: 'depth' });
     },
-    // marble temple: steps, columns (each leans a hair), a pediment set slightly askew
+    // marble temple, in the tower language: big planes in a few marble tones — warm steps and cella,
+    // thick square columns with a half-step twist (big triangle facets), a gable with its far half shaded
     temple(o) {
-      const S = o.size || 240, seed = o.seed || 1, rand = rng(seed * 139), W = S, D = S * .6, mm = mat.marble, meshes = [];
-      for (let i = 0; i < 3; i++) meshes.push(box(W * (1.08 - i * .05), D * (1.1 - i * .07), S * .045, mm, seed * 139 + i, .04).move(0, 0, i * S * .045));
-      const z0 = S * .135, cH = S * .42, r = S * .045, n = 5;
-      [-1, 1].forEach((sy, k) => { for (let i = 0; i < n; i++) {
-        const x = -W * .4 + i * W * .8 / (n - 1), y = sy * D * .32, lean = (rand() - .5) * .06;
-        meshes.push(box(r * 2.6, r * 2.6, S * .03, mm, seed * 139 + 10 + i + k * 10, .04).move(x, y, z0));
-        meshes.push(cylinder(8, .88, mm, seed * 139 + 30 + i + k * 10).scale(r, r, cH).rotY(lean).move(x, y, z0 + S * .03));
-        meshes.push(box(r * 2.8, r * 2.8, S * .035, mm, seed * 139 + 50 + i + k * 10, .04).move(x + Math.sin(lean) * cH, y, z0 + S * .03 + cH));
-      } });
-      const zt = z0 + S * .03 + cH + S * .035, tilt = (rand() - .5) * .07, top = [box(W * .94, D * .82, S * .07, mm, seed * 139 + 70, .04).move(0, 0, zt),
-        gableWall(W * .9, D * .78, S * .15, mm, seed * 139 + 71).move(0, 0, zt + S * .07)].concat(roofSlabs(W * .9, D * .78, S * .16, S * .03, S * .035, mm, seed * 139 + 72, zt + S * .07 + S * .16));
-      top.forEach(m => { m.rotZ(tilt).move(W * .02, 0, 0); meshes.push(m); });
+      const S = o.size || 240, seed = o.seed || 1, rand = rng(seed * 139), W = S, D = S * .58, mm = mat.marble, mw = mat.marbleWarm, meshes = [];
+      for (let i = 0; i < 3; i++) meshes.push(box(W * (1.08 - i * .05), D * (1.1 - i * .07), S * .05, i % 2 ? mm : mw, seed * 139 + i, .02).move(0, 0, i * S * .05));
+      const z0 = S * .15, cH = S * .4, r = S * .058, n = 4;
+      meshes.push(block(W * .72, D * .5, cH, cH, mw, seed * 139 + 5).move(0, D * .14, z0));
+      for (let i = 0; i < n; i++) {
+        const x = -W * .38 + i * W * .76 / (n - 1), y = -D * .3, lean = (rand() - .5) * .025;
+        meshes.push(box(r * 2.5, r * 2.5, S * .035, mw, seed * 139 + 10 + i, .02).move(x, y, z0));
+        meshes.push(drum(4, [[r, z0 + S * .035], [r * .9, z0 + cH - S * .035]], mm, seed * 139 + 30 + i, rand, null, null, { clean: true, off0: i % 2, lean }).move(x, y, 0));
+        meshes.push(box(r * 2.7, r * 2.7, S * .04, mw, seed * 139 + 50 + i, .02).move(x + lean * cH, y, z0 + cH - S * .04));
+      }
+      const zt = z0 + cH, tilt = (rand() - .5) * .05, gw = W * .92, gd = D * .8, gh = S * .17;
+      const top = [box(W * .96, D * .86, S * .07, mw, seed * 139 + 70, .02).move(0, 0, zt),
+        gableWall(gw, gd, gh, mm, seed * 139 + 71).move(0, 0, zt + S * .07),
+        decal([[0, zt + S * .07 + gh], [gw / 2, zt + S * .07], [0, zt + S * .07]], -gd / 2, mat.marbleShade, seed * 139 + 73)]
+        .concat(roofSlabs(gw, gd, gh * 1.05, S * .03, S * .04, mw, seed * 139 + 72, zt + S * .07 + gh * 1.05));
+      top.forEach(m => { m.rotZ(tilt).move(W * .015, 0, 0); meshes.push(m); });
       return place(meshes, Object.assign({ rot: 0 }, o), W * .55, { ordered: 'depth' });
     },
     // stump house: a fat tree stump with roots, a cut top, a leafy crown, a door and a window
@@ -1339,7 +1419,7 @@
       crown.scale(S * .5, S * .47, S * .32).move(0, 0, S * .5); meshes.push(crown);
       meshes.push(icosphere(1, leaf, seed * 149 + 21).jitter(.12, rand).scale(S * .17, S * .16, S * .13).move(S * .12, S * .04, S * .78));
       door(-S * .03, -S * .23, S * .02, S * .15, S * .15, seed * 149 + 30).forEach(m => meshes.push(m));
-      windowOn([S * .13, -S * .21, S * .3], [0, -1, 0], S * .1, seed * 149 + 40).forEach(m => meshes.push(m));
+      windowOn([S * .13, -S * .22, S * .22], [0, -1, 0], S * .1, seed * 149 + 40).forEach(m => meshes.push(m));
       return place(meshes, Object.assign({ rot: 0 }, o), S * .4, { ordered: 'depth' });
     },
     // mushroom house: a cream stalk with a door and a round window, a big red spotted cap
