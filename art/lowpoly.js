@@ -1515,6 +1515,65 @@
     },
   });
 
+  // ---------- side-view game world (bridge game) — test, waiting for approval ----------
+  Object.assign(charMat, {
+    fire: M(['#9c2a14', '#e0541f', '#ff8a2e', '#ffd23f'], .06), ember: M(['#5a1a10', '#8e2a18', '#c2402a'], .05),
+    swamp: M(['#2f4a1c', '#4d6e2a', '#7a9a3e', '#a8c46a'], .07),
+    // number planks keep the game's three colors (a child tells the original planks apart by color)
+    plankCoral: M(['#a8321f', '#e8523e', '#ff7a66', '#ffb0a2'], .03), plankBlue: M(['#1d3f96', '#2f5fd0', '#5a86ee', '#a0bcff'], .03),
+    plankPurple: M(['#47258f', '#6c3fd0', '#9068f2', '#c2a8ff'], .03),
+  });
+  Object.assign(make, {
+    // a stretch of land seen from the side: grass top (depth o.depth), a grass lip, an earth front face with a few
+    // stones. x 0 → o.w, top at z = 0, front face down to z = −o.h. edgeL / edgeR = a pit on that side (jagged edge)
+    ground(o) {
+      const w = o.w || 400, h = o.h || 150, D = o.depth || 40, seed = o.seed || 1, rand = rng(seed * 137);
+      const top = o.top || mat.grass, lipM = o.lip || mat.grassSide, side = o.side || mat.earth, rock = o.rock || mat.stone;
+      const n = Math.max(1, Math.round(w / (o.step || 56))), lip = o.lipH == null ? Math.min(10, h * .08) : o.lipH;
+      // two meshes, each with its center far away on its inner side (a wide slab has no single center that orients every facet)
+      const topM = new Mesh(top, seed * 137), face = new Mesh(side, seed * 137 + 1);
+      topM.center = [w / 2, D / 2, -1e6]; face.center = [w / 2, 1e6, -h / 2];
+      const xs = []; for (let i = 0; i <= n; i++) xs.push(i === 0 ? 0 : i === n ? w : (i + (rand() - .5) * .5) * w / n);
+      const jag = (i, k) => (i === 0 && o.edgeL ? (rand() - .5) * 14 + (k % 2 ? 5 : -2) : i === n && o.edgeR ? (rand() - .5) * 14 - (k % 2 ? 5 : -2) : 0);
+      const grid = (mesh, rows, at) => rows.map((r, k) => xs.map((x, i) => at(x + jag(i, k), r, i, k)));
+      const tri4 = (mesh, P, pick) => {
+        const id = P.map(row => row.map(p => mesh.add(p)));
+        for (let k = 0; k < id.length - 1; k++) for (let i = 0; i < n; i++) {
+          const a = id[k][i], b = id[k][i + 1], c = id[k + 1][i + 1], d = id[k + 1][i];
+          if ((i + k) % 2) { mesh.tri(a, b, c, pick(k, i)); mesh.tri(a, c, d, pick(k, i)); } else { mesh.tri(a, b, d, pick(k, i)); mesh.tri(b, c, d, pick(k, i)); }
+        }
+      };
+      // top: front edge (y 0) → back (y D), bumpy so the grass gets several shades
+      const T = grid(topM, [0, D * .5, D], (x, y, i, k) => [x, y, k ? (rand() - .5) * D * .14 : 0]);
+      tri4(topM, T, () => top);
+      // lip + front face (y ≈ 0, jittered in depth so every facet catches the light differently)
+      const zs = [0, -lip, -lip - (h - lip) * (.3 + (rand() - .5) * .1), -lip - (h - lip) * (.64 + (rand() - .5) * .1), -h];
+      const F = grid(face, zs, (x, z, i, k) => [x, k === 0 || k === zs.length - 1 ? 0 : (rand() - .5) * 16 - 2, z + (k > 0 && k < zs.length - 1 ? (rand() - .5) * 10 : 0)]);
+      F[0] = T[0];
+      tri4(face, F, k => (k === 0 ? lipM : rand() < (k === zs.length - 2 ? .14 : .05) ? rock : side));
+      return place([topM, face], o, 0);
+    },
+    // a flame: a pointed cone in fire colors with a glowing core (draw each flame in its own group to flicker it)
+    flame(o) {
+      const S = o.size || 60, seed = o.seed || 1, rand = rng(seed * 139);
+      const outer = cone(5, mat.fire, seed * 139, rand, .55).scale(S * .26, S * .2, S), core = cone(4, mat.gold, seed * 139 + 1, rand, .5).scale(S * .13, S * .1, S * .55).move(0, -S * .12, 0);
+      core.bias = S;
+      return place([outer, core], o, 0, { ordered: 'depth' });
+    },
+    // a thorn: a tall thin spike (pit of thorns)
+    thorn(o) {
+      const S = o.size || 60, seed = o.seed || 1;
+      return place([cone(4, o.mat || mat.stone, seed * 149, rng(seed * 149), .4).scale(S * .2, S * .16, S)], o, 0);
+    },
+    // a lily pad floating flat on the water
+    lily(o) {
+      const S = o.size || 30, m = new Mesh(o.mat || mat.leaf, (o.seed || 1) * 151), rand = rng((o.seed || 1) * 151);
+      const c = m.add([0, 0, S * .05]), A = ring(m, 7, { r: S / 2, ry: .45, z: 0, jr: .1, ja: .3 }, rand);
+      fan(m, c, A); m.center = [0, 0, -S];
+      return place([m], o, 0);
+    },
+  });
+
   const LP = { rng, camera, poses, face, project, facets, polys, draw, bounds, hull, castShadow, outline, material, mat, themes, useTheme, make, Mesh, icosphere, cone, cylinder, limb, ring, stitch, fan, hex2rgb, rgb2hex };
   root.LP = LP;
   useTheme('day');

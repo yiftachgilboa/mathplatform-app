@@ -9,6 +9,7 @@
 <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
 <script src="/practices/kidodo-practice.js"></script>
+<script src="../art/lowpoly.js"></script>
 <style>
 :root{--ink:#33373b;--blue:#3D6FE0;--kblue:#176fbe;--coral:#FF6450;--yellow:#FFC531;--teal:#1FB5A2;--purple:#8E5CF0;--panel:#FFF7E6}
 *{box-sizing:border-box;margin:0}
@@ -118,13 +119,15 @@ header{display:flex;justify-content:center;align-items:center;flex:none;margin-i
 .pk{z-index:5;touch-action:none;cursor:grab}
 .pk.dragging{cursor:grabbing;z-index:40}
 .pk.home{transition:left .3s cubic-bezier(.3,1.3,.5,1),top .3s cubic-bezier(.3,1.3,.5,1)}
-.plank{position:relative;display:flex;height:var(--T);direction:ltr;border-radius:calc(var(--T)*.17);overflow:visible}
-.seg{position:relative;height:100%;background:var(--m)}
-.seg:first-of-type{border-radius:calc(var(--T)*.17) 0 0 calc(var(--T)*.17)}.seg:last-of-type{border-radius:0 calc(var(--T)*.17) calc(var(--T)*.17) 0}.seg:only-of-type{border-radius:calc(var(--T)*.17)}
-.seg+.seg{box-shadow:inset 3px 0 0 #fff}
-.pnum{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.18);pointer-events:none}
+.plank{position:relative;display:flex;height:var(--T);direction:ltr;overflow:visible}
+.plank .partsvg{display:block;overflow:visible}
+/* the number on a plank: a flat layer (white circle + digit), like faces in the art library */
+.pnum{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.pnum b{display:flex;align-items:center;justify-content:center;border-radius:50%;background:#fff;color:var(--ink);font-weight:700;line-height:1;box-shadow:0 2px 0 rgba(0,0,0,.16)}
 .psum{position:absolute;left:50%;bottom:calc(100% + 5px);transform:translateX(-50%);white-space:nowrap;font-weight:700;font-size:15px;color:var(--ink);background:rgba(255,255,255,.9);padding:1px 9px;border-radius:10px;pointer-events:none}
-.pk.dragging .plank{filter:brightness(1.08);box-shadow:0 10px 18px rgba(23,80,130,.25)}
+.pk.dragging .plank{filter:brightness(1.08) drop-shadow(0 10px 10px rgba(23,80,130,.3))}
+.alienlp{transform-origin:50% 100%}
+.alienlp.talking{animation:mbob .32s infinite alternate}
 .plank.hl{animation:hl .9s ease-in-out 3}
 @keyframes hl{50%{transform:translateY(-6px) scale(1.06);filter:brightness(1.15)}}
 .plank.merged{animation:merge .5s}
@@ -219,7 +222,7 @@ header{display:flex;justify-content:center;align-items:center;flex:none;margin-i
 <body>
 <div id="root"></div>
 <script type="text/babel" data-presets="react">
-const {useState,useEffect,useRef} = React;
+const {useState,useEffect,useRef,useMemo} = React;
 
 /* ---------- helpers ---------- */
 const SPOKEN=['אֶפֶס','אַחַת','שְׁתַּיִם','שָׁלוֹשׁ','אַרְבַּע','חָמֵשׁ','שֵׁשׁ','שֶׁבַע','שְׁמוֹנֶה','תֵּשַׁע','עֶשֶׂר','אַחַת עֶשְׂרֵה','שְׁתֵּים עֶשְׂרֵה'];
@@ -353,95 +356,60 @@ function flyCoin(fromEl,toEl){
   });
 }
 
-/* ---------- art (low-poly vector, kidodo palette) ---------- */
-const COIN_SVG='<svg width="30" height="30" viewBox="0 0 40 40"><polygon points="12,2 28,2 38,12 38,28 28,38 12,38 2,28 2,12" fill="#FFD23F"/><polygon points="20,2 28,2 38,12 38,28 28,38 20,38" fill="#F2B21B"/><polygon points="14,9 26,9 31,14 31,26 26,31 14,31 9,26 9,14" fill="#FFE27A"/><polygon points="20,9 26,9 31,14 31,26 26,31 20,31" fill="#FFC531"/><polygon points="20,13 23,20 20,27 17,20" fill="#fff" opacity=".85"/></svg>';
+/* ---------- art: the kidodo Soft Low-Poly library (art/lowpoly.js, inlined into the game by the build) ---------- */
+LP.useTheme('day');
+const A_OBJ=.3, A_W=.3, A_P=.5;          // camera tilt: characters and props, the land, the floating planks
+function lpMarkup(obj,a){const cam=LP.camera({a});return LP.draw(obj,cam)+LP.face(obj,cam)}
+/* one fixed viewBox for every frame of an object (so an animated object never jumps) */
+function lpBox(objs,a,pad=.04){const cam=LP.camera({a});let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  objs.forEach(o=>{const b=LP.bounds(LP.facets(o,cam));x0=Math.min(x0,b.x);y0=Math.min(y0,b.y);x1=Math.max(x1,b.x+b.w);y1=Math.max(y1,b.y+b.h)});
+  const p=Math.max(x1-x0,y1-y0)*pad;return [x0-p,y0-p,x1-x0+2*p,y1-y0+2*p].map(v=>+v.toFixed(1))}
+/* a live object: build(t) → LP object. Drawn at `fps` while `run` (until `until` seconds), otherwise once */
+function LPLive({build,a=A_OBJ,vb,fps=24,run=true,until,dep,className,style,width,height,innerRef}){
+  const ref=useRef(null), b=useRef(build); b.current=build;
+  useEffect(()=>{const el=ref.current;if(!el)return;const t0=performance.now();
+    const draw=now=>{el.innerHTML=lpMarkup(b.current((now-t0)/1000),a)};
+    draw(t0); if(!run)return;
+    let raf,last=t0;const loop=now=>{if(now-last>=1000/fps-2){last=now;draw(now)}
+      if(until!=null&&(now-t0)/1000>until){draw(t0+until*1000);return}raf=requestAnimationFrame(loop)};
+    raf=requestAnimationFrame(loop);return()=>cancelAnimationFrame(raf)},[run,a,fps,dep]);
+  return <svg ref={el=>{ref.current=el;if(innerRef)innerRef.current=el}} className={className} viewBox={vb.join(' ')} width={width} height={height}
+    preserveAspectRatio="xMidYMax meet" style={{display:'block',overflow:'visible',...style}}/>;
+}
+
+/* coin (library coin, standing, turned a little) */
+const COIN_OBJ=LP.make.coin({size:40,rot:.45}), COIN_VB=lpBox([COIN_OBJ],A_OBJ,.03);
+const COIN_SVG=`<svg width="30" height="30" viewBox="${COIN_VB.join(' ')}" style="display:block;overflow:visible">${lpMarkup(COIN_OBJ,A_OBJ)}</svg>`;
 const Coin=({s=34})=><span style={{display:'block',width:s,height:s,lineHeight:0}} dangerouslySetInnerHTML={{__html:COIN_SVG.replace('width="30" height="30"',`width="${s}" height="${s}"`)}}/>;
-const BridgeIcon=({s=26})=>(<svg width={s} height={s} viewBox="0 0 40 40"><polygon points="2,22 38,22 38,28 2,28" fill="#FF6450"/><polygon points="2,22 20,22 20,28 2,28" fill="#FF9887"/>
-  <polygon points="4,28 10,28 8,38 4,38" fill="#176fbe"/><polygon points="30,28 36,28 36,38 32,38" fill="#176fbe"/><polygon points="2,22 20,8 38,22 33,22 20,13 7,22" fill="#3D6FE0"/></svg>);
 
-/* the little player (same low-poly character as the other practices) */
-const Legs=({x1,x2})=>(<><rect className="leg l1" x={x1} y="64" width="6" height="12" fill="#3B3360"/><rect className="leg l2" x={x2} y="64" width="6" height="12" fill="#2C2650"/></>);
-const Hat=({side})=>side?(<><polygon points="15,24 49,24 45,19 21,19" fill="#B8443A"/><polygon points="23,19 33,19 32,5 27,7" fill="#FF9A8C"/><polygon points="33,19 41,19 37,6 32,5" fill="#E25B4E"/><polygon className="feather" points="24,11 12,3 20,15" fill="#FFD23F"/></>)
-  :(<><polygon points="13,24 47,24 42,19 18,19" fill="#B8443A"/><polygon points="20,19 30,19 30,5 24,7" fill="#FF9A8C"/><polygon points="30,19 40,19 36,6 30,5" fill="#E25B4E"/><polygon className="feather" points="38,10 50,0 44,14" fill="#FFD23F"/></>);
-const Player=({s=96,talking,happy=true,shadow=true,view='front',walking,cheer})=>(<svg className={'mascot'+(talking?' talking':'')+(walking?' walking':'')+(cheer?' cheer':'')} width={s*.75} height={s} viewBox="0 0 60 80">
-  {shadow&&<polygon points="12,76 22,72 40,72 50,76 40,80 22,80" fill="rgba(23,80,130,.22)"/>}
-  <g className="body">
-  {view==='front'&&<>
-    <Legs x1={22} x2={33}/>
-    <polygon points="13,44 18,39 30,39 30,67 13,67" fill="#FF7B6E"/><polygon points="30,39 42,39 47,44 47,67 30,67" fill="#E25B4E"/>
-    <polygon points="26,40 30,48 34,40" fill="#fff"/>
-    <rect x="8" y="43" width="7" height="18" fill="#FF7B6E" transform="rotate(10 12 43)"/>
-    <rect className="arm" x="45" y="43" width="7" height="18" fill="#E25B4E"/>
-    <polygon points="20,21 30,21 30,41 20,41" fill="#FFDDB8"/><polygon points="30,21 40,21 40,41 30,41" fill="#F6C99A"/>
-    <rect className="eye" x="24" y="28" width="3" height="4" fill="#33373b"/><rect className="eye" x="33" y="28" width="3" height="4" fill="#33373b"/>
-    {talking!==undefined?<ellipse className="mouth" cx="30" cy="36" rx="3.4" ry="2.6" fill="#B23A3A"/>
-      :happy?<path d="M26 35 Q30 39 34 35" stroke="#33373b" strokeWidth="1.8" fill="none"/>:<path d="M27 36 H33" stroke="#33373b" strokeWidth="1.8"/>}
-    <Hat/>
-  </>}
-  {view==='side'&&<>
-    <Legs x1={25} x2={30}/>
-    <rect className="armB" x="31" y="43" width="7" height="17" fill="#B8443A"/>
-    <polygon points="18,43 22,39 38,39 42,43 43,67 18,67" fill="#FF7B6E"/><polygon points="33,39 38,39 42,43 43,67 33,67" fill="#E25B4E"/>
-    <rect className="armS" x="27" y="43" width="7" height="17" fill="#C94A3E"/>
-    <polygon points="21,21 39,21 39,29 43,32 39,35 39,41 21,41" fill="#FFDDB8"/>
-    <polygon points="21,21 27,21 27,34 21,36" fill="#8A5A34"/>
-    <rect className="eye" x="34" y="27" width="3" height="4" fill="#33373b"/>
-    {happy?<path d="M34 37 Q37 39 39 37" stroke="#33373b" strokeWidth="1.6" fill="none"/>:<path d="M34 37 H39" stroke="#33373b" strokeWidth="1.6"/>}
-    <Hat side/>
-  </>}
-  </g></svg>);
+/* the hero: head-body character in the kid outfit, walking right (3/4 view); scared = turns to the monster */
+const HERO_ROT=.85;
+const heroObj=(pose,t,rot)=>LP.make.buddy({outfit:'kid',size:100,pose,t,rot});
+const HERO_VB=lpBox(['stand','walk'].flatMap(p=>[0,.17,.33,.5].flatMap(t=>[heroObj(p,t,HERO_ROT),heroObj(p,t,-HERO_ROT)])),A_OBJ,.02);
+function Hero({s,walking,cheer,scared}){
+  const pose=scared?'scared':walking?'walk':cheer?'cheer':'stand';
+  return <LPLive vb={HERO_VB} width={s*.75} height={s} dep={pose} fps={pose==='stand'?10:24} build={t=>heroObj(pose,t,scared?-HERO_ROT:HERO_ROT)}/>;
+}
 
-const Chest=({open,bump,s=62,innerRef})=>(<svg ref={innerRef} className={'chest'+(open?' open':'')+(bump?' bump':'')} width={s} height={s*.8} viewBox="0 0 80 64" style={{overflow:'visible'}}>
-  {open&&<g className="lidopen">
-    <polygon points="8,30 3,-8 77,-8 72,30" fill="#B8651F"/>
-    <polygon points="13,27 9,-3 71,-3 67,27" fill="#6E3A10"/>
-    <polygon points="3,-8 77,-8 76,-3 4,-3" fill="#EE9A4A"/>
-    <rect x="36" y="-8" width="8" height="35" fill="#8A4A14"/></g>}
-  {open&&<g>
-    <polygon points="6,30 74,30 72,34 8,34" fill="#5A2E0C"/>
-    <polygon points="9,32 16,24 24,27 31,21 40,25 48,20 56,25 63,22 71,32" fill="#FFD23F"/>
-    <polygon points="31,21 40,25 36,32 24,32" fill="#FFE27A"/><polygon points="48,20 56,25 54,32 44,32" fill="#FFE27A"/>
-    <circle cx="20" cy="27" r="3" fill="#F2B21B"/><circle cx="60" cy="26" r="3" fill="#F2B21B"/></g>}
-  <polygon points="6,30 40,30 40,62 6,62" fill="#D98436"/><polygon points="40,30 74,30 74,62 40,62" fill="#B8651F"/>
-  <rect x="6" y="40" width="68" height="6" fill="#8A4A14"/>
-  {!open&&<g><polygon points="6,30 6,18 18,8 40,8 40,30" fill="#EE9A4A"/><polygon points="40,8 62,8 74,18 74,30 40,30" fill="#CF7A2C"/><rect x="6" y="24" width="68" height="6" fill="#8A4A14"/></g>}
-  <polygon points="34,34 46,34 46,48 34,48" fill="#FFC531"/><polygon points="40,34 46,34 46,48 40,48" fill="#E9A913"/></svg>);
+/* treasure chest (library chest). The lid opens with a little overshoot */
+const CHEST_ROT=-.35;
+const chestObj=phi=>LP.make.chest({size:100,rot:CHEST_ROT,open:phi});
+const CHEST_VB=lpBox([chestObj(0)],A_OBJ,.03);
+const lidAt=t=>{const k=Math.min(1,t/.45);return 2*(1-Math.pow(1-k,3))+Math.sin(k*Math.PI)*.3};
+const Chest=({open,bump,s=62,innerRef})=>(<LPLive innerRef={innerRef} className={'chest'+(open?' open':'')+(bump?' bump':'')} vb={CHEST_VB} width={s} height={s*.8}
+  dep={open?'o':'c'} run={!!open} until={.5} fps={30} build={t=>chestObj(open?lidAt(t):0)}/>);
 
-/* the narrator: a little low-poly alien (not the hero) */
-const Alien=({s=64,talking})=>(<svg className={'mascot'+(talking?' talking':'')} width={s*.75} height={s} viewBox="0 0 60 80">
-  <polygon points="12,76 22,72 40,72 50,76 40,80 22,80" fill="rgba(23,80,130,.22)"/>
-  <g className="body">
-    <rect className="leg l1" x="22" y="64" width="6" height="11" fill="#6A3CC4"/><rect className="leg l2" x="33" y="64" width="6" height="11" fill="#5A30AE"/>
-    <polygon points="20,44 30,44 30,68 15,68" fill="#2CC2AE"/><polygon points="30,44 40,44 45,68 30,68" fill="#169C8C"/>
-    <polygon points="26,52 30,48 34,52 30,58" fill="#FFC531"/>
-    <rect x="11" y="46" width="6" height="16" fill="#2CC2AE" transform="rotate(14 14 46)"/>
-    <rect className="arm" x="43" y="46" width="6" height="16" fill="#169C8C"/>
-    <polygon points="22,4 24,4 26,14 24,14" fill="#6A3CC4"/><polygon points="36,4 38,4 36,14 34,14" fill="#6A3CC4"/>
-    <polygon className="feather" points="23,0 27,3 23,6 19,3" fill="#FFC531"/><polygon className="feather" points="37,0 41,3 37,6 33,3" fill="#FFC531"/>
-    <polygon points="12,24 20,13 30,12 30,46 18,44 11,34" fill="#B99BFF"/><polygon points="30,12 40,13 48,24 49,34 42,44 30,46" fill="#8E5CF0"/>
-    <circle className="eye" cx="30" cy="27" r="9" fill="#fff"/><circle className="eye" cx="31" cy="28" r="4.5" fill="#33373b"/>
-    <circle cx="33" cy="26" r="1.5" fill="#fff"/>
-    {talking!==undefined?<ellipse className="mouth" cx="30" cy="39" rx="4" ry="2.6" fill="#4A2A8A"/>:<path d="M26 38 Q30 42 34 38" stroke="#4A2A8A" strokeWidth="1.8" fill="none"/>}
-  </g></svg>);
+/* the narrator: the library alien (one eye), floating; it bobs while it talks */
+const alienObj=t=>LP.make.alien({size:100,rot:-.45,t});
+const ALIEN_VB=lpBox([0,.7,1.4,2.1].map(alienObj),A_OBJ,.03);
+const Alien=({s=64,talking})=>(<LPLive className={'alienlp'+(talking?' talking':'')} vb={ALIEN_VB} width={s*.75} height={s} fps={talking?24:12} dep={talking?1:0}
+  build={t=>alienObj(talking?t*1.8:t)}/>);
 
-/* the chasing monster (low-poly, faces right) */
-const Monster=({w,h})=>(<svg width={w} height={h} viewBox="0 0 80 100" style={{display:'block',overflow:'visible'}}>
-  <polygon points="10,98 70,98 64,94 16,94" fill="rgba(20,50,40,.25)"/>
-  <rect className="ml ml1" x="22" y="80" width="12" height="17" fill="#2F7F57"/><rect className="ml ml2" x="46" y="80" width="12" height="17" fill="#256B48"/>
-  <g className="mbody">
-    <polygon className="mspike" points="8,64 9,50 -5,55" fill="#F2A61B"/><polygon className="mspike" points="9,50 12,38 -3,39" fill="#FFC531"/>
-    <polygon className="mspike" points="13,37 19,26 3,23" fill="#F2A61B"/><polygon className="mspike" points="20,24 28,16 13,7" fill="#FFC531"/>
-    <polygon className="mspike" points="29,16 38,12.5 28,0" fill="#F2A61B"/>
-    <polygon className="mspike" points="40,13 44,1 48,13" fill="#FFC531"/><polygon className="mspike" points="50,14 59,0 61,18" fill="#E9A913"/>
-    <polygon points="10,40 22,18 44,12 44,88 24,88 8,72" fill="#4CB07E"/><polygon points="44,12 66,22 75,46 71,78 50,88 44,88" fill="#3A9467"/>
-    <polygon points="28,54 50,50 58,70 47,84 29,80" fill="#9BE08E"/><polygon points="50,50 58,70 47,84" fill="#86CF7A"/>
-    <polygon className="marmL" points="13,56 3,62 6,69 16,63" fill="#3A9467"/>
-    <polygon className="mbrow" points="45,24 67,26 65,21 47,19" fill="#256B48"/>
-    <circle cx="57" cy="34" r="9" fill="#fff"/><g className="mpupil"><circle cx="60" cy="35" r="4.5" fill="#33373b"/><circle cx="61.5" cy="33.5" r="1.4" fill="#fff"/></g>
-    <g className="mjaw"><polygon points="49,50 70,47.5 67.5,58.5 52,60.5" fill="#2A1F45"/>
-      <polygon points="53,49.6 55.5,54.5 58,49.3" fill="#fff"/><polygon points="61,48.6 63.5,53.5 66,48.2" fill="#fff"/>
-      <polygon points="55,60.2 57.5,56.4 60,59.9" fill="#fff"/><polygon points="62,59.2 64.2,55.6 66.4,58.8" fill="#fff"/></g>
-  </g></svg>);
+/* the chasing monster (library monster, big head with the jaw), walking right. st = {walk, roar}, set by the game loop */
+const MON_ROT=1.15;
+const monObj=(t,walk,roar)=>LP.make.critter({kind:'monster',size:100,rot:MON_ROT,pose:walk?'walk':'stand',t,roar});
+const MON_VB=lpBox([0,.2,.4,.6].map(t=>monObj(t,true,0)),A_OBJ,.03);
+const Monster=({w,h,st})=><LPLive vb={MON_VB} width={w} height={h} fps={24} build={t=>{const s=st.current;return monObj(t,s.walk,s.roar)}}/>;
 
 /* stars at the end: 5 bridges vs mistakes (wrong bridges, joins that don't help, start-overs, being caught) */
 function starCount(st){const m=(st||[]).reduce((t,s)=>t+(s?s.mistakes||0:0),0);return m<=1?3:m<=4?2:1}
@@ -482,35 +450,21 @@ const LowPolyBG=React.memo(function LowPolyBG(){
   return <svg className="bg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice">{els}</svg>;
 });
 
-/* cliff (low-poly rock with a grass cap). edgeL/edgeR = a river on that side (jagged edge) */
+/* a stretch of land seen from the side (library ground: grass top, lip, earth face with stones). edgeL/edgeR = a pit on that side */
+const SA=Math.sin(A_W), CA=Math.cos(A_W), GTOP=12;   // the grass top shows GTOP px deep
 function Cliff({w,h,seed=1,edgeL=true,edgeR=true,pal=PALS[0]}){
-  const r=rng(seed*7+3), el=[];let k=0;
-  const poly=(p,f)=>el.push(<polygon key={k++} points={pts(p)} fill={f}/>);
-  const L=edgeL?[[0,0],[6,h*.35],[-4,h*.7],[8,h]]:[[0,0],[0,h]];
-  const Rr=edgeR?[[w,0],[w-6,h*.35],[w+4,h*.7],[w-8,h]]:[[w,0],[w,h]];
-  poly([...L,...Rr.slice().reverse()],pal.b);
-  // facets across the rock, every ~80px
-  for(let x=22;x<w-60;x+=70+Math.round(r()*30)){
-    const a=24+r()*26, m=h*(.45+r()*.2);
-    poly([[x,0],[x+a,0],[x+a*.7,m],[x+a*.1,m-8]],pal.f1);
-    poly([[x+a*.1,m-8],[x+a*.7,m],[x+a*1.2,h],[x-6,h]],r()<.5?pal.f2:pal.f3);
-    poly([[x+a*.3,m*.4],[x+a*.3+10,m*.4-6],[x+a*.3+16,m*.4+4],[x+a*.3+6,m*.4+9]],'rgba(255,255,255,.18)');
-  }
-  if(edgeL)poly([[0,0],[6,h*.35],[-4,h*.7],[8,h],[26,h],[16,h*.6],[22,0]],pal.eL);
-  if(edgeR)poly([[w,0],[w-6,h*.35],[w+4,h*.7],[w-8,h],[w-28,h],[w-18,h*.55],[w-24,0]],pal.eR);
-  // grass cap
-  poly([[-2,-4],[w+2,-4],[w,10],[w*.7,13],[w*.35,9],[0,12]],pal.g);
-  poly([[-2,-4],[w+2,-4],[w*.6,4],[w*.2,5]],pal.gl);
-  return <svg width={w+24} height={h+6} viewBox={`-12 -6 ${w+24} ${h+6}`} style={{display:'block',margin:'-6px 0 0 -12px'}}>{el}</svg>;
+  const html=useMemo(()=>LP.draw(LP.make.ground({w,h:h/CA,depth:GTOP/SA,seed,edgeL,edgeR,...pal}),LP.camera({a:A_W,ox:12,oy:6+GTOP})),[w,h,seed,edgeL,edgeR,pal]);
+  return <svg width={w+24} height={h+24} viewBox={`0 0 ${w+24} ${h+24}`} style={{display:'block',margin:'-6px 0 0 -12px',overflow:'visible'}} dangerouslySetInnerHTML={{__html:html}}/>;
 }
-/* ground colours: each stretch of land between two obstacles has its own */
+/* ground materials: each stretch of land between two obstacles has its own */
+const DM=LP.themes.desert.mat;
 const PALS=[
-  {b:'#E7A15A',f1:'#D98C45',f2:'#C97B36',f3:'#D48540',eL:'#C97B36',eR:'#B86A2A',g:'#5BBE6A',gl:'#93DA7F'},   // orange earth
-  {b:'#D97B5E',f1:'#C9684D',f2:'#B85A41',f3:'#CC6F53',eL:'#B85A41',eR:'#A44C35',g:'#4FB36A',gl:'#86D486'},   // red clay
-  {b:'#EDC77E',f1:'#E0B566',f2:'#D2A455',f3:'#DDB060',eL:'#D2A455',eR:'#C29146',g:'#9CCB5A',gl:'#C4E27F'},   // sand
-  {b:'#A99BC9',f1:'#988ABB',f2:'#8676AA',f3:'#9183B5',eL:'#8676AA',eR:'#76679A',g:'#3FB59B',gl:'#7FD9C2'},   // purple rock
-  {b:'#B98A5E',f1:'#A9794F',f2:'#986A43',f3:'#A57650',eL:'#986A43',eR:'#875C38',g:'#4CAF5F',gl:'#8ED18A'},   // dark earth
-  {b:'#8FC3D9',f1:'#7EB3CB',f2:'#6CA2BC',f3:'#79AEC6',eL:'#6CA2BC',eR:'#5C92AD',g:'#5BBE6A',gl:'#9BE08E'},   // blue stone (the chest)
+  {top:LP.mat.grass,side:LP.mat.earth},                                  // brown earth
+  {top:LP.mat.grass,side:DM.earth},                                      // red clay
+  {top:DM.grass,lip:DM.grassSide,side:LP.mat.sandstone},                 // sand
+  {top:LP.mat.leafTeal,side:LP.mat.stone},                               // grey rock
+  {top:LP.mat.pine,side:LP.mat.trunk},                                   // dark earth
+  {top:LP.mat.grass,side:LP.mat.ice,rock:LP.mat.ice},                    // blue stone (the chest)
 ];
 /* small low-poly things on the land; each stretch has its own set */
 const DECOR={
@@ -537,58 +491,59 @@ const OBST={
   monster:{name:'בור עם מפלצת',fx:['#8E5CF0','#FFC531','#fff'],sound:'chomp'},
 };
 function Pit({type,w,h,seed=1}){
-  const r=rng(seed*11+5), el=[];let k=0;
-  const poly=(p,f,props={})=>el.push(<polygon key={k++} points={pts(p)} fill={f} {...props}/>);
-  const facets=(c1,c2)=>{for(let x=0;x<w;x+=36){poly([[x,h],[x+18,h*.45+r()*h*.2],[x+36,h]],c1);poly([[x+18,h*.45],[x+36,h],[x+50,h*.5]],c2)}};
-  if(type==='water'){
-    poly([[0,0],[w,0],[w,h],[0,h]],'#5AB3E6');
-    const t=40,n=Math.ceil(w/t);
-    for(let i=0;i<n;i++){const x=i*t;poly([[x,0],[x+t,0],[x+t/2,h*.5]],i%2?'#7FC8F0':'#6ABEEC');poly([[x+t/2,h*.5],[x+t*1.5,h*.5],[x+t,h]],i%2?'#3D9BD6':'#4AA6DE')}
-    for(let i=0;i<n;i++){const x=i*t+8,y=h*(.22+(i%3)*.18);poly([[x,y],[x+14,y-4],[x+26,y]],'rgba(255,255,255,.75)',{className:'wave',style:{animationDelay:-i*.7+'s'}})}
-  }else if(type==='fire'){
-    poly([[0,0],[w,0],[w,h],[0,h]],'#5A2318');facets('#6E2A1C','#4A1C14');
-    poly([[0,h*.75],[w,h*.7],[w,h],[0,h]],'#C9402F');
-    const n=Math.max(3,Math.round(w/22));
-    for(let i=0;i<n;i++){const x=(i+.5)*w/n, tip=h*(.05+r()*.15), base=h*.78;
-      el.push(<g key={k++} className="flame" style={{animationDelay:-(r()*.5)+'s',animationDuration:.4+r()*.3+'s'}}>
-        <polygon points={pts([[x-11,base],[x-5,h*.35],[x,tip],[x+6,h*.3],[x+11,base]])} fill="#FF8A3D"/>
-        <polygon points={pts([[x,tip],[x+6,h*.3],[x+11,base],[x,base]])} fill="#FF6450"/>
-        <polygon points={pts([[x-6,base],[x,h*.42],[x+6,base]])} fill="#FFD23F"/></g>)}
-    for(let i=0;i<Math.max(3,Math.round(w/30));i++){const x=r()*w;el.push(<rect key={k++} className="ember" x={x} y={h*.5} width="4" height="4" fill="#FFD23F" style={{animationDelay:-(r()*1.6)+'s'}}/>)}
-  }else if(type==='thorns'){
-    poly([[0,0],[w,0],[w,h],[0,h]],'#4B3F6B');facets('#3E3459','#55487A');
-    const n=Math.max(4,Math.round(w/14));
-    for(let i=0;i<n;i++){const x=(i+.5)*w/n, tip=h*(.18+r()*.2), hw2=w/n*.55;
-      el.push(<g key={k++} className="spike" style={{animationDelay:-(r()*1.8)+'s'}}>
-        <polygon points={pts([[x-hw2,h],[x,tip],[x,h]])} fill="#D5D0EA"/><polygon points={pts([[x,tip],[x+hw2,h],[x,h]])} fill="#9D97BF"/></g>)}
-  }else if(type==='swamp'){
-    poly([[0,0],[w,0],[w,h],[0,h]],'#5E7F35');facets('#6E9140','#4F6D2C');
-    poly([[0,0],[w,0],[w,h*.16],[0,h*.2]],'#7FA34A');
-    for(let i=0;i<Math.max(1,Math.round(w/70));i++){const x=20+r()*(w-40),y=h*.08;poly([[x-12,y],[x-4,y-5],[x+10,y-3],[x+13,y+3],[x-6,y+5]],'#3F9F5F')}
-    for(let i=0;i<Math.max(3,Math.round(w/26));i++){const x=8+r()*(w-16);el.push(<circle key={k++} className="bub" cx={x} cy={h*.25} r={3+r()*3} fill="#B5D58A" style={{animationDelay:-(r()*2.4)+'s'}}/>)}
-  }else{
-    poly([[0,0],[w,0],[w,h],[0,h]],'#3A2F55');facets('#31284A','#45386A');
-    const mw=Math.min(w*.7,110), mh=mw*.85, cx=w/2, by=h*.2;     // the monster peeks up from the pit
-    el.push(<g key={k++} className="mon">
-      <polygon points={pts([[cx-mw*.42,by+mh*.1],[cx-mw*.32,by-mh*.22],[cx-mw*.22,by+mh*.02]])} fill="#FFC531"/>
-      <polygon points={pts([[cx+mw*.42,by+mh*.1],[cx+mw*.32,by-mh*.22],[cx+mw*.22,by+mh*.02]])} fill="#E9A913"/>
-      <polygon points={pts([[cx-mw/2,h],[cx-mw/2,by+mh*.25],[cx-mw*.3,by],[cx,by-mh*.05],[cx,h]])} fill="#8E5CF0"/>
-      <polygon points={pts([[cx,by-mh*.05],[cx+mw*.3,by],[cx+mw/2,by+mh*.25],[cx+mw/2,h],[cx,h]])} fill="#6A3CC4"/>
-      <circle className="meye" cx={cx-mw*.17} cy={by+mh*.22} r={mw*.1} fill="#fff"/><circle className="meye" cx={cx+mw*.17} cy={by+mh*.22} r={mw*.1} fill="#fff"/>
-      <circle cx={cx-mw*.15} cy={by+mh*.24} r={mw*.045} fill="#33373b"/><circle cx={cx+mw*.19} cy={by+mh*.24} r={mw*.045} fill="#33373b"/>
-      <g className="mmouth"><polygon points={pts([[cx-mw*.24,by+mh*.42],[cx+mw*.24,by+mh*.42],[cx+mw*.14,by+mh*.62],[cx-mw*.14,by+mh*.62]])} fill="#2A1F45"/>
-        <polygon points={pts([[cx-mw*.16,by+mh*.42],[cx-mw*.1,by+mh*.52],[cx-mw*.04,by+mh*.42]])} fill="#fff"/>
-        <polygon points={pts([[cx+mw*.04,by+mh*.42],[cx+mw*.1,by+mh*.52],[cx+mw*.16,by+mh*.42]])} fill="#fff"/></g></g>);
-  }
-  return <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{display:'block',overflow:'hidden'}}>{el}</svg>;
+  const html=useMemo(()=>{
+    const r=LP.rng(seed*31+5), cam=oy=>LP.camera({a:A_W,ox:0,oy}), M=LP.mat, out=[];
+    const draw=(o,oy,c)=>LP.draw(o,c||cam(oy));
+    const slab=(oy,m)=>draw(LP.make.ground({w,h:(h-oy)/CA+30,depth:6/SA,seed:seed*7+(oy|0),top:m.top,lip:m.top,side:m.side,rock:m.side,step:34}),oy);
+    // the back wall of the pit: earth in the dark
+    const wall=LP.make.ground({w,h:h/CA+30,depth:4,seed:seed+50,top:M.earth,lip:M.earth,side:M.earth,step:30});wall.fog=.6;
+    out.push(LP.draw(wall,LP.camera({a:A_W,ox:0,oy:0,fogColor:'#1e140d'})));
+    if(type==='water'){
+      out.push(slab(Math.round(h*.12),{top:M.water,side:M.water}));
+      const t=40,n=Math.ceil(w/t);
+      for(let i=0;i<n;i++){const x=i*t+8,y=h*(.3+(i%3)*.17);out.push(`<polygon class="wave" style="animation-delay:${-i*.7}s" points="${x},${y} ${x+14},${y-4} ${x+26},${y}" fill="rgba(255,255,255,.7)"/>`)}
+    }else if(type==='fire'){
+      out.push(slab(Math.round(h*.78),{top:M.ember,side:M.ember}));
+      const n=Math.max(3,Math.round(w/22));
+      for(let i=0;i<n;i++){const x=(i+.5)*w/n, S=h*(.58+r()*.16)/CA;
+        out.push(`<g class="flame" style="animation-delay:${-(r()*.5).toFixed(2)}s;animation-duration:${(.4+r()*.3).toFixed(2)}s">${draw(LP.make.flame({x,size:S,seed:i+1}),h*.82)}</g>`)}
+      for(let i=0;i<Math.max(3,Math.round(w/30));i++)out.push(`<rect class="ember" x="${(r()*w).toFixed(0)}" y="${(h*.5).toFixed(0)}" width="4" height="4" fill="#ffd23f" style="animation-delay:${-(r()*1.6).toFixed(2)}s"/>`);
+    }else if(type==='thorns'){
+      out.push(slab(Math.round(h*.86),{top:M.stone,side:M.stone}));
+      const n=Math.max(4,Math.round(w/14));
+      for(let i=0;i<n;i++){const x=(i+.5)*w/n, S=h*(.5+r()*.2)/CA;
+        out.push(`<g class="spike" style="animation-delay:${-(r()*1.8).toFixed(2)}s">${draw(LP.make.thorn({x,size:S,seed:i+1,mat:M.horn}),h*.9)}</g>`)}
+    }else if(type==='swamp'){
+      const oy=Math.round(h*.1);out.push(slab(oy,{top:M.swamp,side:M.swamp}));
+      for(let i=0;i<Math.max(1,Math.round(w/60));i++)out.push(draw(LP.make.lily({x:20+r()*(w-40),y:6+r()*10,size:22+r()*12,seed:i+1}),oy));
+      for(let i=0;i<Math.max(3,Math.round(w/26));i++)out.push(`<circle class="bub" cx="${(8+r()*(w-16)).toFixed(0)}" cy="${(h*.3).toFixed(0)}" r="${(3+r()*3).toFixed(1)}" fill="#a8c46a" style="animation-delay:${-(r()*2.4).toFixed(2)}s"/>`);
+    }else{   // the monster peeks up from the pit
+      const S=Math.min(w*.7,120), o=LP.make.critter({kind:'monster',size:S,rot:.25,roar:.45,seed:3}), b=LP.bounds(LP.facets(o,LP.camera({a:A_W})));
+      const c=LP.camera({a:A_W,ox:w/2,oy:h*.16-b.y});
+      out.push(`<g class="mon">${LP.draw(o,c)}${LP.face(o,c)}</g>`);
+    }
+    return out.join('');
+  },[type,w,h,seed]);
+  return <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{display:'block',overflow:'hidden'}} dangerouslySetInnerHTML={{__html:html}}/>;
 }
 
-/* a number plank: flat, one segment per colour, unit lines every U px */
+/* a number plank: library planks (a block per unit, the seams can be counted), one color per original plank */
+const PLANK_MATS=[LP.mat.plankCoral,LP.mat.plankBlue,LP.mat.plankPurple];
+function plankMeshes(segs,U,dy,dz){let x=-segs.reduce((s,g)=>s+g.n,0)*U/2;const out=[];
+  segs.forEach((g,i)=>{const o=LP.make.plank({n:g.n,unit:U,mat:PLANK_MATS[g.c],x:x+g.n*U/2,seed:g.c*7+i+1});x+=g.n*U;
+    o.meshes.forEach(m=>{m.scale(1,dy/(U*.62),dz/(U*.3));out.push(m)})});
+  return {meshes:out,ordered:'depth'};
+}
+function plankSvg(segs,U,a,dy,dz,boxH){
+  const list=LP.facets(plankMeshes(segs,U,dy,dz),LP.camera({a})), b=LP.bounds(list), W=segs.reduce((s,g)=>s+g.n,0)*U, Hh=boxH||b.h;
+  return {vb:`${-W/2} ${(b.y+b.h/2-Hh/2).toFixed(1)} ${W} ${Hh.toFixed(1)}`,h:Hh,svg:LP.polys(list)};
+}
 function Plank({p,U,T,cls='',showSum=true}){
-  const n=total(p), fs=Math.max(15,Math.min(26,T*.72));
+  const n=total(p), fs=Math.max(14,Math.min(24,T*.6)), sig=JSON.stringify(p.segs);
+  const art=useMemo(()=>plankSvg(p.segs,U,A_P,U*.8,(T*.85-U*.8*Math.sin(A_P))/Math.cos(A_P),T),[sig,U,T]);   // fills ~85% of the touch height
   return (<div className={'plank '+cls} style={{'--U':U+'px','--T':T+'px',width:n*U}}>
-    {p.segs.map((s,i)=><div key={i} className="seg" style={{width:s.n*U,'--m':PC[s.c].m}}/>)}
-    <span className="pnum" style={{fontSize:fs}}>{n}</span>
+    <svg className="partsvg" width={n*U} height={T} viewBox={art.vb} preserveAspectRatio="none" dangerouslySetInnerHTML={{__html:art.svg}}/>
+    <span className="pnum"><b style={{fontSize:fs,width:fs*1.5,height:fs*1.5}}>{n}</b></span>
     {showSum&&p.segs.length>1&&<span className="psum" dir="ltr">{p.segs.map(s=>s.n).join('+')}</span>}
   </div>);
 }
@@ -596,15 +551,10 @@ function Plank({p,U,T,cls='',showSum=true}){
 const SpeechIcon=({on})=>(<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
   <path d="M4 5h16v10H10l-4 4v-4H4z"/>{on?<path d="M8 10h8"/>:<path d="M3 3l18 18"/>}</svg>);
 
-/* a placed bridge, side view: a thin deck in the plank colours, posts on every unit, a rail on top */
+/* a placed bridge, side view: the same planks, flat and thin, lying across the pit */
 function ThinBridge({p,U}){
-  const n=total(p), w=n*U, H=24, deckY=14, el=[];let x=0,k=0;
-  p.segs.forEach(sg=>{const sw=sg.n*U;el.push(<rect key={k++} x={x} y={deckY} width={sw} height="8" fill={PC[sg.c].m}/>);
-    el.push(<rect key={k++} x={x} y={deckY} width={sw} height="3" fill="rgba(255,255,255,.35)"/>);x+=sw});
-  el.push(<rect key={k++} x="0" y={deckY+6} width={w} height="2" fill="rgba(0,0,0,.18)"/>);
-  for(let i=0;i<=n;i++){const px=Math.min(w-3,Math.max(0,i*U-1.5));el.push(<rect key={k++} x={px} y="3" width="3" height={deckY-2} fill="#8A5A34"/>)}
-  el.push(<rect key={k++} x="0" y="2" width={w} height="3" rx="1.5" fill="#A06A40"/>);
-  return <svg width={w} height={H} viewBox={`0 0 ${w} ${H}`} style={{display:'block',overflow:'visible'}}>{el}</svg>;
+  const n=total(p), sig=JSON.stringify(p.segs), art=useMemo(()=>plankSvg(p.segs,U,A_W,U*.55,U*.2),[sig,U]);
+  return <svg width={n*U} height={art.h} viewBox={art.vb} style={{display:'block',overflow:'visible'}} dangerouslySetInnerHTML={{__html:art.svg}}/>;
 }
 
 /* low-poly hand, fingertip at (14,0) */
@@ -679,6 +629,7 @@ function App(){
   const [worldI,setWorldI]=useState(0),[walkDur,setWalkDur]=useState(0);   // the world scrolls to pit worldI
   const [hero,setHero]=useState({walk:false,vis:false,cheer:false});
   // the monster creeps toward the hero while the child builds. dur = seconds to reach him.
+  const monArt=useRef({walk:false,roar:0});         // what the monster drawing shows (set by the loop below)
   const monRef=useRef(null), mon=useRef({dur:60,elapsed:0,active:false,retreat:false,nextGrowl:0,nextDur:60}), caughtRef=useRef(null);
   const [quake,setQuake]=useState(false);
   const [scared,setScared]=useState(false), scaredRef=useRef(false), heroRef=useRef(null);   // the hero looks at the monster when it is close
@@ -693,13 +644,9 @@ function App(){
         const pr=Math.min(1,m.elapsed/m.dur), sx=-g.mw-14, tx=g.heroX-g.mw*.93+6;   // enters from outside; its front edge meets the hero
         const near=building&&pr>.7; if(near!==scaredRef.current){scaredRef.current=near;setScared(near)}
         el.style.transform=`translateX(${Math.round(sx+(tx-sx)*pr)}px)${m.retreat?' scaleX(-1)':''}`;
-        el.classList.toggle('mwalk',building||m.retreat);
-        // the face and the back plates move now and then, at random
-        if(building&&pr>.7){el.style.setProperty('--px','3.2px');el.style.setProperty('--py','1.2px');el.style.setProperty('--br','-10deg');el.style.setProperty('--by','1px')}
-        else if(now>(m.nextFace||0)){const r=Math.random;el.style.setProperty('--px',(r()*5.5-3.5).toFixed(1)+'px');el.style.setProperty('--py',(r()*3-1.5).toFixed(1)+'px');
-          el.style.setProperty('--by',(r()<.4?-(1+r()*2.5):0).toFixed(1)+'px');el.style.setProperty('--br',(r()*14-9).toFixed(0)+'deg');m.nextFace=now+250+r()*1600}
-        if(now>(m.nextSpike||0)){const sp=el.querySelectorAll('.mspike');if(sp.length){const k=Math.floor(Math.random()*sp.length);sp[k].style.transform=`rotate(${(Math.random()*24-12).toFixed(0)}deg)`;
-          setTimeout(()=>{sp[k].style.transform=''},250+Math.random()*500)}m.nextSpike=now+150+Math.random()*700}}
+        // the drawing: walks while it moves; when it is close, the jaw opens and shuts (after a catch: one big roar)
+        const art=monArt.current; art.walk=building||m.retreat;
+        art.roar=now<(m.roarUntil||0)?1:building&&pr>.7?.35+.45*Math.abs(Math.sin(now/260)):0}
       raf=requestAnimationFrame(loop)};
     raf=requestAnimationFrame(loop);return()=>cancelAnimationFrame(raf)},[]);
   const [coinTaken,setCoinTaken]=useState(-1);
@@ -746,7 +693,7 @@ function App(){
   const gap=rounds[ri]?rounds[ri].gap:7;
   const offset=(E[worldI]??LxOf(worldI))-LxOf(worldI);
   const topY=6, maxY=groundY-T-2, layMaxY=groundY-hs-T-8;
-  const mh=hs*2, mw=Math.round(mh*.8);               // the chasing monster: twice the hero's height
+  const mh=hs*2, mw=Math.round(mh*MON_VB[2]/MON_VB[3]);              // the chasing monster: twice the hero's height
   R.current.geo={U,T,Lx,groundY,W,H,topY,maxY,layMaxY,C,hw,heroX,mw,mh,cs:Math.round(Math.max(110,Math.min(190,W*.42,groundY*.45)))};
 
   const tts=()=>soundOn&&speechOn&&hasTTS&&heVoice;
@@ -979,9 +926,9 @@ function App(){
     if(R.current.phase!=='build')return;
     const alive=newFlow(), ri=R.current.ri, r=R.current.round;
     clearNudges();hush();clearTimeout(teachTimer.current);setDemo(null);dragRef.current=null;setDrag(null);setHot(false);
-    setPhase('busy');R.current.phase='busy';setQuake(true);setTimeout(()=>setQuake(false),700);sfx.roar();
+    setPhase('busy');R.current.phase='busy';setQuake(true);setTimeout(()=>setQuake(false),700);sfx.roar();mon.current.roarUntil=performance.now()+1200;
     {const hr=heroRef.current&&heroRef.current.getBoundingClientRect();
-      if(hr){const cx=hr.left+hr.width/2, cy=hr.top+hr.height*.55, cols=['#FF7B6E','#E25B4E','#FFDDB8','#FFD23F','#B8443A','#3B3360'];
+      if(hr){const cx=hr.left+hr.width/2, cy=hr.top+hr.height*.55, cols=['#ef5c55','#cf3535','#f2bb92','#4776c0','#5e4130','#ffd23f'];
         burst(cx,cy,cols,26,1.4);burst(cx,cy-hr.height*.25,cols,16,1.1);sfx.splash()}
       scaredRef.current=false;setScared(false);setHero(h=>({...h,vis:false}));
       later(alive,1300,()=>setHero(h=>({...h,vis:true})))}
@@ -1142,9 +1089,9 @@ function App(){
         {rounds.length>0&&<button ref={bigChestRef} className={'wchest'+(endStage==='chest'?' idle':'')} aria-label="לפתוח את תיבת האוצר"
           style={{left:E[ROUNDS]+2,top:groundY-Math.round(cs*.8)+6,width:cs}} onPointerDown={e=>e.stopPropagation()} onClick={()=>{if(screen==='end')tapChest()}}>
           <Chest key={'big'+taps} open={lidOpen} bump={taps>0} s={cs}/></button>}
-        {built.map(b=><div key={b.i} style={{left:E[b.i],top:groundY-13,zIndex:2}}><ThinBridge p={b.p} U={U}/></div>)}
+        {built.map(b=><div key={b.i} style={{left:E[b.i],top:groundY+3,zIndex:2}}><ThinBridge p={b.p} U={U}/></div>)}
         {bridge&&(bridge.state==='fit'
-          ?<div style={{left:E[ri],top:groundY-13,zIndex:2}}><div className="bridge fit"><ThinBridge p={bridge.p} U={U}/></div></div>
+          ?<div style={{left:E[ri],top:groundY+3,zIndex:2}}><div className="bridge fit"><ThinBridge p={bridge.p} U={U}/></div></div>
           :<div style={{left:E[ri],top:bridge.state==='long'?groundY-T+4:groundY+4,zIndex:2}}>
             <div className={'bridge '+bridge.state}><Plank p={bridge.p} U={U} T={T} showSum={false}/></div></div>)}
         {rounds.map((r,i)=>i>=ri&&coinTaken<i&&<div key={'coin'+i} className="coin2" ref={i===ri?coinRef:null}
@@ -1154,8 +1101,8 @@ function App(){
       </div>
       <div className="hero" ref={heroRef} style={{left:heroX,top:groundY-hs+2,width:hw,height:hs,opacity:hero.vis?1:0,transition:walkDur?`left ${walkDur}s linear`:'none'}}>
         <div className={'in'+(hero.vis?' show':'')} key={hero.vis?'v':'h'}>
-          <div className={hero.walk||hero.cheer||scared?(scared?'scaredpose':''):'idle'} style={scared?{transform:'scaleX(-1)'}:null}><Player s={hs} view="side" shadow={false} happy={!scared} walking={hero.walk} cheer={hero.cheer}/></div></div></div>
-      {screen==='play'&&<div ref={monRef} className="monster" style={{left:0,top:groundY-mh+8,width:mw,height:mh}}><Monster w={mw} h={mh}/></div>}
+          <div className={hero.walk||hero.cheer||scared?'':'idle'}><Hero s={hs} walking={hero.walk} cheer={hero.cheer} scared={scared}/></div></div></div>
+      {screen==='play'&&<div ref={monRef} className="monster" style={{left:0,top:groundY-mh+5,width:mw,height:mh}}><Monster w={mw} h={mh} st={monArt}/></div>}
       {/* front layer: the small things on the land, in front of the hero (depth while walking) */}
       <div className="world front" style={{left:0,top:0,width:worldW,height:H,transform:`translateX(${-offset}px)`,transition:walkDur?`transform ${walkDur}s linear`:'none'}}>
         {decor.map(d=><div key={d.key} style={{left:d.x,top:groundY-d.h+5}}><Decor kind={d.kind} h={d.h}/></div>)}

@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kidodo · בונים גשר (גרסה 1, גיבוי)</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
+<script src="/practices/kidodo-practice.js"></script>
+<style>
+:root{--ink:#33373b;--blue:#3D6FE0;--kblue:#176fbe;--coral:#FF6450;--yellow:#FFC531;--teal:#1FB5A2;--purple:#8E5CF0;--panel:#FFF7E6}
+*{box-sizing:border-box;margin:0}
+html,body{overflow:hidden;height:100%}
+body{font-family:Fredoka,system-ui,sans-serif;color:var(--ink);background:#CDEBFA;-webkit-tap-highlight-color:transparent}
+button{font-family:inherit;cursor:pointer;border:0}
+.bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;display:block}
+.app{position:relative;z-index:1;display:flex;flex-direction:column;height:100vh;height:100dvh}
+.top{flex:none;width:100%;max-width:960px;margin:0 auto;padding:10px 14px 0 66px;display:flex;flex-direction:row;align-items:center;gap:10px;min-height:66px;position:relative;z-index:8;pointer-events:none}
+.top>*{pointer-events:auto}
+
+/* header (same frame as the other practices) */
+header{display:flex;justify-content:center;align-items:center;flex:none;margin-inline-start:auto}
+.side{position:absolute;left:10px;top:10px;display:flex;flex-direction:column;gap:8px;z-index:90}
+.side .iconbtn{display:flex;align-items:center;justify-content:center}
+.dim{position:fixed;inset:0;z-index:0;background:linear-gradient(180deg,transparent 0 38%,rgba(18,42,66,.2) 62%);pointer-events:none}
+.lidopen{transform-origin:40px 30px;transform-box:view-box;animation:lidUp .45s cubic-bezier(.3,1.5,.5,1) both}
+@keyframes lidUp{from{transform:scaleY(.15)}}
+.title{justify-self:start;min-width:0;max-width:100%;font-weight:700;font-size:16px;display:flex;align-items:center;gap:6px;color:var(--kblue);background:rgba(255,255,255,.88);padding:6px 14px 6px 12px;clip-path:polygon(0 0,100% 0,calc(100% - 12px) 100%,0 100%)}
+.title svg{flex:none}
+.title span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tools{display:flex;gap:6px;justify-content:flex-end}
+@media(max-width:419px){.title span{display:none}.title{padding:6px 16px 6px 8px}}
+@media(min-width:700px){header{gap:10px}.title{font-size:19px;gap:8px;padding:6px 14px 6px 16px}.tools{gap:8px}}
+.iconbtn{width:44px;height:44px;border-radius:50%;font-size:19px;color:var(--kblue);background:#F4F8FF;box-shadow:0 4px 0 rgba(23,111,190,.22)}
+.iconbtn:disabled{opacity:.45}
+.treasure{display:flex;align-items:center;gap:8px;padding:4px 0}
+.treasure .chest{width:48px;height:38px}
+.pbar{width:64px;height:16px;border-radius:8px;background:rgba(23,111,190,.16);overflow:hidden}
+@media(min-width:700px){.treasure{gap:10px;padding:4px 14px}.treasure .chest{width:62px;height:50px}.pbar{width:130px;height:18px;border-radius:9px}}
+.pfill{height:100%;border-radius:9px;background:linear-gradient(180deg,#FFD95A 0 50%,#FFC531 50%);transition:width .8s cubic-bezier(.3,1.4,.5,1)}
+.chest.bump{animation:bump .5s}
+@keyframes bump{30%{transform:scale(1.25,.85)}60%{transform:scale(.9,1.15)}}
+
+/* board: the whole lower screen. Ground + river at the bottom, edge to edge; planks lie anywhere above */
+.board{position:relative;flex:1;min-height:0;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+.board>*{position:absolute}
+.world{will-change:transform;z-index:1}
+/* the page is RTL; the world is drawn in px from the left (cliff graphics overflow their box), so it must be LTR */
+.world,.far{direction:ltr}
+.world>*{position:absolute}
+.far{will-change:transform}
+.wchest{background:none;padding:0;line-height:0;touch-action:manipulation;z-index:3;filter:drop-shadow(0 8px 0 rgba(23,80,130,.18))}
+.wchest .chest{width:100%;height:auto;display:block}
+.wchest.idle .chest{animation:chestCall 1.6s ease-in-out infinite}
+.wchest:active .chest{transform:scale(.94)}
+.monster{z-index:3;pointer-events:none;transform-origin:50% 100%}
+.monster .ml{transform-origin:50% 0;transform-box:fill-box}
+.monster.mwalk .ml1{animation:legA .38s infinite alternate}.monster.mwalk .ml2{animation:legA .38s infinite alternate-reverse}
+.monster.mwalk .mbody{animation:mstep .19s infinite alternate}
+@keyframes mstep{to{transform:translateY(-3px)}}
+.monster .mpupil{transform:translate(var(--px,0px),var(--py,0px));transition:transform .16s ease-out}
+.monster .mbrow{transform-box:fill-box;transform-origin:50% 50%;transform:translateY(var(--by,0px)) rotate(var(--br,0deg));transition:transform .22s ease-out}
+.monster .marmL{transform-box:fill-box;transform-origin:100% 30%}
+.monster.mwalk .marmL{animation:marm .38s ease-in-out infinite alternate}
+@keyframes marm{from{transform:rotate(-12deg)}to{transform:rotate(14deg)}}
+.monster .mspike{transform-box:fill-box;transform-origin:50% 100%;transition:transform .28s cubic-bezier(.3,1.6,.5,1)}
+.quake{animation:quake .65s}
+@keyframes quake{10%,50%,90%{transform:translate(-9px,3px)}30%,70%{transform:translate(9px,-3px)}100%{transform:none}}
+.stars{display:flex;gap:14px;align-items:flex-end}
+.star{width:min(26vw,120px);aspect-ratio:100/96;animation:starIn .55s cubic-bezier(.3,1.6,.5,1) both}
+.star:nth-child(2){width:min(32vw,150px)}
+@keyframes starIn{from{transform:scale(0) rotate(-40deg);opacity:0}}
+.cta.arrow{padding:12px 44px;display:flex;align-items:center;justify-content:center}
+.cloud{animation:cloudDrift linear infinite}
+@keyframes cloudDrift{from{transform:translateX(-220px)}to{transform:translateX(1300px)}}
+@media(prefers-reduced-motion:reduce){.cloud{animation:none}}
+.rise{animation:rise .5s ease-out both}
+@keyframes rise{from{transform:translateY(24px);opacity:0}}
+.endscreen{background:rgba(255,255,255,.55);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);z-index:80}
+.idle{animation:idleHop 4.5s ease-in-out infinite}
+@keyframes idleHop{0%,78%,100%{transform:translateY(0)}83%{transform:translateY(-16px)}88%{transform:translateY(0) scale(1.04,.96)}92%{transform:translateY(-7px)}96%{transform:translateY(0)}}
+.flame{transform-box:fill-box;transform-origin:50% 100%;animation:flick .5s ease-in-out infinite alternate}
+@keyframes flick{0%{transform:scale(1,1)}50%{transform:scale(.9,1.14)}100%{transform:scale(1.08,.86)}}
+.ember{animation:ember 1.6s linear infinite}
+@keyframes ember{0%{transform:translateY(0);opacity:0}20%{opacity:1}100%{transform:translateY(-70px);opacity:0}}
+.spike{transform-box:fill-box;transform-origin:50% 100%;animation:spike 1.8s ease-in-out infinite alternate}
+@keyframes spike{to{transform:translateY(-4px) scaleY(1.06)}}
+.bub{transform-box:fill-box;transform-origin:center;animation:bub 2.4s ease-in infinite}
+@keyframes bub{0%{transform:translateY(24px) scale(.3);opacity:0}30%{opacity:1}85%{transform:translateY(-6px) scale(1);opacity:1}100%{transform:translateY(-8px) scale(1.7);opacity:0}}
+.mon{animation:mon 2.2s ease-in-out infinite alternate}
+@keyframes mon{to{transform:translateY(-14px)}}
+.mon .meye{transform-box:fill-box;transform-origin:center;animation:blink 3.5s infinite}
+.mon .mmouth{transform-box:fill-box;transform-origin:50% 0;animation:chomp 1.1s ease-in-out infinite alternate}
+@keyframes chomp{from{transform:scaleY(.3)}to{transform:scaleY(1)}}
+@media(prefers-reduced-motion:reduce){.flame,.ember,.spike,.bub,.mon,.mon .mmouth,.wchest.idle .chest,.idle{animation:none}}
+.measure.hot::before{background:#FFE27A}.measure.hot::after{border-color:#FFE27A}.measure.hot .mnum{transform:scale(1.2);color:#fff;background:var(--coral)}
+.hand{position:absolute;left:0;top:0;z-index:60;pointer-events:none;opacity:0;filter:drop-shadow(0 4px 4px rgba(23,80,130,.3))}
+.demoline{position:absolute;left:0;top:0;width:5px;border-radius:3px;background:#fff;transform-origin:top;z-index:59;pointer-events:none;opacity:0;box-shadow:0 0 8px #fff}
+.ghost{position:absolute;left:0;top:0;z-index:58;pointer-events:none;opacity:0}
+.measure{display:flex;align-items:center;justify-content:center;transition:width .9s cubic-bezier(.5,0,.3,1),opacity .3s;pointer-events:none}
+.measure::before{content:"";position:absolute;left:0;right:0;top:50%;height:3px;margin-top:-1.5px;background:#fff;border-radius:2px}
+.measure::after{content:"";position:absolute;left:0;right:0;top:50%;height:14px;margin-top:-7px;border-left:3px solid #fff;border-right:3px solid #fff}
+.mnum{transition:transform .2s,background .2s,color .2s;position:relative;z-index:1;min-width:44px;height:36px;padding:0 10px;border-radius:18px;background:#fff;color:var(--coral);font-weight:700;font-size:24px;line-height:36px;text-align:center;box-shadow:0 4px 0 rgba(23,111,190,.22)}
+.mnum.pop{animation:mpop .6s}
+@keyframes mpop{40%{transform:scale(1.35)}}
+.hero{z-index:4;pointer-events:none}
+.world.front{z-index:5;pointer-events:none}
+.hero .in.show{animation:heroIn .6s both}
+@keyframes heroIn{from{transform:translateY(-140px)}60%{transform:translateY(0) scale(1.06,.92)}to{transform:none}}
+.coin2{z-index:2;animation:bob 1.4s ease-in-out infinite alternate;pointer-events:none}
+@keyframes bob{to{transform:translateY(-8px)}}
+.wave{animation:wave 3s ease-in-out infinite alternate}
+@keyframes wave{to{transform:translateX(14px)}}
+
+/* number planks: flat, one colour per original plank, a line on every unit */
+.pk{z-index:5;touch-action:none;cursor:grab}
+.pk.dragging{cursor:grabbing;z-index:40}
+.pk.home{transition:left .3s cubic-bezier(.3,1.3,.5,1),top .3s cubic-bezier(.3,1.3,.5,1)}
+.plank{position:relative;display:flex;height:var(--T);direction:ltr;border-radius:calc(var(--T)*.17);overflow:visible}
+.seg{position:relative;height:100%;background:var(--m)}
+.seg:first-of-type{border-radius:calc(var(--T)*.17) 0 0 calc(var(--T)*.17)}.seg:last-of-type{border-radius:0 calc(var(--T)*.17) calc(var(--T)*.17) 0}.seg:only-of-type{border-radius:calc(var(--T)*.17)}
+.seg+.seg{box-shadow:inset 3px 0 0 #fff}
+.pnum{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.18);pointer-events:none}
+.psum{position:absolute;left:50%;bottom:calc(100% + 5px);transform:translateX(-50%);white-space:nowrap;font-weight:700;font-size:15px;color:var(--ink);background:rgba(255,255,255,.9);padding:1px 9px;border-radius:10px;pointer-events:none}
+.pk.dragging .plank{filter:brightness(1.08);box-shadow:0 10px 18px rgba(23,80,130,.25)}
+.plank.hl{animation:hl .9s ease-in-out 3}
+@keyframes hl{50%{transform:translateY(-6px) scale(1.06);filter:brightness(1.15)}}
+.plank.merged{animation:merge .5s}
+@keyframes merge{30%{transform:scale(1.12,.86)}65%{transform:scale(.96,1.06)}}
+.plank.split{animation:split .45s}
+@keyframes split{30%{transform:scale(.9,1.1) rotate(-3deg)}}
+.plank.nope{animation:shake .4s}
+.bridge{z-index:2}
+.bridge.fit{animation:fitIn .45s cubic-bezier(.3,1.4,.5,1) both}
+@keyframes fitIn{from{transform:translateY(-50px) scaleY(2.2)}}
+.bridge.short{transform-origin:0 50%;animation:tipOff 1.3s cubic-bezier(.5,0,.8,.6) both}
+@keyframes tipOff{0%{transform:translateY(-60px)}25%{transform:translateY(0)}45%{transform:rotate(14deg)}100%{transform:translate(20px,170px) rotate(40deg);opacity:.2}}
+.bridge.long{animation:noFit 1.2s both}
+@keyframes noFit{0%{transform:translateY(-60px)}25%{transform:translateY(0)}35%,55%,75%{transform:translateX(-8px)}45%,65%{transform:translateX(8px)}85%{transform:none;opacity:1}100%{transform:translateY(60px);opacity:0}}
+.trail{left:0;top:0;pointer-events:none;z-index:50;overflow:visible}
+.trail polyline{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 4px rgba(255,255,255,.9))}
+.trail.fade{animation:tfade .35s forwards}
+@keyframes tfade{to{opacity:0}}
+.reset{top:8px;left:12px;width:44px;height:44px;border-radius:50%;font-size:22px;color:var(--kblue);background:#fff;box-shadow:0 4px 0 rgba(23,111,190,.22);z-index:6}
+.reset:disabled{opacity:.4}
+.fall{animation:fall .8s cubic-bezier(.3,.9,.4,1) both}
+@keyframes fall{0%{transform:translateY(-300px)}45%{transform:translateY(0) scale(1.08,.88)}62%{transform:translateY(-22px) scale(.97,1.04)}80%{transform:translateY(0)}90%{transform:translateY(-5px)}100%{transform:none}}
+.shake{animation:shake .4s}
+@keyframes shake{25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+
+/* talk */
+.talk{display:flex;align-items:center;gap:10px;flex:1 1 auto;min-width:0}
+.bubble{flex:0 1 540px;min-width:0;background:#fff;padding:8px 14px;font-size:16px;line-height:1.35;font-weight:500;position:relative;box-shadow:0 5px 0 rgba(23,111,190,.18);border-radius:14px}
+@media(max-width:559px){.bubble{font-size:13.5px;padding:6px 10px}.pbar{width:36px;height:12px}.treasure{gap:4px}.treasure .chest{width:40px;height:32px}
+  .talk{gap:8px}.talk .speechbtn{position:absolute;right:-8px;bottom:-10px;transform:scale(.85)}.talk .spawn{margin-right:6px}}
+@media(min-width:700px){.bubble{padding:12px 18px;font-size:19px}}
+.bubble::before{content:"";position:absolute;right:-12px;top:50%;margin-top:-10px;border:10px solid transparent;border-left-color:#fff;border-right:0}
+.bubble .txt{animation:txtIn .35s both}
+@keyframes txtIn{from{opacity:0;transform:translateY(6px)}}
+.spawn{position:relative;flex:none;display:flex;flex-direction:row;align-items:center;gap:8px;padding-bottom:4px}
+.spawn::before{content:"";position:absolute;bottom:0;right:-6px;width:58px;height:18px;border-radius:50%;background:#9FD3F2;box-shadow:0 0 0 5px rgba(255,255,255,.7),0 0 0 11px rgba(255,255,255,.3)}
+.spawn svg{position:relative}
+.speechbtn{flex:none;align-self:center;width:44px;height:44px;border-radius:50%;background:#fff;color:var(--kblue);box-shadow:0 3px 0 rgba(23,111,190,.22);display:flex;align-items:center;justify-content:center}
+.speechbtn svg{position:static}
+.mascot{flex:none;overflow:visible}
+.mascot .body{transform-origin:50% 100%;transform-box:fill-box}
+.mascot.talking .body{animation:mbob .32s infinite alternate}
+@keyframes mbob{to{transform:scale(1.03,.97) rotate(-2deg)}}
+.mascot .mouth{transform-origin:center;transform-box:fill-box;transform:scaleY(.35)}
+.mascot.talking .mouth{animation:mouth .16s infinite alternate}
+@keyframes mouth{from{transform:scaleY(.25)}to{transform:scaleY(1.3)}}
+.mascot .eye{transform-origin:center;transform-box:fill-box;animation:blink 4s infinite}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+.mascot .arm{transform-origin:0 0;transform-box:fill-box}
+.mascot.talking .arm{animation:arm .5s infinite alternate}
+@keyframes arm{to{transform:rotate(-40deg)}}
+.mascot .feather{transform-origin:0 100%;transform-box:fill-box;animation:feather 1.6s infinite alternate}
+@keyframes feather{to{transform:rotate(12deg)}}
+.mascot .leg,.mascot .armS,.mascot .armB{transform-origin:50% 0;transform-box:fill-box;transition:transform .2s}
+.scaredpose .mascot .armS{transform:rotate(-72deg)}.scaredpose .mascot .armB{transform:rotate(-100deg)}
+.scaredpose .mascot .body{animation:tremble .11s infinite alternate}
+@keyframes tremble{from{transform:translateX(-.7px)}to{transform:translateX(.7px)}}
+.mascot.walking .l1{animation:legA .26s infinite alternate}
+.mascot.walking .l2,.mascot.walking .armS{animation:legA .26s infinite alternate-reverse}
+@keyframes legA{from{transform:rotate(28deg)}to{transform:rotate(-28deg)}}
+.mascot.walking .body{animation:wbob .13s infinite alternate}
+@keyframes wbob{to{transform:translateY(-1.5px)}}
+.cheer .body{animation:cheer .35s 3 alternate}
+@keyframes cheer{to{transform:translateY(-10px)}}
+
+/* screens */
+.center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:20px;z-index:5}
+.center .h1,.center .note{background:rgba(255,255,255,.85);padding:6px 18px;border-radius:20px}
+.cta{min-height:56px;font-size:26px;font-weight:700;padding:14px 48px;color:#fff;background:linear-gradient(180deg,#FF8270 0 50%,#FF6450 50%);clip-path:polygon(16px 0,calc(100% - 16px) 0,100% 50%,calc(100% - 16px) 100%,16px 100%,0 50%);transition:transform .12s}
+.cta:active{transform:scale(.93)}
+.h1{font-size:30px;font-weight:700}
+.note{color:#5c6066;font-size:16px;max-width:440px}
+.bigchest{background:none;padding:0;line-height:0;touch-action:manipulation;filter:drop-shadow(0 10px 0 rgba(23,111,190,.2))}
+.bigchest .chest{width:min(72vw,300px,42dvh);height:auto}
+.bigchest.idle .chest{animation:chestCall 1.6s ease-in-out infinite}
+@keyframes chestCall{0%,60%,100%{transform:rotate(0)}70%{transform:rotate(-5deg) scale(1.04)}80%{transform:rotate(5deg) scale(1.04)}90%{transform:rotate(-3deg)}}
+.bigchest:active .chest{transform:scale(.94)}
+.bigchest:focus-visible{outline:4px solid #fff;outline-offset:6px;border-radius:20px}
+.coinp{position:fixed;left:0;top:0;pointer-events:none;z-index:1001;will-change:transform,opacity;line-height:0}
+.coins{display:flex;align-items:center;gap:4px;font-weight:700;font-size:18px;color:#9B6A00;background:rgba(255,255,255,.85);border-radius:14px;padding:2px 10px 2px 6px}
+.coins.bump{animation:bump .5s}
+.endcoins{display:flex;align-items:center;gap:8px;font-weight:700;font-size:32px;color:#9B6A00;background:rgba(255,255,255,.9);border-radius:24px;padding:4px 18px 4px 10px}
+.cta.restart{background:linear-gradient(180deg,#fff 0 50%,#EEF3FA 50%);padding:10px 28px}
+.coin{position:fixed;left:0;top:0;border-radius:50%;pointer-events:none;z-index:1001;will-change:transform,opacity;
+  background:radial-gradient(circle at 35% 30%,#FFF4B0 0 18%,#FFD84A 19% 55%,#E9A913 56% 100%);box-shadow:inset 0 0 0 3px #C98A00}
+.coin::after{content:"";position:absolute;inset:26%;border-radius:50%;border:2px solid rgba(201,138,0,.55)}
+@media(prefers-reduced-motion:reduce){.bigchest.idle .chest,.coin2,.wave{animation:none}}
+.pt{position:fixed;pointer-events:none;z-index:999;will-change:transform,opacity}
+.flycoin{position:fixed;width:30px;height:30px;margin:-15px 0 0 -15px;z-index:1000;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const {useState,useEffect,useRef} = React;
+
+/* ---------- helpers ---------- */
+const SPOKEN=['אֶפֶס','אַחַת','שְׁתַּיִם','שָׁלוֹשׁ','אַרְבַּע','חָמֵשׁ','שֵׁשׁ','שֶׁבַע','שְׁמוֹנֶה','תֵּשַׁע','עֶשֶׂר','אַחַת עֶשְׂרֵה','שְׁתֵּים עֶשְׂרֵה'];
+const toSpeech=t=>t.replace(/\d+/g,m=>SPOKEN[+m]??m).replace(/־/g,' ').replace(/\+/g,' ועוד ');
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const rand=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const shuffle=a=>{const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b};
+const ROUNDS=5, MAXLEN=10;
+const GEMC=['#FF6450','#3D6FE0','#1FB5A2','#8E5CF0','#FFC531'];
+/* plank colours (flat): coral, blue, purple */
+const PC=[{m:'#FF6450'},{m:'#3D6FE0'},{m:'#8E5CF0'}];
+const total=p=>p.segs.reduce((s,x)=>s+x.n,0);
+/* can some of the planks (one or more) make exactly `gap`? */
+function reachable(vals,gap){const n=vals.length;for(let m=1;m<(1<<n);m++){let s=0;for(let i=0;i<n;i++)if(m&(1<<i))s+=vals[i];if(s===gap)return true}return false}
+
+let lastGap=null;
+function genRound(i){
+  const [lo,hi]=i<2?[5,7]:[7,10];
+  let gap,g=0; do{gap=rand(lo,hi);g++}while(gap===lastGap&&g<50); lastGap=gap;
+  return {gap,planks:makePlanks(i,gap),wrong:0};
+}
+function makePlanks(i,gap){
+  const a=rand(1,Math.min(4,gap-1)), b=gap-a, c=rand(1,4);
+  const ids=shuffle([0,1,2]), tag=Math.random().toString(36).slice(2,6);
+  const planks=(i===0?[a,b]:[a,b,c]).map((n,k)=>({id:`r${i}-${k}-${tag}`,segs:[{n,c:ids[k]}],key:k<2}));   // first scene: just the two that make it
+  return shuffle(planks);
+}
+
+/* ---------- sound: everything made in code (Web Audio), no files ---------- */
+let heVoice=null, actx=null, soundOn=true, speechOn=true, noiseBuf=null;
+const hasTTS=typeof window!=='undefined'&&'speechSynthesis' in window;
+function loadVoice(){try{const hv=speechSynthesis.getVoices().filter(v=>/^(he|iw)/i.test(v.lang));heVoice=hv.find(v=>/hila|carmit|female|woman/i.test(v.name))||hv.find(v=>!/avri|asaf|male/i.test(v.name))||hv[0]||null}catch(e){}}
+if(hasTTS){loadVoice();try{speechSynthesis.onvoiceschanged=loadVoice}catch(e){}}
+function audio(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume()}catch(e){}}
+function tone(f,d=.15,type='triangle',vol=.12,slideTo){
+  if(!actx||!soundOn)return;
+  try{const t=actx.currentTime,o=actx.createOscillator(),g=actx.createGain();o.type=type;o.frequency.setValueAtTime(f,t);
+    if(slideTo)o.frequency.exponentialRampToValueAtTime(slideTo,t+d);
+    g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+d);
+    o.connect(g).connect(actx.destination);o.start(t);o.stop(t+d)}catch(e){}
+}
+function noise(d,{type='bandpass',f=800,f2,q=1,vol=.25}={}){
+  if(!actx||!soundOn)return;
+  try{
+    if(!noiseBuf){noiseBuf=actx.createBuffer(1,actx.sampleRate,actx.sampleRate);const ch=noiseBuf.getChannelData(0);for(let i=0;i<ch.length;i++)ch[i]=Math.random()*2-1}
+    const t=actx.currentTime,s=actx.createBufferSource(),fl=actx.createBiquadFilter(),g=actx.createGain();
+    s.buffer=noiseBuf;fl.type=type;fl.Q.value=q;fl.frequency.setValueAtTime(f,t);if(f2)fl.frequency.exponentialRampToValueAtTime(f2,t+d);
+    g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+d);
+    s.connect(fl).connect(g).connect(actx.destination);s.start(t);s.stop(t+d)}catch(e){}
+}
+/* "waaah": sawtooth through two vowel formants (a/aa), pitch rises then falls, with a wobble and a noisy rasp */
+function monsterVoice(d=1,vol=1,pitch=1){
+  if(!actx||!soundOn)return;
+  try{
+    const t=actx.currentTime, o=actx.createOscillator(), lfo=actx.createOscillator(), lg=actx.createGain(), out=actx.createGain();
+    o.type='sawtooth';
+    o.frequency.setValueAtTime(110*pitch,t);o.frequency.linearRampToValueAtTime(190*pitch,t+d*.25);o.frequency.exponentialRampToValueAtTime(70*pitch,t+d);
+    lfo.frequency.value=7;lg.gain.value=9*pitch;lfo.connect(lg).connect(o.frequency);
+    out.gain.setValueAtTime(.0001,t);out.gain.exponentialRampToValueAtTime(.32*vol,t+.08);out.gain.setValueAtTime(.32*vol,t+d*.55);out.gain.exponentialRampToValueAtTime(.0001,t+d);
+    [[700,5,1],[1150,6,.7],[2600,8,.25]].forEach(([f,q,g])=>{const bp=actx.createBiquadFilter(),gg=actx.createGain();bp.type='bandpass';bp.frequency.value=f;bp.Q.value=q;gg.gain.value=g;o.connect(bp).connect(gg).connect(out)});
+    out.connect(actx.destination);o.start(t);lfo.start(t);o.stop(t+d+.05);lfo.stop(t+d+.05);
+    noise(d*.9,{f:900,f2:400,q:1.2,vol:.16*vol});
+  }catch(e){}
+}
+const sfx={
+  pick(){tone(520,.06,'sine',.08)},
+  drop(){tone(360,.06,'sine',.07)},
+  knock(){noise(.07,{f:900,q:3,vol:.35});tone(190,.09,'triangle',.14)},           // wood on wood
+  merge(){sfx.knock();setTimeout(()=>{noise(.06,{f:1300,q:4,vol:.3});tone(260,.08,'triangle',.12)},90);setTimeout(()=>tone(784,.14,'sine',.08),190)},
+  thud(){noise(.14,{type:'lowpass',f:500,vol:.5});tone(110,.18,'sine',.2,60)},
+  splash(){noise(.7,{type:'lowpass',f:3200,f2:300,vol:.35});setTimeout(()=>noise(.35,{f:1800,f2:600,q:.8,vol:.18}),120)},
+  growl(v=1){monsterVoice(.75,.55*v,1)},
+  roar(){monsterVoice(1.25,1,1.25)},
+  chop(){noise(.18,{type:'highpass',f:5000,f2:900,vol:.3});setTimeout(()=>{noise(.06,{f:1100,q:3,vol:.3});tone(240,.07,'triangle',.1)},140)},   // knife swish + clack
+  sizzle(){noise(.8,{type:'highpass',f:2500,f2:6000,vol:.22});tone(90,.4,'sawtooth',.06,50)},
+  crack(){sfx.knock();setTimeout(()=>{noise(.08,{f:2200,q:2,vol:.3});tone(150,.1,'triangle',.12)},120)},
+  chomp(){tone(140,.09,'square',.09,80);setTimeout(()=>tone(120,.12,'square',.09,60),160)},
+  nope(){tone(220,.14,'square',.05);setTimeout(()=>tone(165,.2,'square',.05),130)},
+  step(i){tone(i%2?330:294,.05,'triangle',.06)},
+  win(){[523,659,784,1047].forEach((f,j)=>setTimeout(()=>tone(f,.2),j*110))},
+  coin(){tone(988,.08,'square',.05);setTimeout(()=>tone(1319,.25,'square',.05),80)},
+  jackpot(){tone(330,.12,'square',.05);setTimeout(()=>tone(660,.1,'square',.05),70);
+    for(let i=0;i<7;i++)setTimeout(()=>{const f=1600+Math.random()*900;tone(f,.09,'triangle',.08);setTimeout(()=>tone(f*1.5,.12,'sine',.06),45)},140+i*70+Math.random()*50)},
+};
+const log=(ev,data)=>console.log('[kidodo]',ev,data||'');
+/* link to the course (public/practices/kidodo-practice.js). Opened alone, it does nothing. */
+const KP=window.KidodoPractice||{inCourse:false,answer(){},complete:()=>Promise.resolve(),next(){location.reload()},exit(){history.back()}};
+
+/* ---------- particles ---------- */
+function burst(x0,y0,colors,n=22,spread=1){
+  for(let i=0;i<n;i++){
+    const p=document.createElement('div');p.className='pt';const s=5+Math.random()*9;
+    p.style.cssText=`left:${x0}px;top:${y0}px;width:${s}px;height:${s}px;background:${colors[i%colors.length]};`+(i%3===0?'border-radius:50%;':i%3===1?'clip-path:polygon(50% 0,100% 100%,0 100%);':'border-radius:2px;');
+    document.body.appendChild(p);
+    const ang=-Math.PI/2+(Math.random()-.5)*2.4*spread, dist=50+Math.random()*110, dx=Math.cos(ang)*dist, dy=Math.sin(ang)*dist;
+    const a=p.animate([{transform:'translate(0,0)',opacity:1},{transform:`translate(${dx*.7}px,${dy*.7}px) rotate(${Math.random()*360}deg)`,opacity:1,offset:.55},
+      {transform:`translate(${dx}px,${dy+90}px) rotate(${Math.random()*720}deg) scale(.4)`,opacity:0}],{duration:700+Math.random()*500,easing:'cubic-bezier(.15,.7,.4,1)'});
+    a.onfinish=()=>p.remove();
+  }
+}
+let liveCoins=0;
+function coinBurst(el,n=26){
+  if(!el)return; const r=el.getBoundingClientRect(); if(!r.width)return;
+  const x0=r.left+r.width/2, y0=r.top+r.height*.38, H=window.innerHeight;
+  const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  n=Math.min(n,Math.max(0,140-liveCoins)); if(reduce)n=Math.min(n,8);
+  for(let i=0;i<n;i++){
+    const c=document.createElement('div');c.className='coinp';const s=22+Math.random()*16;c.style.width=c.style.height=s+'px';
+    c.innerHTML=COIN_SVG.replace('width="30" height="30"','width="100%" height="100%"');
+    document.body.appendChild(c);liveCoins++;
+    const vx=(Math.random()-.5)*Math.min(900,window.innerWidth*1.6), vy=-(520+Math.random()*520), g=1500;
+    const T=Math.max(1.1,(-vy+Math.sqrt(vy*vy+2*g*(H-y0+60)))/g), spin=2+Math.floor(Math.random()*4), frames=[];
+    for(let k=0;k<=12;k++){const t=T*k/12, x=x0+vx*t-s/2, y=y0+vy*t+.5*g*t*t-s/2;
+      frames.push({transform:`translate(${x}px,${y}px) scaleX(${Math.cos(k/12*spin*Math.PI*2).toFixed(2)})`,opacity:k===0?0:1})}
+    const a=c.animate(frames,{duration:T*1000,delay:i*18,easing:'linear',fill:'both'});
+    a.onfinish=()=>{c.remove();liveCoins--};
+  }
+}
+/* the coin the hero picked up flies into the chest */
+function flyCoin(fromEl,toEl){
+  return new Promise(res=>{
+    if(!fromEl||!toEl){res();return}
+    const a=fromEl.getBoundingClientRect(),b=toEl.getBoundingClientRect();
+    const g=document.createElement('div');g.className='flycoin';g.innerHTML=COIN_SVG;
+    const x0=a.left+a.width/2,y0=a.top+a.height/2,x1=b.left+b.width/2,y1=b.top+b.height/2;
+    g.style.left=x0+'px';g.style.top=y0+'px';document.body.appendChild(g);
+    const mx=(x1-x0)/2,my=Math.min(y1,y0)-y0-100;
+    const an=g.animate([{transform:'translate(0,0) scale(1)'},{transform:`translate(${mx}px,${my}px) scale(1.6) rotate(180deg)`,offset:.45},
+      {transform:`translate(${x1-x0}px,${y1-y0}px) scale(.7) rotate(360deg)`}],{duration:950,easing:'cubic-bezier(.4,0,.3,1)'});
+    an.onfinish=()=>{g.remove();res()};
+  });
+}
+
+/* ---------- art (low-poly vector, kidodo palette) ---------- */
+const COIN_SVG='<svg width="30" height="30" viewBox="0 0 40 40"><polygon points="12,2 28,2 38,12 38,28 28,38 12,38 2,28 2,12" fill="#FFD23F"/><polygon points="20,2 28,2 38,12 38,28 28,38 20,38" fill="#F2B21B"/><polygon points="14,9 26,9 31,14 31,26 26,31 14,31 9,26 9,14" fill="#FFE27A"/><polygon points="20,9 26,9 31,14 31,26 26,31 20,31" fill="#FFC531"/><polygon points="20,13 23,20 20,27 17,20" fill="#fff" opacity=".85"/></svg>';
+const Coin=({s=34})=><span style={{display:'block',width:s,height:s,lineHeight:0}} dangerouslySetInnerHTML={{__html:COIN_SVG.replace('width="30" height="30"',`width="${s}" height="${s}"`)}}/>;
+const BridgeIcon=({s=26})=>(<svg width={s} height={s} viewBox="0 0 40 40"><polygon points="2,22 38,22 38,28 2,28" fill="#FF6450"/><polygon points="2,22 20,22 20,28 2,28" fill="#FF9887"/>
+  <polygon points="4,28 10,28 8,38 4,38" fill="#176fbe"/><polygon points="30,28 36,28 36,38 32,38" fill="#176fbe"/><polygon points="2,22 20,8 38,22 33,22 20,13 7,22" fill="#3D6FE0"/></svg>);
+
+/* the little player (same low-poly character as the other practices) */
+const Legs=({x1,x2})=>(<><rect className="leg l1" x={x1} y="64" width="6" height="12" fill="#3B3360"/><rect className="leg l2" x={x2} y="64" width="6" height="12" fill="#2C2650"/></>);
+const Hat=({side})=>side?(<><polygon points="15,24 49,24 45,19 21,19" fill="#B8443A"/><polygon points="23,19 33,19 32,5 27,7" fill="#FF9A8C"/><polygon points="33,19 41,19 37,6 32,5" fill="#E25B4E"/><polygon className="feather" points="24,11 12,3 20,15" fill="#FFD23F"/></>)
+  :(<><polygon points="13,24 47,24 42,19 18,19" fill="#B8443A"/><polygon points="20,19 30,19 30,5 24,7" fill="#FF9A8C"/><polygon points="30,19 40,19 36,6 30,5" fill="#E25B4E"/><polygon className="feather" points="38,10 50,0 44,14" fill="#FFD23F"/></>);
+const Player=({s=96,talking,happy=true,shadow=true,view='front',walking,cheer})=>(<svg className={'mascot'+(talking?' talking':'')+(walking?' walking':'')+(cheer?' cheer':'')} width={s*.75} height={s} viewBox="0 0 60 80">
+  {shadow&&<polygon points="12,76 22,72 40,72 50,76 40,80 22,80" fill="rgba(23,80,130,.22)"/>}
+  <g className="body">
+  {view==='front'&&<>
+    <Legs x1={22} x2={33}/>
+    <polygon points="13,44 18,39 30,39 30,67 13,67" fill="#FF7B6E"/><polygon points="30,39 42,39 47,44 47,67 30,67" fill="#E25B4E"/>
+    <polygon points="26,40 30,48 34,40" fill="#fff"/>
+    <rect x="8" y="43" width="7" height="18" fill="#FF7B6E" transform="rotate(10 12 43)"/>
+    <rect className="arm" x="45" y="43" width="7" height="18" fill="#E25B4E"/>
+    <polygon points="20,21 30,21 30,41 20,41" fill="#FFDDB8"/><polygon points="30,21 40,21 40,41 30,41" fill="#F6C99A"/>
+    <rect className="eye" x="24" y="28" width="3" height="4" fill="#33373b"/><rect className="eye" x="33" y="28" width="3" height="4" fill="#33373b"/>
+    {talking!==undefined?<ellipse className="mouth" cx="30" cy="36" rx="3.4" ry="2.6" fill="#B23A3A"/>
+      :happy?<path d="M26 35 Q30 39 34 35" stroke="#33373b" strokeWidth="1.8" fill="none"/>:<path d="M27 36 H33" stroke="#33373b" strokeWidth="1.8"/>}
+    <Hat/>
+  </>}
+  {view==='side'&&<>
+    <Legs x1={25} x2={30}/>
+    <rect className="armB" x="31" y="43" width="7" height="17" fill="#B8443A"/>
+    <polygon points="18,43 22,39 38,39 42,43 43,67 18,67" fill="#FF7B6E"/><polygon points="33,39 38,39 42,43 43,67 33,67" fill="#E25B4E"/>
+    <rect className="armS" x="27" y="43" width="7" height="17" fill="#C94A3E"/>
+    <polygon points="21,21 39,21 39,29 43,32 39,35 39,41 21,41" fill="#FFDDB8"/>
+    <polygon points="21,21 27,21 27,34 21,36" fill="#8A5A34"/>
+    <rect className="eye" x="34" y="27" width="3" height="4" fill="#33373b"/>
+    {happy?<path d="M34 37 Q37 39 39 37" stroke="#33373b" strokeWidth="1.6" fill="none"/>:<path d="M34 37 H39" stroke="#33373b" strokeWidth="1.6"/>}
+    <Hat side/>
+  </>}
+  </g></svg>);
+
+const Chest=({open,bump,s=62,innerRef})=>(<svg ref={innerRef} className={'chest'+(open?' open':'')+(bump?' bump':'')} width={s} height={s*.8} viewBox="0 0 80 64" style={{overflow:'visible'}}>
+  {open&&<g className="lidopen">
+    <polygon points="8,30 3,-8 77,-8 72,30" fill="#B8651F"/>
+    <polygon points="13,27 9,-3 71,-3 67,27" fill="#6E3A10"/>
+    <polygon points="3,-8 77,-8 76,-3 4,-3" fill="#EE9A4A"/>
+    <rect x="36" y="-8" width="8" height="35" fill="#8A4A14"/></g>}
+  {open&&<g>
+    <polygon points="6,30 74,30 72,34 8,34" fill="#5A2E0C"/>
+    <polygon points="9,32 16,24 24,27 31,21 40,25 48,20 56,25 63,22 71,32" fill="#FFD23F"/>
+    <polygon points="31,21 40,25 36,32 24,32" fill="#FFE27A"/><polygon points="48,20 56,25 54,32 44,32" fill="#FFE27A"/>
+    <circle cx="20" cy="27" r="3" fill="#F2B21B"/><circle cx="60" cy="26" r="3" fill="#F2B21B"/></g>}
+  <polygon points="6,30 40,30 40,62 6,62" fill="#D98436"/><polygon points="40,30 74,30 74,62 40,62" fill="#B8651F"/>
+  <rect x="6" y="40" width="68" height="6" fill="#8A4A14"/>
+  {!open&&<g><polygon points="6,30 6,18 18,8 40,8 40,30" fill="#EE9A4A"/><polygon points="40,8 62,8 74,18 74,30 40,30" fill="#CF7A2C"/><rect x="6" y="24" width="68" height="6" fill="#8A4A14"/></g>}
+  <polygon points="34,34 46,34 46,48 34,48" fill="#FFC531"/><polygon points="40,34 46,34 46,48 40,48" fill="#E9A913"/></svg>);
+
+/* the narrator: a little low-poly alien (not the hero) */
+const Alien=({s=64,talking})=>(<svg className={'mascot'+(talking?' talking':'')} width={s*.75} height={s} viewBox="0 0 60 80">
+  <polygon points="12,76 22,72 40,72 50,76 40,80 22,80" fill="rgba(23,80,130,.22)"/>
+  <g className="body">
+    <rect className="leg l1" x="22" y="64" width="6" height="11" fill="#6A3CC4"/><rect className="leg l2" x="33" y="64" width="6" height="11" fill="#5A30AE"/>
+    <polygon points="20,44 30,44 30,68 15,68" fill="#2CC2AE"/><polygon points="30,44 40,44 45,68 30,68" fill="#169C8C"/>
+    <polygon points="26,52 30,48 34,52 30,58" fill="#FFC531"/>
+    <rect x="11" y="46" width="6" height="16" fill="#2CC2AE" transform="rotate(14 14 46)"/>
+    <rect className="arm" x="43" y="46" width="6" height="16" fill="#169C8C"/>
+    <polygon points="22,4 24,4 26,14 24,14" fill="#6A3CC4"/><polygon points="36,4 38,4 36,14 34,14" fill="#6A3CC4"/>
+    <polygon className="feather" points="23,0 27,3 23,6 19,3" fill="#FFC531"/><polygon className="feather" points="37,0 41,3 37,6 33,3" fill="#FFC531"/>
+    <polygon points="12,24 20,13 30,12 30,46 18,44 11,34" fill="#B99BFF"/><polygon points="30,12 40,13 48,24 49,34 42,44 30,46" fill="#8E5CF0"/>
+    <circle className="eye" cx="30" cy="27" r="9" fill="#fff"/><circle className="eye" cx="31" cy="28" r="4.5" fill="#33373b"/>
+    <circle cx="33" cy="26" r="1.5" fill="#fff"/>
+    {talking!==undefined?<ellipse className="mouth" cx="30" cy="39" rx="4" ry="2.6" fill="#4A2A8A"/>:<path d="M26 38 Q30 42 34 38" stroke="#4A2A8A" strokeWidth="1.8" fill="none"/>}
+  </g></svg>);
+
+/* the chasing monster (low-poly, faces right) */
+const Monster=({w,h})=>(<svg width={w} height={h} viewBox="0 0 80 100" style={{display:'block',overflow:'visible'}}>
+  <polygon points="10,98 70,98 64,94 16,94" fill="rgba(20,50,40,.25)"/>
+  <rect className="ml ml1" x="22" y="80" width="12" height="17" fill="#2F7F57"/><rect className="ml ml2" x="46" y="80" width="12" height="17" fill="#256B48"/>
+  <g className="mbody">
+    <polygon className="mspike" points="8,64 9,50 -5,55" fill="#F2A61B"/><polygon className="mspike" points="9,50 12,38 -3,39" fill="#FFC531"/>
+    <polygon className="mspike" points="13,37 19,26 3,23" fill="#F2A61B"/><polygon className="mspike" points="20,24 28,16 13,7" fill="#FFC531"/>
+    <polygon className="mspike" points="29,16 38,12.5 28,0" fill="#F2A61B"/>
+    <polygon className="mspike" points="40,13 44,1 48,13" fill="#FFC531"/><polygon className="mspike" points="50,14 59,0 61,18" fill="#E9A913"/>
+    <polygon points="10,40 22,18 44,12 44,88 24,88 8,72" fill="#4CB07E"/><polygon points="44,12 66,22 75,46 71,78 50,88 44,88" fill="#3A9467"/>
+    <polygon points="28,54 50,50 58,70 47,84 29,80" fill="#9BE08E"/><polygon points="50,50 58,70 47,84" fill="#86CF7A"/>
+    <polygon className="marmL" points="13,56 3,62 6,69 16,63" fill="#3A9467"/>
+    <polygon className="mbrow" points="45,24 67,26 65,21 47,19" fill="#256B48"/>
+    <circle cx="57" cy="34" r="9" fill="#fff"/><g className="mpupil"><circle cx="60" cy="35" r="4.5" fill="#33373b"/><circle cx="61.5" cy="33.5" r="1.4" fill="#fff"/></g>
+    <g className="mjaw"><polygon points="49,50 70,47.5 67.5,58.5 52,60.5" fill="#2A1F45"/>
+      <polygon points="53,49.6 55.5,54.5 58,49.3" fill="#fff"/><polygon points="61,48.6 63.5,53.5 66,48.2" fill="#fff"/>
+      <polygon points="55,60.2 57.5,56.4 60,59.9" fill="#fff"/><polygon points="62,59.2 64.2,55.6 66.4,58.8" fill="#fff"/></g>
+  </g></svg>);
+
+/* stars at the end: 5 bridges vs mistakes (wrong bridges, joins that don't help, start-overs, being caught) */
+function starCount(st){const m=(st||[]).reduce((t,s)=>t+(s?s.mistakes||0:0),0);return m<=1?3:m<=4?2:1}
+const StarIcon=({on})=>(<svg width="100%" height="100%" viewBox="0 0 100 96">
+  <polygon points="50,2 63,34 98,36 71,58 80,94 50,74 20,94 29,58 2,36 37,34" fill={on?'#FFC531':'#D9DEE6'}/>
+  <polygon points="50,2 63,34 98,36 71,58 50,52" fill={on?'#FFD95A':'#E6EAF0'}/><polygon points="50,52 71,58 80,94 50,74" fill={on?'#E9A913':'#C5CCD6'}/>
+  <polygon points="50,52 29,58 20,94 50,74" fill={on?'#F2B21B':'#CDD3DC'}/></svg>);
+
+/* speaker icon (on: sound waves, off: an x) */
+const SpeakerIcon=({on})=>(<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+  <path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/>{on?<><path d="M16 9a4 4 0 0 1 0 6"/><path d="M18.5 6.5a7.5 7.5 0 0 1 0 11"/></>:<><path d="M16 9l5 6"/><path d="M21 9l-5 6"/></>}</svg>);
+
+/* low-poly page background: sky, far hills, trees */
+function rng(seed){return()=>{seed=(seed*16807)%2147483647;return(seed-1)/2147483646}}
+const pts=a=>a.map(p=>p.join(',')).join(' ');
+const LowPolyBG=React.memo(function LowPolyBG(){
+  const W=1200,H=800,R=rng(11),els=[];let k=0;
+  const poly=(p,f)=>els.push(<polygon key={k++} points={pts(p)} fill={f}/>);
+  // sky in faceted bands
+  const sky=['#CFEAFB','#C3E4FA','#B7DEF8','#ABD7F5'];
+  for(let i=0;i<4;i++){const y0=i*120,y1=y0+130;poly([[0,y0],[W,y0-20],[W,y1],[0,y1+20]],sky[i])}
+  // sun + clouds
+  const cloud=(x,y,s,dur)=>{els.push(<g key={k++} className="cloud" style={{animationDuration:dur+'s',animationDelay:-(x/1400*dur)+'s'}}>
+    <polygon points={pts([[0,y],[s*.5,y-s*.45],[s,y-s*.2],[s*1.5,y-s*.5],[s*2,y],[s*2,y+s*.25],[0,y+s*.25]])} fill="#fff"/>
+    <polygon points={pts([[0,y+s*.25],[s*2,y+s*.25],[s*2,y],[s*1.2,y+s*.1]])} fill="#E4F2FC"/></g>)};
+  cloud(120,120,70,140);cloud(560,70,50,180);cloud(820,200,40,110);cloud(1050,150,55,160);
+  // far hills
+  poly([[0,470],[160,330],[330,430],[520,300],[700,420],[880,320],[1060,410],[1200,340],[1200,800],[0,800]],'#9ED79A');
+  poly([[160,330],[330,430],[160,470]],'#8CCB8A');poly([[520,300],[700,420],[520,460]],'#8CCB8A');poly([[880,320],[1060,410],[880,450]],'#8CCB8A');
+  // near ground
+  poly([[0,560],[300,520],[640,560],[960,515],[1200,550],[1200,800],[0,800]],'#7CC57F');
+  poly([[0,640],[400,610],[800,650],[1200,620],[1200,800],[0,800]],'#6CB872');
+  const tree=(x,y,s)=>{
+    poly([[x-s*.1,y-s*1.1],[x,y-s*1.1],[x,y],[x-s*.1,y]],'#9C7656');poly([[x,y-s*1.1],[x+s*.1,y-s*1.1],[x+s*.1,y],[x,y]],'#82604A');
+    const cy=y-s*1.6, T=[x,cy-s*1.05], L=[x-s*.85,cy-s*.35], Rr=[x+s*.85,cy-s*.35], C=[x+s*.05,cy-s*.15], BL=[x-s*.7,cy+s*.5], BR=[x+s*.7,cy+s*.5], B=[x+s*.05,cy+s*.7];
+    poly([T,L,C],'#93DA7F');poly([T,C,Rr],'#6CC86F');poly([L,BL,B,C],'#5BBE6A');poly([C,B,BR,Rr],'#3F9F5F')};
+  [[70,600,46],[190,560,34],[1110,590,48],[1000,560,32],[60,760,52],[1150,770,50],[300,740,30],[900,750,34]].forEach(t=>tree(...t));
+  return <svg className="bg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice">{els}</svg>;
+});
+
+/* cliff (low-poly rock with a grass cap). edgeL/edgeR = a river on that side (jagged edge) */
+function Cliff({w,h,seed=1,edgeL=true,edgeR=true,pal=PALS[0]}){
+  const r=rng(seed*7+3), el=[];let k=0;
+  const poly=(p,f)=>el.push(<polygon key={k++} points={pts(p)} fill={f}/>);
+  const L=edgeL?[[0,0],[6,h*.35],[-4,h*.7],[8,h]]:[[0,0],[0,h]];
+  const Rr=edgeR?[[w,0],[w-6,h*.35],[w+4,h*.7],[w-8,h]]:[[w,0],[w,h]];
+  poly([...L,...Rr.slice().reverse()],pal.b);
+  // facets across the rock, every ~80px
+  for(let x=22;x<w-60;x+=70+Math.round(r()*30)){
+    const a=24+r()*26, m=h*(.45+r()*.2);
+    poly([[x,0],[x+a,0],[x+a*.7,m],[x+a*.1,m-8]],pal.f1);
+    poly([[x+a*.1,m-8],[x+a*.7,m],[x+a*1.2,h],[x-6,h]],r()<.5?pal.f2:pal.f3);
+    poly([[x+a*.3,m*.4],[x+a*.3+10,m*.4-6],[x+a*.3+16,m*.4+4],[x+a*.3+6,m*.4+9]],'rgba(255,255,255,.18)');
+  }
+  if(edgeL)poly([[0,0],[6,h*.35],[-4,h*.7],[8,h],[26,h],[16,h*.6],[22,0]],pal.eL);
+  if(edgeR)poly([[w,0],[w-6,h*.35],[w+4,h*.7],[w-8,h],[w-28,h],[w-18,h*.55],[w-24,0]],pal.eR);
+  // grass cap
+  poly([[-2,-4],[w+2,-4],[w,10],[w*.7,13],[w*.35,9],[0,12]],pal.g);
+  poly([[-2,-4],[w+2,-4],[w*.6,4],[w*.2,5]],pal.gl);
+  return <svg width={w+24} height={h+6} viewBox={`-12 -6 ${w+24} ${h+6}`} style={{display:'block',margin:'-6px 0 0 -12px'}}>{el}</svg>;
+}
+/* ground colours: each stretch of land between two obstacles has its own */
+const PALS=[
+  {b:'#E7A15A',f1:'#D98C45',f2:'#C97B36',f3:'#D48540',eL:'#C97B36',eR:'#B86A2A',g:'#5BBE6A',gl:'#93DA7F'},   // orange earth
+  {b:'#D97B5E',f1:'#C9684D',f2:'#B85A41',f3:'#CC6F53',eL:'#B85A41',eR:'#A44C35',g:'#4FB36A',gl:'#86D486'},   // red clay
+  {b:'#EDC77E',f1:'#E0B566',f2:'#D2A455',f3:'#DDB060',eL:'#D2A455',eR:'#C29146',g:'#9CCB5A',gl:'#C4E27F'},   // sand
+  {b:'#A99BC9',f1:'#988ABB',f2:'#8676AA',f3:'#9183B5',eL:'#8676AA',eR:'#76679A',g:'#3FB59B',gl:'#7FD9C2'},   // purple rock
+  {b:'#B98A5E',f1:'#A9794F',f2:'#986A43',f3:'#A57650',eL:'#986A43',eR:'#875C38',g:'#4CAF5F',gl:'#8ED18A'},   // dark earth
+  {b:'#8FC3D9',f1:'#7EB3CB',f2:'#6CA2BC',f3:'#79AEC6',eL:'#6CA2BC',eR:'#5C92AD',g:'#5BBE6A',gl:'#9BE08E'},   // blue stone (the chest)
+];
+/* small low-poly things on the land; each stretch has its own set */
+const DECOR={
+  tree:{w:40,h:52,p:[['18,52 22,52 22,30 18,30','#9C7656'],['20,52 22,52 22,30 20,30','#82604A'],['20,0 4,16 20,20','#93DA7F'],['20,0 20,20 36,16','#6CC86F'],['4,16 8,30 20,36 20,20','#5BBE6A'],['20,20 20,36 32,30 36,16','#3F9F5F']]},
+  bush:{w:40,h:22,p:[['2,22 8,8 18,4 20,22','#5BBE6A'],['18,4 28,6 38,22 20,22','#3F9F5F'],['8,8 18,4 14,14','#93DA7F'],['18,4 28,6 24,13','#6CC86F']]},
+  rock:{w:34,h:20,p:[['0,20 6,8 16,2 18,20','#A9B6C9'],['16,2 28,6 34,20 18,20','#8796AD'],['6,8 16,2 12,12','#C6D1E0']]},
+  flower:{w:16,h:26,p:[['7,26 9,26 9,10 7,10','#3F9F5F'],['8,0 14,5 8,10 2,5','#FF6450'],['8,0 14,5 8,5','#FF9887'],['6,4 10,4 10,7 6,7','#FFC531']]},
+  mushroom:{w:22,h:24,p:[['8,24 14,24 14,12 8,12','#FFF6E6'],['11,24 14,24 14,12 11,12','#EADFCB'],['0,13 11,0 22,13','#F2707A'],['11,0 22,13 11,13','#D9525E'],['6,8 8,8 8,10 6,10','#fff']]},
+  crystal:{w:30,h:34,p:[['8,34 4,14 10,4 14,34','#B99BFF'],['10,4 14,34 18,34 16,8','#8E5CF0'],['16,34 20,12 26,6 28,34','#7FD9C2'],['26,6 28,34 30,34 30,14','#3FB59B']]},
+  cactus:{w:26,h:40,p:[['10,40 16,40 16,4 13,0 10,4','#5BBE6A'],['13,0 16,4 16,40 13,40','#3F9F5F'],['2,22 2,12 6,12 6,18 10,18 10,22','#5BBE6A'],['16,16 20,16 20,8 24,8 24,20 16,20','#3F9F5F']]},
+  sign:{w:28,h:34,p:[['12,34 16,34 16,10 12,10','#9C7656'],['2,6 24,6 28,12 24,18 2,18','#FFC531'],['2,6 24,6 28,12 2,12','#FFD95A']]},
+};
+const DSIZE={tree:.95,bush:.36,rock:.3,flower:.38,mushroom:.34,crystal:.5,cactus:.75,sign:.5};
+const THEME=[['tree','bush','flower'],['mushroom','rock','flower','bush'],['cactus','rock','bush'],['crystal','rock','mushroom'],['tree','mushroom','bush','sign'],['flower','bush','tree']];
+function Decor({kind,h}){const d=DECOR[kind];const w=h*d.w/d.h;
+  return <svg width={w} height={h} viewBox={`0 0 ${d.w} ${d.h}`} style={{display:'block'}}>{d.p.map(([pp,f],i)=><polygon key={i} points={pp} fill={f}/>)}</svg>}
+
+/* obstacles: what is in the pit, each with a small looping animation */
+const OBST={
+  water:{name:'בור עם מים',fx:['#7FC8F0','#fff','#3D9BD6'],sound:'splash'},
+  fire:{name:'בור עם אש',fx:['#FF8A3D','#FFD23F','#FF6450'],sound:'sizzle'},
+  thorns:{name:'בור עם קוצים',fx:['#C9C4E0','#8E88AE','#fff'],sound:'crack'},
+  swamp:{name:'ביצה',fx:['#7FA34A','#A8C977','#4F6D2C'],sound:'splash'},
+  monster:{name:'בור עם מפלצת',fx:['#8E5CF0','#FFC531','#fff'],sound:'chomp'},
+};
+function Pit({type,w,h,seed=1}){
+  const r=rng(seed*11+5), el=[];let k=0;
+  const poly=(p,f,props={})=>el.push(<polygon key={k++} points={pts(p)} fill={f} {...props}/>);
+  const facets=(c1,c2)=>{for(let x=0;x<w;x+=36){poly([[x,h],[x+18,h*.45+r()*h*.2],[x+36,h]],c1);poly([[x+18,h*.45],[x+36,h],[x+50,h*.5]],c2)}};
+  if(type==='water'){
+    poly([[0,0],[w,0],[w,h],[0,h]],'#5AB3E6');
+    const t=40,n=Math.ceil(w/t);
+    for(let i=0;i<n;i++){const x=i*t;poly([[x,0],[x+t,0],[x+t/2,h*.5]],i%2?'#7FC8F0':'#6ABEEC');poly([[x+t/2,h*.5],[x+t*1.5,h*.5],[x+t,h]],i%2?'#3D9BD6':'#4AA6DE')}
+    for(let i=0;i<n;i++){const x=i*t+8,y=h*(.22+(i%3)*.18);poly([[x,y],[x+14,y-4],[x+26,y]],'rgba(255,255,255,.75)',{className:'wave',style:{animationDelay:-i*.7+'s'}})}
+  }else if(type==='fire'){
+    poly([[0,0],[w,0],[w,h],[0,h]],'#5A2318');facets('#6E2A1C','#4A1C14');
+    poly([[0,h*.75],[w,h*.7],[w,h],[0,h]],'#C9402F');
+    const n=Math.max(3,Math.round(w/22));
+    for(let i=0;i<n;i++){const x=(i+.5)*w/n, tip=h*(.05+r()*.15), base=h*.78;
+      el.push(<g key={k++} className="flame" style={{animationDelay:-(r()*.5)+'s',animationDuration:.4+r()*.3+'s'}}>
+        <polygon points={pts([[x-11,base],[x-5,h*.35],[x,tip],[x+6,h*.3],[x+11,base]])} fill="#FF8A3D"/>
+        <polygon points={pts([[x,tip],[x+6,h*.3],[x+11,base],[x,base]])} fill="#FF6450"/>
+        <polygon points={pts([[x-6,base],[x,h*.42],[x+6,base]])} fill="#FFD23F"/></g>)}
+    for(let i=0;i<Math.max(3,Math.round(w/30));i++){const x=r()*w;el.push(<rect key={k++} className="ember" x={x} y={h*.5} width="4" height="4" fill="#FFD23F" style={{animationDelay:-(r()*1.6)+'s'}}/>)}
+  }else if(type==='thorns'){
+    poly([[0,0],[w,0],[w,h],[0,h]],'#4B3F6B');facets('#3E3459','#55487A');
+    const n=Math.max(4,Math.round(w/14));
+    for(let i=0;i<n;i++){const x=(i+.5)*w/n, tip=h*(.18+r()*.2), hw2=w/n*.55;
+      el.push(<g key={k++} className="spike" style={{animationDelay:-(r()*1.8)+'s'}}>
+        <polygon points={pts([[x-hw2,h],[x,tip],[x,h]])} fill="#D5D0EA"/><polygon points={pts([[x,tip],[x+hw2,h],[x,h]])} fill="#9D97BF"/></g>)}
+  }else if(type==='swamp'){
+    poly([[0,0],[w,0],[w,h],[0,h]],'#5E7F35');facets('#6E9140','#4F6D2C');
+    poly([[0,0],[w,0],[w,h*.16],[0,h*.2]],'#7FA34A');
+    for(let i=0;i<Math.max(1,Math.round(w/70));i++){const x=20+r()*(w-40),y=h*.08;poly([[x-12,y],[x-4,y-5],[x+10,y-3],[x+13,y+3],[x-6,y+5]],'#3F9F5F')}
+    for(let i=0;i<Math.max(3,Math.round(w/26));i++){const x=8+r()*(w-16);el.push(<circle key={k++} className="bub" cx={x} cy={h*.25} r={3+r()*3} fill="#B5D58A" style={{animationDelay:-(r()*2.4)+'s'}}/>)}
+  }else{
+    poly([[0,0],[w,0],[w,h],[0,h]],'#3A2F55');facets('#31284A','#45386A');
+    const mw=Math.min(w*.7,110), mh=mw*.85, cx=w/2, by=h*.2;     // the monster peeks up from the pit
+    el.push(<g key={k++} className="mon">
+      <polygon points={pts([[cx-mw*.42,by+mh*.1],[cx-mw*.32,by-mh*.22],[cx-mw*.22,by+mh*.02]])} fill="#FFC531"/>
+      <polygon points={pts([[cx+mw*.42,by+mh*.1],[cx+mw*.32,by-mh*.22],[cx+mw*.22,by+mh*.02]])} fill="#E9A913"/>
+      <polygon points={pts([[cx-mw/2,h],[cx-mw/2,by+mh*.25],[cx-mw*.3,by],[cx,by-mh*.05],[cx,h]])} fill="#8E5CF0"/>
+      <polygon points={pts([[cx,by-mh*.05],[cx+mw*.3,by],[cx+mw/2,by+mh*.25],[cx+mw/2,h],[cx,h]])} fill="#6A3CC4"/>
+      <circle className="meye" cx={cx-mw*.17} cy={by+mh*.22} r={mw*.1} fill="#fff"/><circle className="meye" cx={cx+mw*.17} cy={by+mh*.22} r={mw*.1} fill="#fff"/>
+      <circle cx={cx-mw*.15} cy={by+mh*.24} r={mw*.045} fill="#33373b"/><circle cx={cx+mw*.19} cy={by+mh*.24} r={mw*.045} fill="#33373b"/>
+      <g className="mmouth"><polygon points={pts([[cx-mw*.24,by+mh*.42],[cx+mw*.24,by+mh*.42],[cx+mw*.14,by+mh*.62],[cx-mw*.14,by+mh*.62]])} fill="#2A1F45"/>
+        <polygon points={pts([[cx-mw*.16,by+mh*.42],[cx-mw*.1,by+mh*.52],[cx-mw*.04,by+mh*.42]])} fill="#fff"/>
+        <polygon points={pts([[cx+mw*.04,by+mh*.42],[cx+mw*.1,by+mh*.52],[cx+mw*.16,by+mh*.42]])} fill="#fff"/></g></g>);
+  }
+  return <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{display:'block',overflow:'hidden'}}>{el}</svg>;
+}
+
+/* a number plank: flat, one segment per colour, unit lines every U px */
+function Plank({p,U,T,cls='',showSum=true}){
+  const n=total(p), fs=Math.max(15,Math.min(26,T*.72));
+  return (<div className={'plank '+cls} style={{'--U':U+'px','--T':T+'px',width:n*U}}>
+    {p.segs.map((s,i)=><div key={i} className="seg" style={{width:s.n*U,'--m':PC[s.c].m}}/>)}
+    <span className="pnum" style={{fontSize:fs}}>{n}</span>
+    {showSum&&p.segs.length>1&&<span className="psum" dir="ltr">{p.segs.map(s=>s.n).join('+')}</span>}
+  </div>);
+}
+
+const SpeechIcon=({on})=>(<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+  <path d="M4 5h16v10H10l-4 4v-4H4z"/>{on?<path d="M8 10h8"/>:<path d="M3 3l18 18"/>}</svg>);
+
+/* a placed bridge, side view: a thin deck in the plank colours, posts on every unit, a rail on top */
+function ThinBridge({p,U}){
+  const n=total(p), w=n*U, H=24, deckY=14, el=[];let x=0,k=0;
+  p.segs.forEach(sg=>{const sw=sg.n*U;el.push(<rect key={k++} x={x} y={deckY} width={sw} height="8" fill={PC[sg.c].m}/>);
+    el.push(<rect key={k++} x={x} y={deckY} width={sw} height="3" fill="rgba(255,255,255,.35)"/>);x+=sw});
+  el.push(<rect key={k++} x="0" y={deckY+6} width={w} height="2" fill="rgba(0,0,0,.18)"/>);
+  for(let i=0;i<=n;i++){const px=Math.min(w-3,Math.max(0,i*U-1.5));el.push(<rect key={k++} x={px} y="3" width="3" height={deckY-2} fill="#8A5A34"/>)}
+  el.push(<rect key={k++} x="0" y="2" width={w} height="3" rx="1.5" fill="#A06A40"/>);
+  return <svg width={w} height={H} viewBox={`0 0 ${w} ${H}`} style={{display:'block',overflow:'visible'}}>{el}</svg>;
+}
+
+/* low-poly hand, fingertip at (14,0) */
+const HandIcon=()=>(<svg width="44" height="62" viewBox="0 0 44 62" style={{display:'block'}}>
+  <polygon points="10,4 14,0 18,4 18,28 10,28" fill="#FFDDB8"/><polygon points="14,0 18,4 18,28 14,28" fill="#F6C99A"/>
+  <polygon points="18,16 25,15 26,28 18,28" fill="#F6C99A"/><polygon points="26,18 32,18 33,30 26,30" fill="#EBB585"/>
+  <polygon points="4,26 34,26 36,46 8,48" fill="#FFDDB8"/><polygon points="20,26 34,26 36,46 22,47" fill="#F6C99A"/>
+  <polygon points="0,30 6,27 9,38 3,39" fill="#FFDDB8"/>
+  <polygon points="7,47 36,45 37,60 8,62" fill="#3D6FE0"/><polygon points="22,46 36,45 37,60 23,61" fill="#2D57C2"/></svg>);
+
+/* the teaching hand: 'cut' = a quick stroke down through a plank, 'join' = drag one plank onto another */
+function HandDemo({demo,U,T}){
+  const handRef=useRef(null), lineRef=useRef(null), ghostRef=useRef(null);
+  useEffect(()=>{
+    const anims=[], opt={duration:2200,iterations:Infinity,easing:'ease-in-out'};
+    if(demo.kind==='tap'){
+      const {x,y}=demo;
+      anims.push(handRef.current.animate([
+        {transform:`translate(${x-14}px,${y+18}px) scale(1)`,opacity:1},
+        {transform:`translate(${x-14}px,${y}px) scale(.92)`,opacity:1,offset:.45},
+        {transform:`translate(${x-14}px,${y+18}px) scale(1)`,opacity:1}],{duration:1000,iterations:Infinity,easing:'ease-in-out'}));
+    }else if(demo.kind==='cut'){
+      const {x,y0,y1}=demo;
+      anims.push(handRef.current.animate([
+        {transform:`translate(${x-14}px,${y0-40}px)`,opacity:0},
+        {transform:`translate(${x-14}px,${y0}px)`,opacity:1,offset:.2},
+        {transform:`translate(${x-14}px,${y0}px)`,opacity:1,offset:.35},
+        {transform:`translate(${x-18}px,${y1}px)`,opacity:1,offset:.5},
+        {transform:`translate(${x-18}px,${y1}px)`,opacity:1,offset:.75},
+        {transform:`translate(${x-18}px,${y1+20}px)`,opacity:0}],opt));
+      anims.push(lineRef.current.animate([
+        {transform:`translate(${x-2}px,${y0}px) scaleY(0)`,opacity:0},
+        {transform:`translate(${x-2}px,${y0}px) scaleY(0)`,opacity:1,offset:.35},
+        {transform:`translate(${x-2}px,${y0}px) scaleY(1)`,opacity:1,offset:.5},
+        {transform:`translate(${x-2}px,${y0}px) scaleY(1)`,opacity:0,offset:.75},
+        {transform:`translate(${x-2}px,${y0}px) scaleY(1)`,opacity:0}],opt));
+    }else{
+      const {a,b}=demo;     // centres
+      const hk=[{transform:`translate(${a.x-14}px,${a.y}px)`,opacity:0},
+        {transform:`translate(${a.x-14}px,${a.y}px)`,opacity:1,offset:.15},
+        {transform:`translate(${a.x-14}px,${a.y}px)`,opacity:1,offset:.25},
+        {transform:`translate(${b.x-14}px,${b.y}px)`,opacity:1,offset:.7},
+        {transform:`translate(${b.x-14}px,${b.y}px)`,opacity:0}];
+      anims.push(handRef.current.animate(hk,opt));
+      const gw=demo.w;
+      anims.push(ghostRef.current.animate([
+        {transform:`translate(${a.x-gw/2}px,${a.y-T/2}px)`,opacity:0},
+        {transform:`translate(${a.x-gw/2}px,${a.y-T/2}px)`,opacity:.6,offset:.25},
+        {transform:`translate(${b.x-gw/2}px,${b.y-T/2}px)`,opacity:.6,offset:.7},
+        {transform:`translate(${b.x-gw/2}px,${b.y-T/2}px)`,opacity:0}],opt));
+    }
+    return()=>anims.forEach(a=>a.cancel());
+  },[demo]);
+  return (<>
+    {demo.kind==='cut'&&<i ref={lineRef} className="demoline" style={{height:demo.y1-demo.y0}}/>}
+    {demo.kind==='join'&&<div ref={ghostRef} className="ghost"><Plank p={demo.p} U={U} T={T} showSum={false}/></div>}
+    <div ref={handRef} className="hand"><HandIcon/></div>
+  </>);
+}
+
+/* ---------- app ---------- */
+function App(){
+  const [screen,setScreen]=useState('start');      // start | play | end
+  const [ri,setRi]=useState(0);
+  const [rounds,setRounds]=useState([]);           // all 5 made at the start, so the next pit is already there
+  const [planks,setPlanks]=useState([]);           // [{id,segs,key,x,y,z}] x,y = top-left on the board
+  const [fallN,setFallN]=useState(0);
+  const [drag,setDrag]=useState(null);
+  const [phase,setPhase]=useState('busy');         // build | busy
+  const [bridge,setBridge]=useState(null);         // {p, state:'fit'|'short'|'long'} the try in the current pit
+  const [built,setBuilt]=useState([]);             // bridges that stay behind: [{i,p}]
+  const [worldI,setWorldI]=useState(0),[walkDur,setWalkDur]=useState(0);   // the world scrolls to pit worldI
+  const [hero,setHero]=useState({walk:false,vis:false,cheer:false});
+  // the monster creeps toward the hero while the child builds. dur = seconds to reach him.
+  const monRef=useRef(null), mon=useRef({dur:60,elapsed:0,active:false,retreat:false,nextGrowl:0,nextDur:60}), caughtRef=useRef(null);
+  const [quake,setQuake]=useState(false);
+  const [scared,setScared]=useState(false), scaredRef=useRef(false), heroRef=useRef(null);   // the hero looks at the monster when it is close
+  useEffect(()=>{let raf,last=performance.now();
+    const loop=now=>{const dt=Math.min(.1,(now-last)/1000);last=now;const m=mon.current,g=R.current.geo,el=monRef.current;
+      if(g&&el){
+        const building=m.active&&R.current.phase==='build';
+        if(m.retreat){m.elapsed=Math.max(0,m.elapsed-dt*m.dur/.9);if(m.elapsed===0)m.retreat=false}
+        else if(building){m.elapsed+=dt;
+          if(now>m.nextGrowl){sfx.growl(.5+.6*Math.min(1,m.elapsed/m.dur));m.nextGrowl=now+5000+Math.random()*4000}
+          if(m.elapsed>=m.dur){m.active=false;if(caughtRef.current)caughtRef.current()}}
+        const pr=Math.min(1,m.elapsed/m.dur), sx=-g.mw-14, tx=g.heroX-g.mw*.93+6;   // enters from outside; its front edge meets the hero
+        const near=building&&pr>.7; if(near!==scaredRef.current){scaredRef.current=near;setScared(near)}
+        el.style.transform=`translateX(${Math.round(sx+(tx-sx)*pr)}px)${m.retreat?' scaleX(-1)':''}`;
+        el.classList.toggle('mwalk',building||m.retreat);
+        // the face and the back plates move now and then, at random
+        if(building&&pr>.7){el.style.setProperty('--px','3.2px');el.style.setProperty('--py','1.2px');el.style.setProperty('--br','-10deg');el.style.setProperty('--by','1px')}
+        else if(now>(m.nextFace||0)){const r=Math.random;el.style.setProperty('--px',(r()*5.5-3.5).toFixed(1)+'px');el.style.setProperty('--py',(r()*3-1.5).toFixed(1)+'px');
+          el.style.setProperty('--by',(r()<.4?-(1+r()*2.5):0).toFixed(1)+'px');el.style.setProperty('--br',(r()*14-9).toFixed(0)+'deg');m.nextFace=now+250+r()*1600}
+        if(now>(m.nextSpike||0)){const sp=el.querySelectorAll('.mspike');if(sp.length){const k=Math.floor(Math.random()*sp.length);sp[k].style.transform=`rotate(${(Math.random()*24-12).toFixed(0)}deg)`;
+          setTimeout(()=>{sp[k].style.transform=''},250+Math.random()*500)}m.nextSpike=now+150+Math.random()*700}}
+      raf=requestAnimationFrame(loop)};
+    raf=requestAnimationFrame(loop);return()=>cancelAnimationFrame(raf)},[]);
+  const [coinTaken,setCoinTaken]=useState(-1);
+  const [hl,setHl]=useState([]);
+  const [fx,setFx]=useState({}),[fxN,setFxN]=useState(0);
+  const [hot,setHot]=useState(false);
+  const [trail,setTrail]=useState(null);
+  const [demo,setDemo]=useState(null);             // teaching hand
+  const [measurePop,setMeasurePop]=useState(0);
+  const [caption,setCaption]=useState(''),[capN,setCapN]=useState(0),[talking,setTalking]=useState(false);
+  const [progress,setProgress]=useState(0),[bumpN,setBumpN]=useState(0),[coins,setCoins]=useState(0);
+  const [sound,setSound]=useState(true);
+  const [lidOpen,setLidOpen]=useState(false),[taps,setTaps]=useState(0),[leaving,setLeaving]=useState(false);
+  const [size,setSize]=useState({w:360,h:560});
+
+  const boardRef=useRef(null), chestRef=useRef(null), coinRef=useRef(null), bigChestRef=useRef(null);
+  const R=useRef({}); R.current={...R.current,rounds,planks,phase,ri,round:rounds[ri]};
+  const flow=useRef(0), finRef=useRef(null), lastSay=useRef(''), nudges=useRef([]), stats=useRef([]);
+  const dragRef=useRef(null), strokeRef=useRef(null), zTop=useRef(10), idN=useRef(0);
+  // what the child already knows (remembered on this device, per child): join, drag (a bridge), cut, chest
+  const LKEY='kidodo-bridge-learned-'+((KP.ctx&&KP.ctx.childId)||'anon');
+  const learned=useRef((()=>{try{return JSON.parse(localStorage.getItem(LKEY))||{}}catch(e){return {}}})()), teachTimer=useRef(null);
+  const learn=(...ks)=>{ks.forEach(k=>learned.current[k]=true);try{localStorage.setItem(LKEY,JSON.stringify(learned.current))}catch(e){}};
+
+  useEffect(()=>{const el=boardRef.current;if(!el)return;const m=()=>setSize({w:el.clientWidth,h:el.clientHeight});m();
+    if(typeof ResizeObserver==='undefined'){window.addEventListener('resize',m);return()=>window.removeEventListener('resize',m)}
+    const ro=new ResizeObserver(m);ro.observe(el);return()=>ro.disconnect()},[screen]);
+
+  /* geometry: one unit U for the river and the planks (lengths can be compared by eye) */
+  const W=size.w, H=size.h;
+  const U=Math.max(16,Math.min(46,Math.floor((Math.min(W,1000)-80)/MAXLEN),Math.floor((W-24)/17)));
+  const T=Math.max(28,Math.round(U*1.3));            // thick enough for a finger
+  const csz=Math.round(Math.max(110,Math.min(190,W*.42,(H-Math.round(Math.max(110,Math.min(230,H*.3))))*.45)));
+  // screen x of pit i's left edge: the pit is centred on the screen (after the last pit: the chest is centred)
+  const LxOf=i=>Math.round(rounds[i]?W/2-rounds[i].gap*U/2:W/2-csz/2-2);
+  const Lx=LxOf(ri);                                 // the current pit's left edge, on screen
+  const groundH=Math.round(Math.max(110,Math.min(230,H*.3)));
+  const groundY=H-groundH;
+  const hs=Math.max(60,Math.min(99,Math.round(H*.156))), hw=hs*.75;   // 30% bigger than before
+  const heroX=LxOf(worldI)-hw-6;                     // the hero walks on the spot; the world moves (he shifts a bit to keep the pit centred)
+  const C=Math.max(hw+70,Math.round(U*5),Math.round(W/2+40));   // the land between two pits: wide, so the next pit is out of view
+  // world x of each pit: E[i] = left edge, S[i] = right edge (start of the next land)
+  const E=[],S=[];{let e=LxOf(0);rounds.forEach((r,i)=>{E[i]=e;S[i]=e+r.gap*U;e=S[i]+C});E[rounds.length]=e}   // E[5] = where the chest waits
+  const gap=rounds[ri]?rounds[ri].gap:7;
+  const offset=(E[worldI]??LxOf(worldI))-LxOf(worldI);
+  const topY=6, maxY=groundY-T-2, layMaxY=groundY-hs-T-8;
+  const mh=hs*2, mw=Math.round(mh*.8);               // the chasing monster: twice the hero's height
+  R.current.geo={U,T,Lx,groundY,W,H,topY,maxY,layMaxY,C,hw,heroX,mw,mh,cs:Math.round(Math.max(110,Math.min(190,W*.42,groundY*.45)))};
+
+  const tts=()=>soundOn&&speechOn&&hasTTS&&heVoice;
+  const newFlow=()=>{const f=++flow.current;return()=>f===flow.current};
+  const later=(alive,ms,fn)=>setTimeout(()=>{if(alive())fn()},ms);
+  function say(text,{voice=true}={}){
+    return new Promise(res=>{
+      if(finRef.current)finRef.current();
+      setCaption(text);setCapN(n=>n+1);lastSay.current=text;setTalking(true);
+      let done=false,timer;
+      const fin=()=>{if(done)return;done=true;clearTimeout(timer);if(finRef.current===fin){finRef.current=null;setTalking(false)}res()};
+      finRef.current=fin;
+      const sp=toSpeech(text);
+      if(voice&&tts()){
+        try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(sp);u.voice=heVoice;u.lang=heVoice.lang;u.rate=.95;
+          u.onend=fin;u.onerror=fin;timer=setTimeout(fin,sp.length*130+3000);speechSynthesis.speak(u)}catch(e){timer=setTimeout(fin,1500)}
+      }else timer=setTimeout(fin,voice?Math.max(1300,sp.length*62):700);
+    });
+  }
+  const quiet=t=>say(t,{voice:R.current.ri===0});   // after the first obstacle: text in the bubble only
+  const hush=()=>{if(hasTTS)try{speechSynthesis.cancel()}catch(e){};if(finRef.current)finRef.current()};
+  const clearNudges=()=>{nudges.current.forEach(clearTimeout);nudges.current=[]};
+  function armNudges(alive){
+    clearNudges();
+    if(!learned.current.join||!learned.current.drag)return;   // the hand teaches first
+    nudges.current=[
+      later(alive,16000,()=>say('רמז: אפשר לחבר שני קרשים, ואפשר לחתוך קרש בכל מקום.')),
+      later(alive,32000,()=>{const r=R.current.round;setHl(R.current.planks.filter(p=>p.key).map(p=>p.id));say(`נסו את שני הקרשים שקופצים. ביחד הם יוצרים ${r.gap}?`)}),
+    ];
+  }
+  const bump=(id,kind)=>{setFx({[id]:kind});setFxN(n=>n+1)};
+
+  /* ---------- the teaching hand: only for what the child has not done yet (join → drag to the pit → cut) ---------- */
+  function armTeach(ms){
+    clearTimeout(teachTimer.current);
+    const L=learned.current; if(L.join&&L.drag&&L.cut)return;
+    teachTimer.current=setTimeout(showTeach,ms);
+  }
+  function showTeach(){
+    const {planks,phase}=R.current, {U,T}=R.current.geo, L=learned.current;
+    if(phase!=='build')return;
+    if(dragRef.current||strokeRef.current){armTeach(4000);return}       // the child is busy: never in the way
+    const voice=R.current.ri===0&&!finRef.current;                       // don't talk over other speech
+    const g=R.current.round.gap, fit=planks.find(x=>total(x)===g);
+    if(fit&&!L.drag){
+      const {Lx,groundY}=R.current.geo;
+      setDemo({kind:'join',p:fit,w:g*U,a:{x:fit.x+g*U/2,y:fit.y+T/2},b:{x:Lx+g*U/2,y:groundY+T/2}});
+      say('הקרש בדיוק באורך הנכון! גוררים אותו אל הבור, והוא יהיה גשר.',{voice});
+    }else if(!L.join&&planks.length>=2){
+      const ps=[...planks].sort((a,b)=>a.x-b.x), keys=ps.filter(x=>x.key);
+      const [a,b]=keys.length===2?keys:[ps[0],ps[1]];
+      setDemo({kind:'join',p:a,w:total(a)*U,a:{x:a.x+total(a)*U/2,y:a.y+T/2},b:{x:b.x+total(b)*U/2,y:b.y+T/2}});
+      say('גוררים קרש ומשחררים אותו על הקרש השני, והם מתחברים.',{voice});
+    }else if(!L.cut&&L.join&&L.drag&&R.current.ri>=1){
+      const p=[...planks].filter(x=>total(x)>=2).sort((a,b)=>total(b)-total(a))[0]; if(!p)return;
+      const k=Math.max(1,Math.floor(total(p)/2));
+      setDemo({kind:'cut',x:p.x+k*U,y0:p.y-50,y1:p.y+T+40});
+      say('אפשר גם לחתוך קרש: מתחילים קצת מעליו, ומעבירים אצבע מהר למטה דרך הקרש, כמו סכין.',{voice:R.current.ri<=1&&!finRef.current});
+    }
+  }
+  function touchedBoard(){ if(demo)setDemo(null); armTeach(6000) }
+
+  /* lay the planks out in rows, centred, in the free sky area */
+  function layout(list){
+    const {U,T,W,topY,layMaxY:maxY}=R.current.geo, gapX=22, rowH=T+44, maxW=W-24;
+    const rows=[[]];let w=0;
+    list.forEach(p=>{const pw=total(p)*U;if(rows[rows.length-1].length&&w+gapX+pw>maxW){rows.push([]);w=0}w+=(w?gapX:0)+pw;rows[rows.length-1].push(p)});
+    const totalH=(rows.length-1)*rowH+T, y0=Math.max(topY+40,topY+40+(maxY-topY-40-totalH)/2);
+    const out=[];
+    rows.forEach((row,r)=>{const rw=row.reduce((s,p,i)=>s+total(p)*U+(i?gapX:0),0);let x=(W-rw)/2;
+      row.forEach(p=>{out.push({...p,fall:true,x:Math.round(x),y:Math.round(y0+r*rowH),z:++zTop.current});x+=total(p)*U+gapX})});
+    return out;
+  }
+  const clampPos=(x,y,w)=>{const {W,topY,maxY}=R.current.geo;return{x:Math.max(4,Math.min(W-w-4,x)),y:Math.max(topY,Math.min(Math.max(topY,maxY),y))}};
+
+  async function start(){
+    audio();
+    lastGap=null;const types=['water',...shuffle(['fire','thorns','swamp','monster'])];
+    const rs=Array.from({length:ROUNDS},(_,i)=>({...genRound(i),type:types[i]}));
+    stats.current=[];setRounds(rs);R.current.rounds=rs;setBuilt([]);setWorldI(0);setWalkDur(0);setCoinTaken(-1);setProgress(0);
+    setScreen('play');
+    await sleep(250);
+    playRound(0,true);
+  }
+
+  async function playRound(i,first){
+    const alive=newFlow(), r=R.current.rounds[i];
+    clearNudges();setDemo(null);
+    const laid=layout(r.planks);
+    setRi(i);R.current.ri=i;R.current.round=r;setPlanks(laid);R.current.planks=laid;setFallN(n=>n+1);setBridge(null);setHl([]);setFx({});
+    setPhase('busy');R.current.phase='busy';
+    stats.current[i]={gap:r.gap,wrong:0,merges:0,cuts:0,caught:0,mistakes:0};
+    {const m=mon.current;m.dur=i===0?60:m.nextDur;m.elapsed=0;m.retreat=false;m.active=true;m.nextGrowl=performance.now()+6000}
+    log('round_start',{gap:r.gap,planks:r.planks.map(total)});
+    if(first){await sleep(800); if(!alive())return; setHero({walk:false,vis:true,cheer:false});sfx.thud()}
+    await sleep(700); if(!alive())return;
+    setMeasurePop(n=>n+1);
+    setPhase('build');R.current.phase='build';
+    if(first){
+      await say(`החבר שלנו רוצה להגיע למטבע, אבל יש ${OBST[r.type].name} בדרך. הבור ברוחב ${r.gap}. בואו נבנה לו גשר!`); if(!alive())return;
+    }else{
+      say(i===ROUNDS-1?`${OBST[r.type].name}, המכשול האחרון! רוחב ${r.gap}.`:`${OBST[r.type].name}, רוחב ${r.gap}.`,{voice:false});
+    }
+    armTeach(first?2500:8000);
+    armNudges(alive);
+  }
+
+  function resetPlanks(){
+    const r=R.current.round; if(!r)return;
+    const laid=layout(r.planks);
+    setPlanks(laid);R.current.planks=laid;setFallN(n=>n+1);setFx({});sfx.thud();
+  }
+
+  /* ---------- pointer: drag a plank, or swipe on the board to cut ---------- */
+  const boardXY=e=>{const b=boardRef.current.getBoundingClientRect();return{x:e.clientX-b.left,y:e.clientY-b.top}};
+  function overRiver(px,py,w,pointerY){
+    const {groundY,Lx,U,T}=R.current.geo, g=R.current.round.gap;
+    return (pointerY>groundY-70||py+T>groundY-30)&&px+w>Lx-10&&px<Lx+g*U+10;
+  }
+  function plankDown(e,p){
+    if(R.current.phase!=='build')return;
+    e.stopPropagation();e.preventDefault();audio();touchedBoard();
+    const q=boardXY(e);
+    dragRef.current={id:p.id,dx:q.x-p.x,dy:q.y-p.y,start:{x:p.x,y:p.y},moved:false};
+    try{e.currentTarget.setPointerCapture(e.pointerId)}catch(_){}
+    const z=++zTop.current;
+    setPlanks(ps=>ps.map(x=>x.id===p.id?{...x,z}:x));setDrag(p.id);sfx.pick();setHl([]);
+  }
+  function plankMove(e){
+    const d=dragRef.current;if(!d)return;
+    e.stopPropagation();
+    const q=boardXY(e), px=q.x-d.dx, py=q.y-d.dy;
+    d.moved=true;
+    const ps=R.current.planks.map(x=>x.id===d.id?{...x,x:px,y:py}:x);
+    R.current.planks=ps;setPlanks(ps);
+    const p=ps.find(x=>x.id===d.id); if(p)setHot(overRiver(px,py,total(p)*R.current.geo.U,q.y));
+  }
+  function plankUp(e){
+    const d=dragRef.current;if(!d)return;dragRef.current=null;e.stopPropagation();setDrag(null);setHot(false);
+    const {planks}=R.current, p=planks.find(x=>x.id===d.id); if(!p)return;
+    const q=boardXY(e), {U,T}=R.current.geo, w=total(p)*U;
+    if(!d.moved){sfx.drop();return}
+    if(overRiver(p.x,p.y,w,q.y)){tryBridge(p,d.start);return}
+    let t=null,best=0;
+    for(const o of planks){if(o.id===p.id)continue;const ow=total(o)*U;
+      const ox=Math.min(p.x+w,o.x+ow)-Math.max(p.x,o.x), oy=Math.min(p.y+T,o.y+T)-Math.max(p.y,o.y);
+      const inside=q.x>o.x-8&&q.x<o.x+ow+8&&q.y>o.y-10&&q.y<o.y+T+10;
+      const score=(inside?1e9:0)+((ox>=U*.35&&oy>=T*.2)?ox*oy:0);   // the plank under the finger wins, else the biggest overlap
+      if(score>best){best=score;t=o}}
+    if(t){mergeInto(p,t);return}
+    const c=clampPos(p.x,p.y,w), ps=planks.map(x=>x.id===p.id?{...x,...c}:x);
+    R.current.planks=ps;setPlanks(ps);sfx.drop();
+  }
+
+  function boardDown(e){
+    if(R.current.phase!=='build'||screen!=='play')return;
+    touchedBoard();
+    const q=boardXY(e);strokeRef.current={pts:[q]};
+    try{e.currentTarget.setPointerCapture(e.pointerId)}catch(_){}
+    setTrail({pts:[q],fade:false});
+  }
+  function boardMove(e){
+    const s=strokeRef.current;if(!s)return;
+    const q=boardXY(e);s.pts.push(q);if(s.pts.length>40)s.pts.shift();
+    setTrail({pts:[...s.pts],fade:false});
+  }
+  function boardUp(){
+    const s=strokeRef.current;if(!s)return;strokeRef.current=null;
+    setTrail(t=>t&&{...t,fade:true});setTimeout(()=>setTrail(null),380);
+    const {planks}=R.current, {U,T}=R.current.geo, s0=s.pts[0], AWAY=12;
+    const near=planks.some(o=>{const ow=total(o)*U;const dx=Math.max(o.x-s0.x,0,s0.x-(o.x+ow)),dy=Math.max(o.y-s0.y,0,s0.y-(o.y+T));return Math.hypot(dx,dy)<AWAY});
+    if(near)return;
+    // a cut = the stroke goes from above a plank to below it (or back), across the plank
+    for(const p of [...planks].sort((a,b)=>b.z-a.z)){
+      const w=total(p)*U, top=p.y, bot=p.y+T, mid=p.y+T/2;
+      if(!s.pts.some(o=>o.y<top+2)||!s.pts.some(o=>o.y>bot-2))continue;
+      let cx=null;
+      for(let i=1;i<s.pts.length;i++){const a=s.pts[i-1],b=s.pts[i];if((a.y-mid)*(b.y-mid)<=0&&a.y!==b.y){cx=a.x+(b.x-a.x)*(mid-a.y)/(b.y-a.y);break}}
+      if(cx==null||cx<p.x-6||cx>p.x+w+6)continue;
+      cutPlank(p,cx-p.x);return;
+    }
+  }
+
+  /* cut anywhere: at the unit line nearest to the stroke (a colour segment can be cut too) */
+  function cutPlank(p,atX){
+    const alive=newFlow(), {U}=R.current.geo, orig=R.current.round.planks, n=total(p);
+    if(n<2){bump(p.id,'nope');sfx.nope();say('אי אפשר לחתוך את 1. הוא הכי קטן.');armNudges(alive);return}
+    clearNudges();hush();
+    const k=Math.max(1,Math.min(n-1,Math.round(atX/U)));
+    const Ls=[],Rs=[];let acc=0;
+    p.segs.forEach(s=>{
+      if(acc+s.n<=k)Ls.push(s);else if(acc>=k)Rs.push(s);else{Ls.push({...s,n:k-acc});Rs.push({...s,n:acc+s.n-k})}
+      acc+=s.n});
+    const part=segs=>{const o=segs.length===1&&orig.find(x=>x.segs[0].c===segs[0].c&&x.segs[0].n===segs[0].n);
+      return {id:'c'+(++idN.current),segs,key:!!(o&&o.key)}};
+    const L=part(Ls), Rt=part(Rs);
+    const lw=total(L)*U, cl=clampPos(p.x-12,p.y,lw), cr=clampPos(p.x+lw+12,p.y,total(Rt)*U);
+    const next=R.current.planks.flatMap(x=>x.id!==p.id?[x]:[{...L,...cl,z:++zTop.current},{...Rt,...cr,z:++zTop.current}]);
+    R.current.planks=next;setPlanks(next);setFx({[L.id]:'split',[Rt.id]:'split'});setFxN(x=>x+1);sfx.chop();
+    stats.current[R.current.ri].cuts++;
+    log('cut',{from:n,into:[total(L),total(Rt)]});
+    learn('cut');
+    quiet(`⁦${n}⁩ זה ⁦${total(L)}+${total(Rt)}⁩`).then(()=>{if(alive())armNudges(alive)});
+  }
+
+  function mergeInto(p,t){
+    const alive=newFlow(); const {planks,round}=R.current, {U}=R.current.geo;
+    clearNudges();hush();
+    const first=p.x+total(p)*U/2<t.x+total(t)*U/2;           // the plank on the left comes first
+    const block=x=>({n:total(x),c:[...x.segs].sort((u,v)=>v.n-u.n)[0].c});   // a plank as one block (colour of its biggest part)
+    const A=block(first?p:t), Bk=block(first?t:p);
+    const segs=A.c===Bk.c?[{n:A.n+Bk.n,c:A.c}]:[A,Bk];                      // same plank put back together → one block, no "2+1"
+    const a=total(first?p:t), b=total(first?t:p), w=(a+b)*U;
+    const m={id:'m'+(++idN.current),segs,key:false,...clampPos(first?t.x-total(p)*U:t.x,t.y,w),z:++zTop.current};
+    const next=planks.filter(x=>x.id!==p.id&&x.id!==t.id).concat(m);
+    R.current.planks=next;setPlanks(next);bump(m.id,'merged');setHl([]);sfx.merge();
+    stats.current[R.current.ri].merges++;
+    const helps=a+b<=round.gap&&reachable(next.map(total),round.gap);   // a join that overshoots or leads nowhere counts as a mistake
+    if(!helps)stats.current[R.current.ri].mistakes++;
+    log('merge',{a,b,sum:a+b,helps});
+    learn('join');setDemo(null);
+    if(!learned.current.drag&&a+b===round.gap)armTeach(1600);
+    (async()=>{
+      await quiet(`⁦${a}+${b}⁩ זה ${a+b}!`); if(!alive())return;   // LTR isolate, so "1+4" is not shown as "4+1"
+      if(alive())armNudges(alive);
+    })();
+  }
+
+  function caught(){
+    if(R.current.phase!=='build')return;
+    const alive=newFlow(), ri=R.current.ri, r=R.current.round;
+    clearNudges();hush();clearTimeout(teachTimer.current);setDemo(null);dragRef.current=null;setDrag(null);setHot(false);
+    setPhase('busy');R.current.phase='busy';setQuake(true);setTimeout(()=>setQuake(false),700);sfx.roar();
+    {const hr=heroRef.current&&heroRef.current.getBoundingClientRect();
+      if(hr){const cx=hr.left+hr.width/2, cy=hr.top+hr.height*.55, cols=['#FF7B6E','#E25B4E','#FFDDB8','#FFD23F','#B8443A','#3B3360'];
+        burst(cx,cy,cols,26,1.4);burst(cx,cy-hr.height*.25,cols,16,1.1);sfx.splash()}
+      scaredRef.current=false;setScared(false);setHero(h=>({...h,vis:false}));
+      later(alive,1300,()=>setHero(h=>({...h,vis:true})))}
+    stats.current[ri].caught++;stats.current[ri].mistakes++;log('caught',{round:ri,secs:Math.round(mon.current.dur)});
+    r.planks=makePlanks(ri,r.gap);
+    later(alive,650,()=>{mon.current.retreat=true;const laid=layout(r.planks);R.current.planks=laid;setPlanks(laid);setFallN(n=>n+1);setHl([]);setFx({})});
+    say('אוי! המפלצת הגיעה אלינו. ננסה שוב, עם קרשים אחרים.').then(()=>{if(!alive())return;
+      const m=mon.current;m.dur=m.dur*2;m.elapsed=0;m.retreat=false;m.active=true;m.nextGrowl=performance.now()+6000;   // 50% slower
+      setPhase('build');R.current.phase='build';armNudges(alive);armTeach(6000)});
+  }
+  caughtRef.current=caught;
+
+  async function tryBridge(p,home){
+    const alive=newFlow(); clearNudges();hush();clearTimeout(teachTimer.current);setDemo(null);
+    const {round,ri}=R.current, n=total(p), g=round.gap, geo=R.current.geo;
+    const state=n===g?'fit':n<g?'short':'long';
+    setPhase('busy');R.current.phase='busy';setBridge({p,state});setHl([]);
+    const rest=R.current.planks.filter(x=>x.id!==p.id);R.current.planks=rest;setPlanks(rest);
+    KP.answer(state==='fit');log('bridge_attempt',{gap:g,plank:n,correct:state==='fit'});
+    await sleep(160); if(!alive())return;
+    if(state==='fit'){
+      {const m=mon.current;m.nextDur=Math.max(15,Math.min(120,m.elapsed*1.2));m.active=false;m.retreat=true;stats.current[ri].secs=Math.round(m.elapsed)}
+      sfx.thud();sfx.win();
+      learn('drag');
+      say(`${n}! הגשר מוכן!`,{voice:false});
+      await sleep(380); if(!alive())return;
+      // walk: the hero walks on the spot, the world slides left to the next pit
+      const dist=g*geo.U+geo.C, dur=Math.max(2.4,Math.min(4,dist/240)), speed=dist/dur;
+      setWalkDur(dur);setWorldI(ri+1);setHero({walk:true,vis:true,cheer:false});R.current.planks=[];setPlanks([]);
+      const steps=Math.floor(dur/.135);for(let k=0;k<steps;k++)later(alive,k*135,()=>sfx.step(k));
+      // the coin reaches the hero when the bridge has passed under him
+      later(alive,((g*geo.U+22)/speed)*1000,async()=>{
+        sfx.coin();setCoinTaken(ri);
+        await flyCoin(coinRef.current,chestRef.current);
+        setProgress(ri+1);setBumpN(b=>b+1);setCoins(c=>c+10);tone(988,.25,'sine');setTimeout(()=>tone(1319,.3,'sine'),120);
+      });
+      await sleep(dur*1000+60); if(!alive())return;
+      setBuilt(b=>[...b,{i:ri,p}]);setBridge(null);setWalkDur(0);
+      setHero({walk:false,vis:true,cheer:true});
+      log('round_done',stats.current[ri]);
+      await sleep(700); if(!alive())return;
+      setHero({walk:false,vis:true,cheer:false});
+      if(ri+1<ROUNDS){
+        playRound(ri+1);return;
+      }
+      log('session_done',stats.current);
+      setLidOpen(false);setTaps(0);setEndStage('chest');setScreen('end');hush();setCaption('');
+      [523,659,784,1047,1319].forEach((f,j)=>setTimeout(()=>tone(f,.25),j*120));
+      await sleep(600); if(!alive())return;
+      const g2=R.current.geo, csz=g2.cs;
+      learn('join','drag');
+      if(!learned.current.chest)later(alive,1400,()=>{if(endStageRef.current==='chest')setDemo({kind:'tap',x:g2.W/2,y:g2.groundY-csz*.4+6})});
+      return;
+    }
+    // wrong: too short falls into the water, too long does not fit; then it comes back where it was
+    round.wrong++;stats.current[ri].wrong++;stats.current[ri].mistakes++;
+    if(state==='short'){
+      const b=boardRef.current.getBoundingClientRect(), o=OBST[round.type];
+      setTimeout(()=>{sfx[o.sound]();burst(b.left+geo.Lx+n*geo.U,b.top+geo.groundY+40,o.fx,20,.8)},450);
+    }else{ sfx.thud();setTimeout(sfx.nope,350) }
+    await sleep(1250); if(!alive())return;
+    setBridge(null);
+    const back=[...R.current.planks,{...p,...home,fall:false,z:++zTop.current}];R.current.planks=back;setPlanks(back);setFx({[p.id]:'merged'});setFxN(x=>x+1);
+    const msg=state==='short'?`${n} קצר מדי. הבור ברוחב ${g}, חסר עוד ${g-n}.`:`${n} ארוך מדי. הבור ברוחב ${g}.`;
+    setPhase('build');R.current.phase='build';
+    if(round.wrong>=2){
+      const laid=layout(round.planks);R.current.planks=laid;setPlanks(laid);setFallN(x=>x+1);
+      setHl(round.planks.filter(x=>x.key).map(x=>x.id));
+      await say(msg+' רמז: שני הקרשים שקופצים יוצרים ביחד '+g+'.');
+    }else{
+      await say(msg+' ננסה שוב!');
+    }
+    if(alive()){armNudges(alive);armTeach(6000)}
+  }
+
+  function restart(){   // play the whole game again from the first pit
+    hush();clearNudges();clearTimeout(teachTimer.current);setDemo(null);setEndStage(null);setLidOpen(false);setTaps(0);setCoins(0);setBumpN(0);
+    setPlanks([]);R.current.planks=[];setBridge(null);setHero({walk:false,vis:false,cheer:false});scaredRef.current=false;setScared(false);
+    {const m=mon.current;m.active=false;m.retreat=false;m.elapsed=0}
+    start();
+  }
+  function tapChest(){
+    if(endStageRef.current!=='chest')return;
+    learn('chest');
+    audio();hush();setDemo(null);setEndStage('coins');endStageRef.current='coins';setTaps(1);log('chest_tap');
+    setLidOpen(true);sfx.jackpot();
+    const t0=Date.now();
+    const iv=setInterval(()=>{coinBurst(bigChestRef.current,9);if(Math.random()<.5)sfx.coin();if(Date.now()-t0>3000){clearInterval(iv)}},200);
+    setTimeout(()=>{clearInterval(iv);setEndStage('done');endStageRef.current='done'},3200);
+  }
+  async function goNext(){
+    if(leaving)return;setLeaving(true);hush();
+    await KP.complete({rounds:ROUNDS,firstTry:stats.current.filter(s=>s&&!s.wrong).length,stars:starCount(stats.current),mistakes:stats.current.reduce((t,s)=>t+(s?s.mistakes||0:0),0)});
+    KP.next();
+  }
+  const [speech,setSpeech]=useState(true);
+  const [endStage,setEndStageS]=useState(null), endStageRef=useRef(null);   // chest → coins → done
+  const setEndStage=v=>{endStageRef.current=v;setEndStageS(v)};
+  // star sound: one chime per star as they pop in
+  useEffect(()=>{if(endStage!=='done')return;const n=starCount(stats.current);for(let i=0;i<3;i++)setTimeout(()=>i<n?tone(784+i*196,.3,'sine',.12):tone(260,.15,'triangle',.05),150+i*350)},[endStage]);
+  function toggleSpeech(){const v=!speech;setSpeech(v);speechOn=v;if(!v&&hasTTS)try{speechSynthesis.cancel()}catch(e){}}
+  function toggleSound(){const v=!sound;setSound(v);soundOn=v;if(!v&&hasTTS)try{speechSynthesis.cancel()}catch(e){}}
+  useEffect(()=>()=>{clearNudges();hush();clearTimeout(teachTimer.current)},[]);
+  useEffect(()=>{start()},[]);   // no start screen: straight into the game (sound wakes on the first touch)
+
+  /* ---------- render ---------- */
+  const touched0=rounds[ri]&&(planks.length!==rounds[ri].planks.length||planks.some(p=>p.segs.length>1));
+  const Side=(
+    <div className="side">
+      <button className="iconbtn" title="יציאה" aria-label="יציאה" onClick={()=>{hush();KP.exit()}}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <button className="iconbtn" title="קול" aria-label="קול" onClick={toggleSound}><SpeakerIcon on={sound}/></button>
+      {screen==='play'&&<button className="iconbtn" title="לסדר מחדש" aria-label="לסדר מחדש" disabled={phase!=='build'||!touched0} onClick={()=>{hush();stats.current[R.current.ri].mistakes++;resetPlanks()}}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v5h5"/></svg></button>}
+    </div>);
+  const Header=(
+    <header>
+      <div className="treasure" style={screen==='end'?{visibility:'hidden'}:null}>
+        <div className="pbar"><div className="pfill" style={{width:(progress/ROUNDS*100)+'%'}}/></div>
+        <Chest key={'c'+bumpN} innerRef={chestRef} bump={bumpN>0}/>
+        <span className={'coins'+(bumpN?' bump':'')} key={'k'+bumpN} dir="ltr"><Coin s={20}/>{coins}</span>
+      </div>
+    </header>);
+
+  const Talk=(
+    <div className="talk">
+      <div className="spawn"><Alien s={56} talking={!!talking}/>
+      <button className="speechbtn" title={speech?'להשתיק את הדיבור':'להפעיל את הדיבור'} aria-label={speech?'להשתיק את הדיבור':'להפעיל את הדיבור'} onClick={toggleSpeech}><SpeakerIcon on={speech}/></button></div>
+      <div className="bubble" aria-live="polite"><div className="txt" key={capN}>{caption||'…'}</div></div>
+    </div>);
+
+  const riverTop=groundY+Math.round(T*.6);
+  const worldW=(S[ROUNDS-1]??W)+W*3;
+  const cliffs=rounds.length?[{x0:-W*2,x1:E[0],l:false,r:true},...rounds.map((r,i)=>({x0:S[i],x1:i<ROUNDS-1?E[i+1]:S[i]+C+W*3,l:true,r:i<ROUNDS-1}))]:[];
+  const cs=Math.round(Math.max(110,Math.min(190,W*.42,groundY*.45)));
+  // small things on each stretch of land (never where the hero stands or the coin is)
+  const decor=[];
+  cliffs.forEach((c,k)=>{const rr=rng(k*13+5), th=THEME[k%THEME.length];
+    const a=k===0?c.x1-W:c.x0+70, b=(k<ROUNDS?c.x1:E[ROUNDS])-hw-40, n=Math.max(1,Math.min(5,Math.floor((b-a)/80)));
+    for(let j=0;j<n;j++){const kind=th[Math.floor(rr()*th.length)], h=Math.round(hs*DSIZE[kind]*(.8+rr()*.4));
+      decor.push({key:k+'-'+j,kind,h,x:Math.round(a+(b-a)*(j+.2+rr()*.6)/n)})}
+    if(k===ROUNDS){for(let j=0;j<3;j++){const kind=th[j%th.length],h=Math.round(hs*DSIZE[kind]);decor.push({key:'end'+j,kind,h,x:E[ROUNDS]+cs+16+j*60})}}});
+  // far away things on the horizon: they slide slower (depth) and change along the way
+  const far=[];{const rr=rng(77);let x=-W;const end=(E[ROUNDS]??W)*.5+W*2;while(x<end){const k=Math.min(THEME.length-1,Math.max(0,Math.floor((x*2)/(C+5*U)))),th=THEME[k];
+    const kind=th[Math.floor(rr()*th.length)];far.push({key:far.length,kind,h:Math.round(hs*DSIZE[kind]*.6),x:Math.round(x)});x+=70+rr()*140}}
+  const touched=rounds[ri]&&(planks.length!==rounds[ri].planks.length||planks.some(p=>p.segs.length>1));
+  const showMeasure=screen==='play'&&rounds[ri]&&!(bridge&&bridge.state==='fit')&&walkDur===0&&!built.some(b=>b.i===ri);
+  const Board=(
+    <div className="board" ref={boardRef} onPointerDown={boardDown} onPointerMove={boardMove} onPointerUp={boardUp} onPointerCancel={boardUp}
+      style={screen==='start'?{visibility:'hidden'}:null}>
+      <div className="far" style={{left:0,top:0,width:1,height:H,transform:`translateX(${-offset*.5}px)`,transition:walkDur?`transform ${walkDur}s linear`:'none'}}>
+        {far.map(d=><div key={d.key} style={{position:'absolute',left:d.x,top:groundY-d.h+6,opacity:.8}}><Decor kind={d.kind} h={d.h}/></div>)}
+      </div>
+      {/* the world: river, land, bridges, coins. It slides left while the hero walks on the spot */}
+      <div className="world" style={{left:0,top:0,width:worldW,height:H,transform:`translateX(${-offset}px)`,transition:walkDur?`transform ${walkDur}s linear`:'none'}}>
+        {rounds.map((r,i)=><div key={'pit'+i} style={{left:E[i]-14,top:groundY+2,width:r.gap*U+28,height:H-groundY-2}}><Pit type={r.type} w={r.gap*U+28} h={Math.max(10,H-groundY-2)} seed={i+1}/></div>)}
+        {cliffs.map((c,k)=><div key={k} style={{left:c.x0,top:groundY,width:c.x1-c.x0,height:groundH}}><Cliff w={c.x1-c.x0} h={groundH} seed={k+1} edgeL={c.l} edgeR={c.r} pal={PALS[k%PALS.length]}/></div>)}
+        {rounds.length>0&&<button ref={bigChestRef} className={'wchest'+(endStage==='chest'?' idle':'')} aria-label="לפתוח את תיבת האוצר"
+          style={{left:E[ROUNDS]+2,top:groundY-Math.round(cs*.8)+6,width:cs}} onPointerDown={e=>e.stopPropagation()} onClick={()=>{if(screen==='end')tapChest()}}>
+          <Chest key={'big'+taps} open={lidOpen} bump={taps>0} s={cs}/></button>}
+        {built.map(b=><div key={b.i} style={{left:E[b.i],top:groundY-13,zIndex:2}}><ThinBridge p={b.p} U={U}/></div>)}
+        {bridge&&(bridge.state==='fit'
+          ?<div style={{left:E[ri],top:groundY-13,zIndex:2}}><div className="bridge fit"><ThinBridge p={bridge.p} U={U}/></div></div>
+          :<div style={{left:E[ri],top:bridge.state==='long'?groundY-T+4:groundY+4,zIndex:2}}>
+            <div className={'bridge '+bridge.state}><Plank p={bridge.p} U={U} T={T} showSum={false}/></div></div>)}
+        {rounds.map((r,i)=>i>=ri&&coinTaken<i&&<div key={'coin'+i} className="coin2" ref={i===ri?coinRef:null}
+          style={{left:S[i]+Math.min(26,C/2-17),top:groundY-Math.round(hs*.5)-10}}><Coin s={Math.round(hs*.5)}/></div>)}
+        {showMeasure&&<div className={'measure'+(hot?' hot':'')} style={{left:E[ri],top:groundY+3-18,width:gap*U,height:36}}>
+          <span key={measurePop} className="mnum pop">{gap}</span></div>}
+      </div>
+      <div className="hero" ref={heroRef} style={{left:heroX,top:groundY-hs+2,width:hw,height:hs,opacity:hero.vis?1:0,transition:walkDur?`left ${walkDur}s linear`:'none'}}>
+        <div className={'in'+(hero.vis?' show':'')} key={hero.vis?'v':'h'}>
+          <div className={hero.walk||hero.cheer||scared?(scared?'scaredpose':''):'idle'} style={scared?{transform:'scaleX(-1)'}:null}><Player s={hs} view="side" shadow={false} happy={!scared} walking={hero.walk} cheer={hero.cheer}/></div></div></div>
+      {screen==='play'&&<div ref={monRef} className="monster" style={{left:0,top:groundY-mh+8,width:mw,height:mh}}><Monster w={mw} h={mh}/></div>}
+      {/* front layer: the small things on the land, in front of the hero (depth while walking) */}
+      <div className="world front" style={{left:0,top:0,width:worldW,height:H,transform:`translateX(${-offset}px)`,transition:walkDur?`transform ${walkDur}s linear`:'none'}}>
+        {decor.map(d=><div key={d.key} style={{left:d.x,top:groundY-d.h+5}}><Decor kind={d.kind} h={d.h}/></div>)}
+      </div>
+      {planks.map((p,k)=>{const c=drag===p.id?{x:p.x,y:p.y}:clampPos(p.x,p.y,total(p)*U);return(
+        <div key={p.id} className={'pk'+(drag===p.id?' dragging':'')} style={{left:c.x,top:c.y,zIndex:drag===p.id?40:6+(p.z%30)}}
+          onPointerDown={e=>plankDown(e,p)} onPointerMove={plankMove} onPointerUp={plankUp} onPointerCancel={plankUp}>
+          <div key={'f'+fallN} className={p.fall?'fall':''} style={{animationDelay:k*.12+'s'}}>
+            <Plank key={fx[p.id]?fx[p.id]+fxN:'p'} p={p} U={U} T={T} cls={(hl.includes(p.id)?'hl ':'')+(fx[p.id]||'')}/>
+          </div>
+        </div>)})}
+
+      {demo&&<HandDemo key={JSON.stringify(demo)} demo={demo} U={U} T={T}/>}
+      {trail&&trail.pts.length>1&&<svg className={'trail'+(trail.fade?' fade':'')} width={W} height={H}>
+        <polyline points={trail.pts.map(o=>o.x+','+o.y).join(' ')} strokeWidth="6"/></svg>}
+    </div>);
+
+  let overlay=null;
+  if(endStage==='done'){
+    const stars=starCount(stats.current);
+    overlay=(<div className="center endscreen" key="end">
+      <div className="stars" dir="ltr">{[0,1,2].map(i=><div key={i} className={'star'+(i<stars?' on':'')} style={{animationDelay:.15+i*.35+'s'}}><StarIcon on={i<stars}/></div>)}</div>
+      <div className="endcoins rise" dir="ltr" style={{animationDelay:'1.1s'}}><Coin s={34}/>{coins}</div>
+      <div className="rise" style={{animationDelay:'1.3s'}}><button className="cta arrow" onClick={goNext} disabled={leaving} aria-label="המשך" title="המשך">
+        <svg width="40" height="32" viewBox="0 0 40 32" fill="none" stroke="#fff" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"><path d="M34 16H6M16 5L5 16l11 11"/></svg></button></div>
+      <div className="rise" style={{animationDelay:'1.45s'}}><button className="cta restart" onClick={restart} aria-label="להתחיל מחדש" title="להתחיל מחדש">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#176fbe" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v5h5"/></svg></button></div>
+    </div>);
+  }
+
+  return(<>
+    <LowPolyBG/>
+    <div className="dim"/>
+    <div className={'app'+(quake?' quake':'')} onPointerDownCapture={()=>audio()}>
+      {Side}
+      <div className="top">{screen==='play'&&Talk}{Header}</div>
+      {Board}
+      {overlay}
+    </div></>);
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

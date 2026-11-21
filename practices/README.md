@@ -6,6 +6,8 @@
 
 1. שמים את קובץ המקור כאן: `practices/<name>.html`.
 2. מריצים `npm run build-practices` — יוצר את `public/practices/<name>.html` (בלי Babel, מהיר בטלפון). **לא עורכים את הקובץ ב-public.**
+   - **ארט:** משחק שטוען את ספריית הארט עם `<script src="../art/lowpoly.js"></script>` מקבל אותה מוטמעת (וממוזערת) בקובץ החי — בלי בקשה נוספת. אחרי שינוי ב-`art/lowpoly.js` מריצים שוב את ה-build.
+   - **גיבוי:** `bridge10-v1.html` הוא ״בונים גשר״ לפני המעבר לספריית הארט (גם תג git `v-bridge10-before-art`). נפתח לבד ב-`/practices/bridge10-v1.html` להשוואה.
 3. בקובץ הקורס (`content/courses/kidodo-g1.json`), בשלב של השיעור:
    `"interactive": { "page": "/practices/<name>.html" }`
 4. commit לשני הקבצים (מקור + public) ו-push.
