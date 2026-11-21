@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>דוגמת מופת 6 — עיר וחומרים</title>
+<style>
+  :root { --ink: #33373b; --muted: #6b7378; --card: #ffffff; --line: #dfe7ea; --accent: #176fbe; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, "Segoe UI", Arial, sans-serif; color: var(--ink); background: #f3f7f8; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+  header { padding: 16px 0 10px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  header p { margin: 0; color: var(--muted); font-size: 14px; }
+  .scene { width: 100%; height: auto; display: block; border-radius: 16px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 0; }
+  .controls button { min-height: 44px; padding: 0 14px; border-radius: 12px; border: 2px solid var(--line); background: #fff; color: var(--ink); font: inherit; cursor: pointer; }
+  .controls button[aria-pressed=true] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  h2 { font-size: 16px; margin: 18px 0 8px; }
+  .gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 8px; text-align: center; min-width: 0; }
+  .card svg { width: 100%; height: 150px; display: block; border-radius: 10px; }
+  .card b { display: block; font-size: 13px; margin-top: 6px; }
+  .card code { font-size: 11px; color: var(--muted); direction: ltr; display: block; overflow-wrap: anywhere; }
+  .pad { height: 32px; }
+  @media (min-width: 700px) { .gallery { grid-template-columns: repeat(4, 1fr); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>דוגמת מופת 6 — עיר וחומרים</h1>
+    <p>משחקי צורות במקום רעש: משטחים גדולים ונקיים, כל אחד בגוון אחר, נפחים לא סימטריים (גג משופע, קיר נוטה, גוש צמוד בגובה אחר), וחזיתות עם פסי חלונות, פסים אנכיים או זכוכית. וחומרים שונים: שיש, עץ, קרח, אבן עתיקה. הכל חזיתי.</p>
+  </header>
+  <svg id="city" class="scene" viewBox="0 0 1000 560" role="img" aria-label="עיר"></svg>
+  <div class="controls" id="themes">
+    <button type="button" data-v="day" aria-pressed="true">☀️ יום</button>
+    <button type="button" data-v="desert" aria-pressed="false">🏜️ מדבר</button>
+    <button type="button" data-v="sunset" aria-pressed="false">🌅 שקיעה</button>
+    <button type="button" data-v="ice" aria-pressed="false">❄️ קרח</button>
+  </div>
+  <h2>חומרים</h2>
+  <svg id="mats" class="scene" viewBox="0 0 1000 520" role="img" aria-label="מבנים מחומרים שונים"></svg>
+  <h2>החלקים</h2>
+  <div class="gallery" id="gallery"></div>
+  <div class="pad"></div>
+</div>
+<script src="../lowpoly.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const M = LP.make;
+let THEME = 'day';
+const sky = (T, w, h, id) => `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${T.sky[0]}"/><stop offset=".6" stop-color="${T.sky[1]}"/><stop offset="1" stop-color="${T.sky[2]}"/></linearGradient></defs><rect width="${w}" height="${h}" fill="url(#${id})"/>`;
+function scene(items, island, cam, T, id) {
+  items.sort((a, b) => b.y - a.y);
+  return LP.draw(island, cam) + `<clipPath id="${id}"><polygon points="${LP.outline(island.top, cam)}"/></clipPath><g clip-path="url(#${id})" fill="${T.shadow}" opacity=".36">${items.map(o => LP.castShadow(o, cam)).join('')}</g>`
+    + items.map(o => LP.draw(o, cam) + LP.face(o, cam)).join('');
+}
+function citySVG(t) {
+  const T = LP.useTheme(THEME), cam = LP.camera({ a: .32, s: .85, ox: 500, oy: 445 }), bg = LP.camera({ a: .12, ox: 500, oy: 470 });
+  let svg = sky(T, 1000, 560, 'sk1') + `<circle cx="850" cy="90" r="46" fill="${T.sun}"/>` + LP.draw(M.ridge({ width: 1400, h: 200, count: 6, seed: 61, fog: .55, snow: .74 }), bg);
+  const island = M.island({ rx: 470, ry: 170, depth: 200, seed: 31 });
+  const items = [
+    M.skyscraper({ x: -300, y: 110, size: 330, style: 'bands', mat: 'towerBlue', seed: 1 }),
+    M.skyscraper({ x: -80, y: 130, size: 420, style: 'glass', mat: 'teal', seed: 2 }),
+    M.skyscraper({ x: 150, y: 120, size: 360, style: 'stripes', mat: 'violet', seed: 3 }),
+    M.skyscraper({ x: 360, y: 100, size: 300, style: 'bands', mat: 'coral', seed: 4 }),
+    M.house({ x: -230, y: -40, size: 120, roof: 'red', seed: 2 }),
+    M.house({ x: 260, y: -50, size: 110, roof: 'blue', seed: 7 }),
+    M.tree({ kind: 'round', x: -390, y: -60, size: 110, seed: 3 }), M.tree({ kind: 'tall', x: 30, y: -60, size: 110, seed: 4 }),
+    M.buddy({ x: -40 + Math.sin(t * .6) * 60, y: -110, size: 60, rot: Math.cos(t * .6) > 0 ? -1.2 : 1.2, pose: 'walk', t, outfit: 'kid' }),
+  ];
+  return svg + scene(items, island, cam, T, 'top1');
+}
+function matsSVG(t) {
+  const T = LP.useTheme(THEME), cam = LP.camera({ a: .36, s: 1.0, ox: 500, oy: 330 }), bg = LP.camera({ a: .12, ox: 500, oy: 430 });
+  let svg = sky(T, 1000, 520, 'sk2') + LP.draw(M.ridge({ width: 1400, h: 190, count: 6, seed: 71, fog: .55, snow: .74 }), bg);
+  const island = M.island({ rx: 470, ry: 180, depth: 190, seed: 41 });
+  const items = [
+    M.temple({ x: -290, y: 70, size: 230, seed: 1 }),
+    M.cabin({ x: -20, y: 90, size: 170, seed: 2 }),
+    M.igloo({ x: 300, y: 80, size: 150, seed: 3 }),
+    M.ruin({ x: 30, y: -100, size: 200, seed: 4 }),
+    M.pine({ x: -150, y: 130, size: 140, seed: 5 }), M.bush({ x: -330, y: -90, size: 40, seed: 6 }),
+    M.buddy({ x: -170, y: -80, size: 60, rot: -.5, pose: 'wave', t, outfit: 'wizard' }),
+    M.critter({ kind: 'bear', x: 400, y: -70, size: 80, rot: -.6, t, seed: 3 }),
+  ];
+  return svg + scene(items, island, cam, T, 'top2');
+}
+function card(obj, he, code) {
+  const cam = LP.camera({ a: .35 }), list = LP.facets(obj, cam), b = LP.bounds(list), p = Math.max(b.w, b.h) * .08, T = LP.theme;
+  return `<div class="card"><svg viewBox="${(b.x - p).toFixed(0)} ${(b.y - p).toFixed(0)} ${(b.w + 2 * p).toFixed(0)} ${(b.h + 2 * p).toFixed(0)}" style="background:linear-gradient(${T.sky[1]},${T.sky[2]})">${LP.polys(list)}</svg><b>${he}</b><code>${code}</code></div>`;
+}
+function gallery() {
+  LP.useTheme(THEME);
+  $('gallery').innerHTML = [
+    card(M.skyscraper({ size: 320, style: 'bands', mat: 'coral', seed: 4 }), 'גורד — פסי חלונות', "skyscraper({style:'bands'})"),
+    card(M.skyscraper({ size: 320, style: 'stripes', mat: 'violet', seed: 3 }), 'גורד — פסים', "skyscraper({style:'stripes'})"),
+    card(M.skyscraper({ size: 320, style: 'glass', mat: 'teal', seed: 2 }), 'גורד — זכוכית', "skyscraper({style:'glass'})"),
+    card(M.house({ size: 160, seed: 3 }), 'בית עם אגף', 'house()'),
+    card(M.temple({ size: 220 }), 'מקדש שיש', 'temple()'),
+    card(M.cabin({ size: 170 }), 'בקתת עץ', 'cabin()'),
+    card(M.igloo({ size: 150 }), 'איגלו', 'igloo()'),
+    card(M.ruin({ size: 220 }), 'חורבה עתיקה', 'ruin()'),
+  ].join('');
+}
+$('themes').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  THEME = b.dataset.v;
+  $('themes').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  gallery();
+});
+const t0 = performance.now(), still = matchMedia('(prefers-reduced-motion: reduce)').matches; let last = 0;
+(function frame(now) { if (now - last > 50) { last = now; const t = still ? 1 : (now - t0) / 1000; $('city').innerHTML = citySVG(t); $('mats').innerHTML = matsSVG(t); } requestAnimationFrame(frame); })(0);
+gallery();
+</script>
+</body>
+</html>

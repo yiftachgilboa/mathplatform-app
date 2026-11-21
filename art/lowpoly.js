@@ -109,6 +109,12 @@
     roofRed: M(['#6e2419', '#a63a28', '#d45a3a', '#ef8a5c'], .06), roofBlue: M(['#1d3a66', '#2c5694', '#4a7cc2', '#83abe0'], .06),
     roofGreen: M(['#24502a', '#357a3b', '#55a454', '#94cf82'], .06), glass: M(['#16304f', '#24507e', '#3f78ad', '#86b6de'], .03),
     flag: M(['#8f1c22', '#cf3535', '#ef5c55', '#ff8d80'], .03),
+    // city + materials
+    towerBlue: M(['#1f3a5c', '#2e557f', '#4a7aa8', '#86b0d6'], .04), coral: M(['#9c3f38', '#d8635a', '#f08c80', '#ffbcae'], .04),
+    teal: M(['#0e4c4c', '#16706c', '#2aa39a', '#7fd6c8'], .04), violet: M(['#3c2a5c', '#5e4488', '#8a6ab8', '#c2a6e6'], .04),
+    windowDark: M(['#121a2b', '#1c2840', '#2b3c5e'], .02), windowLight: M(['#b8a776', '#e2d29e', '#f8eec8'], .02),
+    marble: M(['#8e949c', '#c4c9cf', '#e6e9ec', '#ffffff'], .04), ice: M(['#6ea6c8', '#9ccbe4', '#cbe6f4', '#f2faff'], .05),
+    sandstone: M(['#86663f', '#b38d58', '#d6b47b', '#efd5a0'], .06),
     // animals and creatures (identity colors)
     dark: M(['#1c1d21', '#2f3137', '#474a52'], .03), white: M(['#b9bec4', '#dcdfe3', '#f2f4f6', '#ffffff'], .03),
     pink: M(['#c77c86', '#e8a0aa', '#f7c4ca'], .03), beak: M(['#9a5a0e', '#d48a1e', '#f2b544'], .03),
@@ -1077,7 +1083,7 @@
   // a gable roof as two thick slabs from the ridge down to the eaves (ridge along y, so the front shows the gable)
   function roofSlabs(w, d, H, over, t, m, seed, ridgeZ) {
     const hw = w / 2 + over, L = Math.hypot(hw, H), a = Math.atan2(H, hw), e = t * .6;
-    return [1, -1].map((sx, i) => box(L + e, d + 2 * over, t, m, seed + i, .25, true).move((L + e) / 2 - e, 0, 0).rotY(-a)
+    return [1, -1].map((sx, i) => box(L + e, d + 2 * over, t, m, seed + i, .06).move((L + e) / 2 - e, 0, 0).rotY(-a)
       .map(p => [p[0] * sx, p[1], p[2] + ridgeZ]));
   }
   // triangle wall under the roof (front and back gables)
@@ -1110,20 +1116,26 @@
     house(o) {
       const S = o.size || 160, seed = o.seed || 1, rand = rng(seed * 97), w = S, d = S * .78, h = S * .55, H = S * .42, over = S * .1;
       const roofM = mat['roof' + ({ blue: 'Blue', green: 'Green' }[o.roof] || 'Red')], meshes = [];
-      meshes.push(box(w * 1.06, d * 1.06, S * .07, mat.masonry, seed * 97, .1, true));
-      meshes.push(box(w, d, h, mat.plaster, seed * 97 + 1, .17, true).move(0, 0, S * .05));
+      meshes.push(box(w * 1.06, d * 1.06, S * .07, mat.masonry, seed * 97, .06));
+      meshes.push(box(w, d, h, mat.plaster, seed * 97 + 1, .02).move(0, 0, S * .05));
       const tilt = (rand() - .5) * .06; // a little crooked
       const roofParts = [gableWall(w, d, H * (w / 2) / (w / 2 + over), mat.plaster, seed * 97 + 2).move(0, 0, h + S * .05)]
         .concat(roofSlabs(w, d, H, over, S * .09, roofM, seed * 97 + 3, h + S * .05 + H));
-      const ch = box(S * .13, S * .13, S * .42, mat.masonry, seed * 97 + 6, .12, true).rotY(.05).move(w * .24, d * .12, h + H * .35);
+      const ch = box(S * .13, S * .13, S * .42, mat.masonry, seed * 97 + 6, .04).rotY(.05).move(w * .24, d * .12, h + H * .35);
       const chTop = box(S * .17, S * .17, S * .05, mat.masonry, seed * 97 + 7, .08).move(w * .24 + S * .02, d * .12, h + H * .35 + S * .42);
       roofParts.push(ch, chTop);
       roofParts.forEach(m => { m.rotZ(tilt); meshes.push(m); });
       const fy = -d / 2;
       door(0, fy, S * .06, S * .24, S * .26, seed * 97 + 10).forEach(m => meshes.push(m));
       [-1, 1].forEach((sx, i) => windowOn([sx * w * .3, fy, S * .4], [0, -1, 0], S * .2, seed * 97 + 20 + 4 * i).forEach(m => meshes.push(m)));
-      [-1, 1].forEach((sx, i) => windowOn([sx * w / 2, 0, S * .36], [sx, 0, 0], S * .2, seed * 97 + 30 + 4 * i).forEach(m => meshes.push(m)));
-      return place(meshes, Object.assign({ rot: 0 }, o), S * .55, { ordered: 'depth' });
+      // annex on one side: lower, with its own slanted roof — breaks the symmetry
+      const ax = rand() < .5 ? -1 : 1, aw = w * .5, ad = d * .8, aH = h * .78, aL = h * .5, axc = ax * (w / 2 + aw / 2 - S * .02);
+      const hiL = ax < 0 ? aL : aH, hiR = ax < 0 ? aH : aL; // high side against the house
+      meshes.push(block(aw, ad, hiL, hiR, mat.plaster, seed * 97 + 40).move(axc, d * .08, S * .05));
+      meshes.push(monoRoof(axc - aw / 2, axc + aw / 2, S * .05 + hiL, S * .05 + hiR, ad, S * .06, S * .07, roofM, seed * 97 + 41).move(0, d * .08, 0));
+      windowOn([axc, d * .08 - ad / 2, S * .3], [0, -1, 0], S * .17, seed * 97 + 44).forEach(m => meshes.push(m));
+      windowOn([-ax * w / 2, 0, S * .36], [-ax, 0, 0], S * .2, seed * 97 + 30).forEach(m => meshes.push(m));
+      return place(meshes, Object.assign({ rot: 0 }, o), S * .7, { ordered: 'depth' });
     },
     // round stone tower with a pointed roof and a flag
     tower(o) {
@@ -1192,6 +1204,120 @@
       [-1, 1].forEach(sy => { const tp = tops[sy]; for (let j = 0; j < tp.length - 1; j++) meshes.push(limb(tp[j], tp[j + 1], W * .035, W * .035, mat.wood, seed * 113 + 70 + j + (sy > 0 ? 10 : 0), 5)); });
       [-1, 1].forEach((sx, i) => meshes.push(box(L * .12, W * 1.15, z0 + L * .02, mat.masonry, seed * 113 + 90 + i, .1).move(sx * L * .5, 0, -L * .01)));
       return place(meshes, Object.assign({ rot: 0 }, o), 0, { ordered: 'depth' });
+    },
+  });
+
+  // ---------- playful blocks: big clean planes, crooked on purpose ----------
+  // block: w × d footprint, front-left / front-right heights (a slanted top), o.lean shifts the top in x, o.back = [hBL, hBR]
+  function block(w, d, hL, hR, m, seed, o) {
+    o = o || {};
+    const mesh = new Mesh(m, seed), lean = o.lean || 0, hb = o.back || [hL, hR], x0 = -w / 2, x1 = w / 2, y0 = -d / 2, y1 = d / 2;
+    const B = [[x0, y0, 0], [x1, y0, 0], [x1, y1, 0], [x0, y1, 0]].map(q => mesh.add(q));
+    const T = [[x0 + lean, y0, hL], [x1 + lean, y0, hR], [x1 + lean, y1, hb[1]], [x0 + lean, y1, hb[0]]].map(q => mesh.add(q));
+    const quad = (a, b, c, d2, mm) => { mesh.tri(a, b, c, mm).tri(a, c, d2, mm); };
+    quad(B[0], B[1], T[1], T[0]); quad(B[1], B[2], T[2], T[1]); quad(B[2], B[3], T[3], T[2]); quad(B[3], B[0], T[0], T[3]);
+    quad(T[0], T[1], T[2], T[3], o.topMat); quad(B[0], B[3], B[2], B[1]);
+    mesh.center = [lean / 2, 0, (hL + hR + hb[0] + hb[1]) / 8];
+    return mesh;
+  }
+  // single-slope roof slab from (x0, z0) down to (x1, z1), depth d, overhang, thickness t
+  function monoRoof(x0, x1, z0, z1, d, over, t, m, seed) {
+    const L = Math.hypot(x1 - x0, z0 - z1) + 2 * over, a = Math.atan2(z0 - z1, x1 - x0);
+    const sl = box(L, d + 2 * over, t, m, seed, .06).move(L / 2 - over, 0, 0).rotY(-a).move(x0, 0, z0);
+    return sl;
+  }
+  // a grid of window panes on a front face at y = fy (lean: the face leans by `lean` over height `h`)
+  function panes(x0, x1, z0, z1, cols, rows, fy, m, seed, o) {
+    o = o || {};
+    const out = [], cw = (x1 - x0) / cols, rh = (z1 - z0) / rows, ww = cw * (o.fill || .62), wh = rh * (o.fillH || .62), lean = o.lean || 0, h = o.h || 1;
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      const z = z0 + (r + .5) * rh, x = x0 + (c + .5) * cw + lean * z / h;
+      const pn = box(ww, Math.max(1.5, ww * .12), wh, m, seed + r * 31 + c, .02).move(x, fy - ww * .05, z - wh / 2); pn.bias = 1; out.push(pn);
+    }
+    return out;
+  }
+  Object.assign(make, {
+    // skyscraper: a leaning tower with a slanted top, a lower annex, a spire. o.style: bands | stripes | glass. o.mat: towerBlue | coral | teal | violet
+    skyscraper(o) {
+      const S = o.size || 320, seed = o.seed || 1, rand = rng(seed * 137), W = o.width || S * .3, D = W * .8;
+      const style = o.style || ['bands', 'stripes', 'glass'][Math.floor(rand() * 3)], body = mat[o.mat || 'towerBlue'], meshes = [];
+      const hL = S * (.82 + rand() * .18), hR = S * (.6 + rand() * .22), lean = (rand() - .5) * W * .16, hm = Math.min(hL, hR), fy = -D / 2;
+      meshes.push(block(W, D, hL, hR, body, seed * 137, { lean }));
+      if (style === 'bands') panes(-W * .42, W * .42, S * .06, hm - S * .05, 1, Math.round(hm / (W * .16)), fy, mat.windowDark, seed * 137 + 10, { fill: .96, fillH: .45, lean, h: (hL + hR) / 2 }).forEach(m => meshes.push(m));
+      if (style === 'stripes') panes(-W * .42, W * .42, S * .06, hm - S * .06, 4, 1, fy, mat.windowLight, seed * 137 + 10, { fill: .32, fillH: .96, lean, h: (hL + hR) / 2 }).forEach(m => meshes.push(m));
+      if (style === 'glass') panes(-W * .42, W * .42, S * .06, hm - S * .05, 2, Math.round(hm / (W * .4)), fy, mat.glass, seed * 137 + 10, { fill: .86, fillH: .82, lean, h: (hL + hR) / 2 }).forEach(m => meshes.push(m));
+      const hi = hL > hR ? -1 : 1, top = [hi * W / 2 * .7 + lean, 0, Math.max(hL, hR) - S * .03];
+      meshes.push(limb(top, [top[0] + lean * .1, 0, top[2] + S * .16], W * .05, W * .008, mat.metal, seed * 137 + 20, 4));
+      const ax = rand() < .5 ? -1 : 1, aw = W * .62, aH = S * (.26 + rand() * .14), aL = aH * (.75 + rand() * .2);
+      const annex = block(aw, D * .9, ax < 0 ? aL : aH, ax < 0 ? aH : aL, mat[o.annex || (o.mat === 'coral' ? 'teal' : 'coral')], seed * 137 + 30).move(ax * (W / 2 + aw / 2 - W * .04), D * .02, 0);
+      meshes.push(annex);
+      panes(ax * (W / 2 + aw / 2 - W * .04) - aw * .38, ax * (W / 2 + aw / 2 - W * .04) + aw * .38, S * .05, Math.min(aH, aL) - S * .04, 1, 3, D * .02 - D * .45, mat.windowDark, seed * 137 + 40, { fill: .96, fillH: .4 }).forEach(m => meshes.push(m));
+      return place(meshes, Object.assign({ rot: 0 }, o), W * .8, { ordered: 'depth' });
+    },
+    // marble temple: steps, columns (each leans a hair), a pediment set slightly askew
+    temple(o) {
+      const S = o.size || 240, seed = o.seed || 1, rand = rng(seed * 139), W = S, D = S * .6, mm = mat.marble, meshes = [];
+      for (let i = 0; i < 3; i++) meshes.push(box(W * (1.08 - i * .05), D * (1.1 - i * .07), S * .045, mm, seed * 139 + i, .04).move(0, 0, i * S * .045));
+      const z0 = S * .135, cH = S * .42, r = S * .045, n = 5;
+      [-1, 1].forEach((sy, k) => { for (let i = 0; i < n; i++) {
+        const x = -W * .4 + i * W * .8 / (n - 1), y = sy * D * .32, lean = (rand() - .5) * .06;
+        meshes.push(box(r * 2.6, r * 2.6, S * .03, mm, seed * 139 + 10 + i + k * 10, .04).move(x, y, z0));
+        meshes.push(cylinder(8, .88, mm, seed * 139 + 30 + i + k * 10).scale(r, r, cH).rotY(lean).move(x, y, z0 + S * .03));
+        meshes.push(box(r * 2.8, r * 2.8, S * .035, mm, seed * 139 + 50 + i + k * 10, .04).move(x + Math.sin(lean) * cH, y, z0 + S * .03 + cH));
+      } });
+      const zt = z0 + S * .03 + cH + S * .035, tilt = (rand() - .5) * .07, top = [box(W * .94, D * .82, S * .07, mm, seed * 139 + 70, .04).move(0, 0, zt),
+        gableWall(W * .9, D * .78, S * .15, mm, seed * 139 + 71).move(0, 0, zt + S * .07)].concat(roofSlabs(W * .9, D * .78, S * .16, S * .03, S * .035, mm, seed * 139 + 72, zt + S * .07 + S * .16));
+      top.forEach(m => { m.rotZ(tilt).move(W * .02, 0, 0); meshes.push(m); });
+      return place(meshes, Object.assign({ rot: 0 }, o), W * .55, { ordered: 'depth' });
+    },
+    // log cabin: stacked round logs with crossing corners, a slanted roof, stone chimney
+    cabin(o) {
+      const S = o.size || 180, seed = o.seed || 1, rand = rng(seed * 149), W = S, D = S * .68, r = S * .045, rows = 7, hW = rows * 2 * r, meshes = [];
+      for (let k = 0; k < rows; k++) {
+        const z = r + k * 2 * r;
+        [-1, 1].forEach((sy, j) => meshes.push(limb([-W / 2 - r * 1.6, sy * D / 2, z], [W / 2 + r * 1.6, sy * D / 2, z + (rand() - .5) * r * .3], r, r * .92, mat.wood, seed * 149 + k * 4 + j, 6, mat.woodEnd)));
+        [-1, 1].forEach((sx, j) => meshes.push(limb([sx * W / 2, -D / 2 - r * 1.6, z + r], [sx * W / 2, D / 2 + r * 1.6, z + r], r, r * .92, mat.wood, seed * 149 + k * 4 + 2 + j, 6, mat.woodEnd)));
+      }
+      const gH = S * .28, gL = S * .06;
+      meshes.push(block(W, D, gH, gL, mat.wood, seed * 149 + 60).move(0, 0, hW));
+      meshes.push(monoRoof(-W / 2, W / 2, hW + gH, hW + gL, D, S * .09, S * .07, mat.roofGreen, seed * 149 + 61));
+      door(-W * .12, -D / 2 - r, r * .5, S * .22, S * .2, seed * 149 + 70).forEach(m => meshes.push(m));
+      windowOn([W * .26, -D / 2 - r, S * .3], [0, -1, 0], S * .17, seed * 149 + 80).forEach(m => meshes.push(m));
+      meshes.push(box(S * .14, S * .14, hW + S * .42, mat.masonry, seed * 149 + 90, .05).move(W / 2 + S * .06, D * .1, 0));
+      return place(meshes, Object.assign({ rot: 0 }, o), W * .6, { ordered: 'depth' });
+    },
+    // igloo: a dome of ice facets, an entrance tunnel, a little second dome for fun
+    igloo(o) {
+      const S = o.size || 160, seed = o.seed || 1, R = S * .5, meshes = [];
+      const domeOf = (r, sd, det, x) => {
+        const dm = icosphere(det, mat.ice, sd).jitter(.02, rng(sd)), cut = new Set();
+        dm.v = dm.v.map((q, i) => { if (q[2] < 0) { cut.add(i); return [q[0], q[1], 0]; } return q; });
+        dm.f = dm.f.filter(f => !(cut.has(f[0]) && cut.has(f[1]) && cut.has(f[2])));
+        dm.center = [0, 0, 0];
+        return dm.scale(r, r * .95, r * .82).map(q => [q[0] + q[2] * .08, q[1], q[2]]).move(x, 0, 0);
+      };
+      meshes.push(domeOf(R, seed * 151, 2, 0), domeOf(R * .42, seed * 151 + 1, 1, R * .95));
+      const tun = lidPrism(R * .7, R * .72, R * .42, 4, mat.ice, seed * 151 + 2).rotZ(Math.PI / 2).move(-R * .15, -R * 1.0, 0);
+      const hole = lidPrism(R * .05, R * .5, R * .3, 4, mat.windowDark, seed * 151 + 3).rotZ(Math.PI / 2).move(-R * .15, -R * 1.36, 0);
+      hole.bias = R; meshes.push(tun, hole);
+      return place(meshes, Object.assign({ rot: 0 }, o), R * 1.1, { ordered: 'depth' });
+    },
+    // ancient stone ruin: a platform, columns of different heights (some broken), a fallen column, scattered blocks
+    ruin(o) {
+      const S = o.size || 240, seed = o.seed || 1, rand = rng(seed * 157), st = mat.sandstone, r = S * .05, meshes = [];
+      meshes.push(box(S, S * .45, S * .06, st, seed * 157, .05));
+      const hs = [1, .5, .82, .28], xs = [-.38, -.13, .13, .38];
+      hs.forEach((k, i) => {
+        const x = xs[i] * S, h = S * .5 * k;
+        meshes.push(cylinder(8, .9, st, seed * 157 + 10 + i).scale(r, r, h).move(x, 0, S * .06));
+        if (k > .8) meshes.push(box(r * 2.8, r * 2.8, S * .035, st, seed * 157 + 20 + i, .05).move(x, 0, S * .06 + h));
+        else meshes.push(cone(6, st, seed * 157 + 30 + i, rand, .8).jitter(.25, rand).scale(r * .92, r * .92, S * .05).rotY((rand() - .5) * .5).move(x, 0, S * .06 + h - S * .01));
+      });
+      const lz = S * .06 + S * .5 * .82 + S * .035;
+      meshes.push(box(S * .34, r * 2.6, S * .06, st, seed * 157 + 40, .05).rotY(-.08).move(xs[2] * S + S * .06, 0, lz + S * .01));
+      meshes.push(limb([-S * .3, -S * .32, r], [S * .02, -S * .38, r], r, r * .95, st, seed * 157 + 50, 8));
+      for (let i = 0; i < 3; i++) meshes.push(box(S * (.07 + rand() * .05), S * .06, S * .05, st, seed * 157 + 60 + i, .1).rotZ(rand() * 2).move(S * (.15 + i * .1), -S * (.3 + rand() * .06), 0));
+      return place(meshes, Object.assign({ rot: 0 }, o), S * .5, { ordered: 'depth' });
     },
   });
 
