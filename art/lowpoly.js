@@ -513,6 +513,8 @@
   }
   // a band that wraps a box drawn on top of it: drop its side faces (±x), which would sit inside the box and show as grey panels
   const noEnds = mesh => { mesh.f = mesh.f.filter(f => { const a = mesh.v[f[0]], n = norm(cross(sub(mesh.v[f[1]], a), sub(mesh.v[f[2]], a))); return Math.abs(n[0]) < .7; }); return mesh; };
+  // a band around the body: only its front and back strips (its top would show through the lid, its sides through the body)
+  const frontBack = mesh => { mesh.f = mesh.f.filter(f => { const a = mesh.v[f[0]], n = norm(cross(sub(mesh.v[f[1]], a), sub(mesh.v[f[2]], a))); return Math.abs(n[1]) > .7; }); return mesh; };
   const hingeX = (mesh, yh, zh, phi) => mesh.map(p => {
     const dy = p[1] - yh, dz = p[2] - zh, c = Math.cos(phi), s = Math.sin(phi);
     return [p[0], yh + dy * c + dz * s, zh - dy * s + dz * c];
@@ -533,7 +535,7 @@
     chest(o) {
       const S = o.size || 120, seed = o.seed || 1, w = S, d = S * .62, h = S * .5, lh = S * .26, phi = o.open || 0;
       const meshes = [box(w, d, h, mat.wood, seed * 41, .08)];
-      [-1, 1].forEach((s, i) => { const b = noEnds(box(w * .09, d * 1.04, h * 1.02, mat.metal, seed * 41 + 1 + i, .04)).move(s * w * .32, 0, 0); b.bias = S; meshes.push(b); });
+      [-1, 1].forEach((s, i) => { const b = frontBack(box(w * .09, d * 1.04, h * 1.02, mat.metal, seed * 41 + 1 + i, .04)).move(s * w * .32, 0, 0); b.bias = S; meshes.push(b); });
       const lid = hingeX(lidPrism(w * 1.02, d * 1.02, lh, 4, mat.wood, seed * 41 + 3, mat.woodInner).move(0, 0, h), d * .51, h, phi);
       meshes.push(lid);
       [-1, 1].forEach((s, i) => {
@@ -1524,11 +1526,12 @@
   });
   Object.assign(make, {
     // a stretch of land seen from the side: grass top (depth o.depth), a grass lip, a smooth earth front face in a few
-    // big facets (no noise). x 0 → o.w, top at z = 0, front face down to z = −o.h. edgeL / edgeR = a pit on that side
+    // big facets (no noise). x 0 → o.w, top at z = 0, front face down to z = −o.h. edgeL / edgeR = a pit on that side.
+    // o.float = closed underneath like the floating island (narrowing ends, a few hanging points)
     ground(o) {
       const w = o.w || 400, h = o.h || 150, D = o.depth || 40, seed = o.seed || 1, rand = rng(seed * 137);
       const top = o.top || mat.grass, lipM = o.lip || mat.grassSide, side = o.side || mat.earth, rock = o.rock || mat.stone;
-      const n = Math.max(1, Math.round(w / (o.step || 150))), lip = o.lipH == null ? Math.min(10, h * .08) : o.lipH;
+      const n = Math.max(o.float ? 3 : 1, Math.round(w / Math.min(o.step || 150, o.float ? w / 3 : 1e9))), lip = o.lipH == null ? Math.min(10, h * .08) : o.lipH;
       // two meshes, each with its center far away on its inner side (a wide slab has no single center that orients every facet)
       const topM = new Mesh(top, seed * 137), face = new Mesh(side, seed * 137 + 1);
       topM.center = [w / 2, D / 2, -1e6]; face.center = [w / 2, 1e6, -h / 2];
@@ -1546,8 +1549,18 @@
       const T = grid(topM, [0, D], (x, y, i, k) => [x, y, k ? (rand() - .5) * D * .1 : 0]);
       tri4(topM, T, () => top);
       // lip + front face (y ≈ 0, jittered in depth so every facet catches the light differently)
-      const zs = [0, -lip, -h * .55, -h];
-      const F = grid(face, zs, (x, z, i, k) => [x, k === 0 || k === zs.length - 1 ? 0 : (rand() - .5) * 8 - 1, z + (k === 2 ? (rand() - .5) * h * .2 : 0)]);
+      const zs = [0, -lip, -h * (o.float ? .45 : .55), -h];
+      // float: closed underneath like the island — the body narrows at both ends and ends in a few big hanging points,
+      // its lower faces turn back and down (they catch less light: volume instead of a flat wall)
+      const ins1 = Math.min(w * .12, h * .3), ins2 = Math.min(w * .3, h * .7);
+      const F = grid(face, zs, (x, z, i, k) => {
+        if (o.float && k >= 2) {
+          const end = i === 0 ? 1 : i === n ? -1 : 0, bottom = k === 3;
+          return [x + end * (bottom ? ins2 : ins1) + (!end && bottom ? (rand() - .5) * w / n * .4 : 0), D * (bottom ? .5 : .15),
+            bottom ? -h * (i % 2 ? .78 + rand() * .1 : .95 + rand() * .05) * (end ? .7 : 1) : z + (rand() - .5) * h * .12];
+        }
+        return [x, k === 0 || k === zs.length - 1 ? 0 : (rand() - .5) * 8 - 1, z + (k === 2 ? (rand() - .5) * h * .2 : 0)];
+      });
       F[0] = T[0];
       tri4(face, F, k => (k === 0 ? lipM : o.rocks && rand() < o.rocks ? rock : side));
       return place([topM, face], o, 0);
@@ -1598,7 +1611,7 @@
       o = o || {}; const T = theme, W = 1200, id = o.id || 'mdw';
       let svg = `<defs><linearGradient id="${id}sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${T.sky[0]}"/><stop offset=".55" stop-color="${T.sky[1]}"/><stop offset="1" stop-color="${T.sky[2]}"/></linearGradient>
         <radialGradient id="${id}glow"><stop offset="0" stop-color="${T.glow}" stop-opacity=".9"/><stop offset=".4" stop-color="${T.glow}" stop-opacity=".4"/><stop offset="1" stop-color="${T.glow}" stop-opacity="0"/></radialGradient></defs>
-        <rect width="${W}" height="800" fill="url(#${id}sky)"/><circle cx="210" cy="140" r="220" fill="url(#${id}glow)"/><circle cx="210" cy="140" r="54" fill="${T.sun}"/>`;
+        <rect width="${W}" height="800" fill="url(#${id}sky)"/><circle cx="210" cy="140" r="200" fill="url(#${id}glow)"/><polygon points="${Array.from({ length: 9 }, (_, i) => { const t = i / 9 * 6.283 + .2; return (210 + Math.cos(t) * 38).toFixed(1) + ',' + (140 + Math.sin(t) * 38).toFixed(1); }).join(' ')}" fill="${T.sun}"/>`; // a faceted sun, not a perfect disc
       [[120, 130, 150, 140], [560, 80, 110, 180], [860, 210, 90, 110], [1060, 150, 120, 160]].forEach(([x, y, s, dur], i) => {
         svg += `<g class="cloud" style="animation-duration:${dur}s;animation-delay:${-(x / 1400 * dur).toFixed(1)}s">${draw(make.cloud({ size: s, seed: i + 3, detail: 0 }), camera({ a: .16, ox: 0, oy: y }))}</g>`;
       });
@@ -1614,7 +1627,27 @@
     },
   };
 
-  const LP = { flat, scenes, rng, camera, poses, face, project, facets, polys, draw, bounds, hull, castShadow, outline, material, mat, themes, useTheme, make, Mesh, icosphere, cone, cylinder, limb, ring, stitch, fan, hex2rgb, rgb2hex };
+  // ---------- biomes: a ground and the things that belong on it, kept together (ice things on ice, a forest on grass…) ----------
+  // ground: materials by name ('grass') or [theme, name] for another theme's material. decor: [make, options, height × the
+  // hero's height, tall] — tall things stand at the back of the ground, behind the character; small ones in front.
+  const biomes = {
+    meadow: { top: 'grass', side: 'earth', decor: [['tree', { kind: 'round', detail: 0 }, 2.2, 1], ['bush', {}, .42], ['flower', {}, .36], ['rock', {}, .13]] },
+    hills:  { top: 'grass', side: ['desert', 'earth'], decor: [['tree', { kind: 'tall', detail: 0 }, 2.3, 1], ['stump', {}, .3], ['bush', {}, .42], ['flower', {}, .36]] },
+    desert: { top: ['desert', 'grass'], lip: ['desert', 'grassSide'], side: 'sandstone', decor: [['cactus', {}, 1.4, 1], ['rock', { mat: 'sandstone' }, .13], ['log', {}, .28]] },
+    rocky:  { top: 'leafTeal', side: 'stone', decor: [['tree', { kind: 'bare' }, 2, 1], ['rock', {}, .16], ['stump', {}, .3]] },
+    forest: { top: 'pine', side: 'trunk', decor: [['pine', {}, 2.4, 1], ['tree', { kind: 'round', detail: 0, mat: 'leafTeal' }, 2.1, 1], ['stump', {}, .3], ['log', {}, .28], ['bush', { mat: 'pine' }, .42]] },
+    ice:    { top: 'snow', lip: 'snow', side: ['ice', 'stone'], decor: [['pine', { mat: 'ice' }, 2.2, 1], ['rock', { mat: 'ice' }, .15], ['bush', { mat: 'snow' }, .36]] },
+  };
+  const matOf = v => (v == null ? undefined : Array.isArray(v) ? themes[v[0]].mat[v[1]] : mat[v]);
+  // → { top, lip, side (ready for make.ground), decor: [{ size, tall, make(o) }] }
+  function biome(name) {
+    const b = biomes[name] || biomes.meadow, g = { name, top: matOf(b.top), lip: matOf(b.lip), side: matOf(b.side) };
+    g.decor = b.decor.map(([mk, opt, size, tall], i) => ({ id: name + i, size, tall: !!tall,
+      make: o => make[mk](Object.assign({}, opt, opt.mat ? { mat: matOf(opt.mat) } : null, o)) }));
+    return g;
+  }
+
+  const LP = { flat, scenes, biomes, biome, rng, camera, poses, face, project, facets, polys, draw, bounds, hull, castShadow, outline, material, mat, themes, useTheme, make, Mesh, icosphere, cone, cylinder, limb, ring, stitch, fan, hex2rgb, rgb2hex };
   root.LP = LP;
   useTheme('day');
 })(typeof window !== 'undefined' ? window : globalThis);

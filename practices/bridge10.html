@@ -444,39 +444,26 @@ const LowPolyBG=React.memo(function LowPolyBG(){
 
 /* a stretch of land seen from the side (library ground: grass top, lip, earth face with stones). edgeL/edgeR = a pit on that side */
 const SA=Math.sin(A_W), CA=Math.cos(A_W), GTOP=12, FEET=7;   // the grass top shows GTOP px deep (groundY → groundY+GTOP); characters stand at groundY+FEET
+const FLOAT=true;
+/* under the floating land: haze in the sky color and a few slow clouds (a fixed layer, so it costs nothing while walking) */
+const Abyss=React.memo(function Abyss(){
+  const html=useMemo(()=>{const T=LP.theme;let svg='';
+    [[80,150,1],[420,120,2],[760,170,3],[1080,130,4]].forEach(([x,s,k])=>{svg+=`<g class="cloud" style="animation-duration:${150+k*25}s;animation-delay:${-(x/1400*(150+k*25)).toFixed(1)}s">${LP.draw(LP.make.cloud({size:s,seed:k+20,detail:0}),LP.camera({a:.16,ox:0,oy:150+(k%2)*20}))}</g>`});
+    return `<defs><linearGradient id="abyss" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${T.sky[2]}" stop-opacity="0"/><stop offset=".45" stop-color="${T.sky[2]}" stop-opacity=".85"/><stop offset="1" stop-color="${T.sky[1]}"/></linearGradient></defs><rect width="1200" height="200" fill="url(#abyss)"/>`+svg},[]);
+  return <svg viewBox="0 0 1200 200" preserveAspectRatio="xMidYMax slice" style={{position:'absolute',left:0,right:0,bottom:0,width:'100%',height:'100%',display:'block'}} dangerouslySetInnerHTML={{__html:html}}/>;
+});   // the land as floating islands (closed underneath, like the island in the art library); false = earth down to the bottom
 function Cliff({w,h,seed=1,edgeL=true,edgeR=true,pal=PALS[0]}){
-  const html=useMemo(()=>LP.draw(LP.make.ground({w,h:h/CA,depth:GTOP/SA,seed,edgeL,edgeR,...pal}),LP.camera({a:A_W,ox:12,oy:6+GTOP})),[w,h,seed,edgeL,edgeR,pal]);
+  const hh=FLOAT?h*.78:h;
+  const html=useMemo(()=>LP.draw(LP.make.ground({w,h:hh/CA,depth:GTOP/SA,seed,edgeL,edgeR,float:FLOAT,top:pal.top,lip:pal.lip,side:pal.side}),LP.camera({a:A_W,ox:12,oy:6+GTOP})),[w,hh,seed,edgeL,edgeR,pal]);
   return <svg width={w+24} height={h+24} viewBox={`0 0 ${w+24} ${h+24}`} style={{display:'block',margin:'-6px 0 0 -12px',overflow:'visible'}} dangerouslySetInnerHTML={{__html:html}}/>;
 }
-/* ground materials: each stretch of land between two obstacles has its own */
-const DM=LP.themes.desert.mat;
-const PALS=[
-  {top:LP.mat.grass,side:LP.mat.earth},                                  // brown earth
-  {top:LP.mat.grass,side:DM.earth},                                      // red clay
-  {top:DM.grass,lip:DM.grassSide,side:LP.mat.sandstone},                 // sand
-  {top:LP.mat.leafTeal,side:LP.mat.stone},                               // grey rock
-  {top:LP.mat.pine,side:LP.mat.trunk},                                   // dark earth
-  {top:LP.mat.grass,side:LP.mat.ice,rock:LP.mat.ice},                    // blue stone (the chest)
-];
-/* small things on the land, from the art library (few facets); each stretch has its own set */
-const DECOR={
-  tree:k=>LP.make.tree({size:100,kind:'round',detail:0,seed:k}),
-  pine:k=>LP.make.pine({size:100,seed:k}),
-  bush:k=>LP.make.bush({size:60,seed:k}),
-  rock:k=>LP.make.rock({size:60,seed:k}),
-  flower:k=>LP.make.flower({size:60,seed:k}),
-  stump:k=>LP.make.stump({size:60,seed:k}),
-  cactus:k=>LP.make.cactus({size:100,seed:k}),
-  log:k=>LP.make.log({size:80,seed:k}),
-};
-// height × the hero's height, in true scale to him: trees and cacti are tall, a rock is a pebble
-const DSIZE={tree:2.2,pine:2.4,bush:.42,rock:.13,flower:.36,stump:.3,cactus:1.4,log:.28};
-const TALL={tree:1,pine:1,cactus:1};   // tall things stand at the back of the grass, behind the hero; small things in front
-const THEME=[['tree','bush','flower'],['stump','rock','flower','bush'],['cactus','rock','bush'],['flower','rock','stump'],['tree','pine','bush','log'],['flower','bush','pine']];
+/* each stretch of land between two obstacles is a biome from the library: its ground and the things that grow on it */
+const BIOMES=['meadow','hills','desert','rocky','forest','ice'];   // the last one = where the chest waits
+const PALS=BIOMES.map(n=>LP.biome(n));
 const decorCache={};
-function decorArt(kind,seed){const key=kind+seed;if(!decorCache[key]){const o=DECOR[kind](seed),cam=LP.camera({a:A_OBJ}),l=LP.facets(o,cam),b=LP.bounds(l);
+function decorArt(spec,seed){const key=spec.id+'-'+seed;if(!decorCache[key]){const o=spec.make({size:100,seed}),cam=LP.camera({a:A_OBJ}),l=LP.facets(o,cam),b=LP.bounds(l);
   decorCache[key]={svg:LP.polys(l),vb:[b.x,b.y,b.w,b.h].map(v=>+v.toFixed(1)),ar:b.w/b.h}}return decorCache[key]}
-function Decor({kind,h,seed=1}){const d=decorArt(kind,seed%7+1);
+function Decor({spec,h,seed=1}){const d=decorArt(spec,seed%7+1);
   return <svg width={h*d.ar} height={h} viewBox={d.vb.join(' ')} style={{display:'block',overflow:'visible'}} dangerouslySetInnerHTML={{__html:d.svg}}/>}
 
 /* obstacles: what is in the pit, each with a small looping animation */
@@ -487,36 +474,35 @@ const OBST={
   swamp:{name:'ביצה',fx:['#7FA34A','#A8C977','#4F6D2C'],sound:'splash'},
   monster:{name:'בור עם מפלצת',fx:['#8E5CF0','#FFC531','#fff'],sound:'chomp'},
 };
+/* the obstacle in a pit: a small floating island down in the gap, with water / fire / thorns / swamp / a monster on it */
 function Pit({type,w,h,seed=1}){
   const html=useMemo(()=>{
-    const r=LP.rng(seed*31+5), cam=oy=>LP.camera({a:A_W,ox:0,oy}), M=LP.mat, out=[];
-    const draw=(o,oy,c)=>LP.draw(o,c||cam(oy));
-    const slab=(oy,m)=>draw(LP.make.ground({w,h:(h-oy)/CA+30,depth:6/SA,seed:seed*7+(oy|0),top:m.top,lip:m.top,side:m.side,rock:m.side,step:34}),oy);
-    // the back wall of the pit: earth in the dark
-    const wall=LP.make.ground({w,h:h/CA+30,depth:4,seed:seed+50,top:M.earth,lip:M.earth,side:M.earth,step:30});wall.fog=.6;
-    out.push(LP.draw(wall,LP.camera({a:A_W,ox:0,oy:0,fogColor:'#1e140d'})));
+    const r=LP.rng(seed*31+5), M=LP.mat, out=[], m=22, iw=Math.max(40,w-2*m), top=Math.round(h*.24), D=10/SA;
+    const cam=LP.camera({a:A_W,ox:m,oy:top}), at=x=>LP.camera({a:A_W,ox:m+x,oy:top+4});
+    const isle=(topM,lipM)=>LP.draw(LP.make.ground({w:iw,h:h*.42/CA,depth:D,seed:seed*7,float:true,top:topM,lip:lipM||topM,side:M.stone}),cam);
     if(type==='water'){
-      out.push(slab(Math.round(h*.12),{top:M.water,side:M.water}));
-      const t=40,n=Math.ceil(w/t);
-      for(let i=0;i<n;i++){const x=i*t+8,y=h*(.3+(i%3)*.17);out.push(`<polygon class="wave" style="animation-delay:${-i*.7}s" points="${x},${y} ${x+14},${y-4} ${x+26},${y}" fill="rgba(255,255,255,.7)"/>`)}
+      out.push(isle(M.water));
+      for(let x=10;x<iw-20;x+=34){const y=top+3+((x/34|0)%2)*4;out.push(`<polygon class="wave" style="animation-delay:${-(x/50).toFixed(1)}s" points="${m+x},${y} ${m+x+10},${y-3} ${m+x+20},${y}" fill="rgba(255,255,255,.75)"/>`)}
     }else if(type==='fire'){
-      out.push(slab(Math.round(h*.78),{top:M.ember,side:M.ember}));
-      const n=Math.max(3,Math.round(w/22));
-      for(let i=0;i<n;i++){const x=(i+.5)*w/n, S=h*(.58+r()*.16)/CA;
-        out.push(`<g class="flame" style="animation-delay:${-(r()*.5).toFixed(2)}s;animation-duration:${(.4+r()*.3).toFixed(2)}s">${draw(LP.make.flame({x,size:S,seed:i+1}),h*.82)}</g>`)}
-      for(let i=0;i<Math.max(3,Math.round(w/30));i++)out.push(`<rect class="ember" x="${(r()*w).toFixed(0)}" y="${(h*.5).toFixed(0)}" width="4" height="4" fill="#ffd23f" style="animation-delay:${-(r()*1.6).toFixed(2)}s"/>`);
+      out.push(isle(M.ember));
+      const n=Math.max(3,Math.round(iw/40));   // a few big flames, not a wall of spikes
+      for(let k=0;k<n;k++){const x=(k+.5)*iw/n+(r()-.5)*8, S=h*(.34+r()*.14)/CA;
+        out.push(`<g class="flame" style="animation-delay:${-(r()*.5).toFixed(2)}s;animation-duration:${(.45+r()*.3).toFixed(2)}s">${LP.draw(LP.make.flame({size:S,seed:k+1}),at(x))}</g>`)}
+      for(let k=0;k<Math.max(2,Math.round(iw/50));k++)out.push(`<rect class="ember" x="${(m+r()*iw).toFixed(0)}" y="${(top-6).toFixed(0)}" width="4" height="4" fill="#ffd23f" style="animation-delay:${-(r()*1.6).toFixed(2)}s"/>`);
     }else if(type==='thorns'){
-      out.push(slab(Math.round(h*.86),{top:M.stone,side:M.stone}));
-      const n=Math.max(4,Math.round(w/14));
-      for(let i=0;i<n;i++){const x=(i+.5)*w/n, S=h*(.5+r()*.2)/CA;
-        out.push(`<g class="spike" style="animation-delay:${-(r()*1.8).toFixed(2)}s">${draw(LP.make.thorn({x,size:S,seed:i+1,mat:M.horn}),h*.9)}</g>`)}
+      out.push(isle(M.stone));
+      const n=Math.max(3,Math.round(iw/26));
+      for(let k=0;k<n;k++){const x=(k+.5)*iw/n, S=h*(.22+r()*.12)/CA;
+        out.push(`<g class="spike" style="animation-delay:${-(r()*1.8).toFixed(2)}s">${LP.draw(LP.make.thorn({size:S,seed:k+1,mat:M.horn}),at(x))}</g>`)}
     }else if(type==='swamp'){
-      const oy=Math.round(h*.1);out.push(slab(oy,{top:M.swamp,side:M.swamp}));
-      for(let i=0;i<Math.max(1,Math.round(w/60));i++)out.push(draw(LP.make.lily({x:20+r()*(w-40),y:6+r()*10,size:22+r()*12,seed:i+1}),oy));
-      for(let i=0;i<Math.max(3,Math.round(w/26));i++)out.push(`<circle class="bub" cx="${(8+r()*(w-16)).toFixed(0)}" cy="${(h*.3).toFixed(0)}" r="${(3+r()*3).toFixed(1)}" fill="#a8c46a" style="animation-delay:${-(r()*2.4).toFixed(2)}s"/>`);
-    }else{   // the monster peeks up from the pit
-      const S=Math.min(w*.7,120), o=LP.make.critter({kind:'monster',size:S,rot:.25,roar:.45,seed:3}), b=LP.bounds(LP.facets(o,LP.camera({a:A_W})));
-      const c=LP.camera({a:A_W,ox:w/2,oy:h*.16-b.y});
+      out.push(isle(M.swamp));
+      for(let k=0;k<Math.max(1,Math.round(iw/70));k++)out.push(LP.draw(LP.make.lily({x:14+r()*(iw-28),y:3+r()*6,size:20+r()*10,seed:k+1}),cam));
+      for(let k=0;k<Math.max(2,Math.round(iw/34));k++)out.push(`<circle class="bub" cx="${(m+8+r()*(iw-16)).toFixed(0)}" cy="${top+2}" r="${(2.5+r()*2.5).toFixed(1)}" fill="#a8c46a" style="animation-delay:${-(r()*2.4).toFixed(2)}s"/>`);
+    }else{   // a monster standing on its island, looking up out of the pit
+      // its island floats lower, so the whole monster stands in the gap below the rim
+      const low=Math.round(h*.62), o0=LP.make.critter({kind:'monster',size:100,rot:.25,seed:3}), b0=LP.bounds(LP.facets(o0,LP.camera({a:A_W})));
+      out.push(LP.draw(LP.make.ground({w:iw,h:h*.3/CA,depth:D,seed:seed*7,float:true,top:M.stone,lip:M.stone,side:M.stone}),LP.camera({a:A_W,ox:m,oy:low})));
+      const S=Math.min(iw*1.1,100*(low-22)/b0.h), o=LP.make.critter({kind:'monster',size:S,rot:.25,roar:.45,seed:3}), c=LP.camera({a:A_W,ox:m+iw/2,oy:low+5});
       out.push(`<g class="mon">${LP.draw(o,c)}${LP.face(o,c)}</g>`);
     }
     return out.join('');
@@ -975,7 +961,7 @@ function App(){
     round.wrong++;stats.current[ri].wrong++;stats.current[ri].mistakes++;
     if(state==='short'){
       const b=boardRef.current.getBoundingClientRect(), o=OBST[round.type];
-      setTimeout(()=>{sfx[o.sound]();burst(b.left+geo.Lx+n*geo.U,b.top+geo.groundY+40,o.fx,20,.8)},450);
+      setTimeout(()=>{sfx[o.sound]();burst(b.left+geo.Lx+n*geo.U,b.top+geo.groundY+Math.round((geo.H-geo.groundY)*.3),o.fx,20,.8)},450);
     }else{ sfx.thud();setTimeout(sfx.nope,350) }
     await sleep(1250); if(!alive())return;
     setBridge(null);
@@ -1054,21 +1040,22 @@ function App(){
   const cs=Math.round(Math.max(110,Math.min(190,W*.42,groundY*.45)));
   // small things on each stretch of land (never where the hero stands or the coin is)
   const decor=[];
-  cliffs.forEach((c,k)=>{const rr=rng(k*13+5), th=THEME[k%THEME.length];
+  cliffs.forEach((c,k)=>{const rr=rng(k*13+5), th=PALS[k%PALS.length].decor;
     const a=k===0?c.x1-W:c.x0+70, b=(k<ROUNDS?c.x1:E[ROUNDS])-hw-40, n=Math.max(1,Math.min(3,Math.floor((b-a)/230)));   // a few things per stretch, not a crowd
-    for(let j=0;j<n;j++){const kind=th[Math.floor(rr()*th.length)], h=Math.round(hs*DSIZE[kind]*(.8+rr()*.4));
-      decor.push({key:k+'-'+j,kind,h,x:Math.round(a+(b-a)*(j+.2+rr()*.6)/n),tall:!!TALL[kind]})}
-    if(k===ROUNDS){for(let j=0;j<3;j++){const kind=th[j%th.length],h=Math.round(hs*DSIZE[kind]);decor.push({key:'end'+j,kind,h,x:E[ROUNDS]+cs+16+j*(TALL[kind]?110:60),tall:!!TALL[kind]})}}});
+    for(let j=0;j<n;j++){const spec=th[Math.floor(rr()*th.length)], h=Math.round(hs*spec.size*(.8+rr()*.4));
+      decor.push({key:k+'-'+j,spec,h,x:Math.round(a+(b-a)*(j+.2+rr()*.6)/n),tall:spec.tall})}
+    if(k===ROUNDS){for(let j=0;j<3;j++){const spec=th[j%th.length],h=Math.round(hs*spec.size);decor.push({key:'end'+j,spec,h,x:E[ROUNDS]+cs+16+j*(spec.tall?110:60),tall:spec.tall})}}});
   const touched=rounds[ri]&&(planks.length!==rounds[ri].planks.length||planks.some(p=>p.segs.length>1));
   const showMeasure=screen==='play'&&rounds[ri]&&!(bridge&&bridge.state==='fit')&&walkDur===0&&!built.some(b=>b.i===ri);
   const Board=(
     <div className="board" ref={boardRef} onPointerDown={boardDown} onPointerMove={boardMove} onPointerUp={boardUp} onPointerCancel={boardUp}
       style={screen==='start'?{visibility:'hidden'}:null}>
+      {FLOAT&&<div style={{left:0,right:0,top:groundY+Math.round(groundH*.25),bottom:0,zIndex:0,pointerEvents:'none'}}><Abyss/></div>}
       {/* the world: river, land, bridges, coins. It slides left while the hero walks on the spot */}
       <div className="world" style={{left:0,top:0,width:worldW,height:H,transform:`translateX(${-offset}px)`,transition:walkDur?`transform ${walkDur}s linear`:'none'}}>
         {rounds.map((r,i)=><div key={'pit'+i} style={{left:E[i]-14,top:groundY+2,width:r.gap*U+28,height:H-groundY-2}}><Pit type={r.type} w={r.gap*U+28} h={Math.max(10,H-groundY-2)} seed={i+1}/></div>)}
         {cliffs.map((c,k)=><div key={k} style={{left:c.x0,top:groundY,width:c.x1-c.x0,height:groundH}}><Cliff w={c.x1-c.x0} h={groundH} seed={k+1} edgeL={c.l} edgeR={c.r} pal={PALS[k%PALS.length]}/></div>)}
-        {decor.filter(d=>d.tall).map(d=><div key={d.key} style={{left:d.x,top:groundY+2-d.h,zIndex:1}}><Decor kind={d.kind} h={d.h} seed={Math.abs(d.x>>3)}/></div>)}
+        {decor.filter(d=>d.tall).map(d=><div key={d.key} style={{left:d.x,top:groundY+2-d.h,zIndex:1}}><Decor spec={d.spec} h={d.h} seed={Math.abs(d.x>>3)}/></div>)}
         {rounds.length>0&&<button ref={bigChestRef} className={'wchest'+(endStage==='chest'?' idle':'')} aria-label="לפתוח את תיבת האוצר"
           style={{left:E[ROUNDS]+2,top:groundY-Math.round(cs*.8)+6,width:cs}} onPointerDown={e=>e.stopPropagation()} onClick={()=>{if(screen==='end')tapChest()}}>
           <Chest key={'big'+taps} open={lidOpen} bump={taps>0} s={cs}/></button>}
@@ -1088,7 +1075,7 @@ function App(){
       {screen==='play'&&<div ref={monRef} className="monster" style={{left:0,top:groundY+FEET-mh,width:mw,height:mh}}><Monster w={mw} h={mh} st={monArt}/></div>}
       {/* front layer: the small things on the land, in front of the hero (depth while walking) */}
       <div className="world front" style={{left:0,top:0,width:worldW,height:H,transform:`translateX(${-offset}px)`,transition:walkDur?`transform ${walkDur}s linear`:'none'}}>
-        {decor.filter(d=>!d.tall).map(d=><div key={d.key} style={{left:d.x,top:groundY+FEET+4-d.h}}><Decor kind={d.kind} h={d.h} seed={Math.abs(d.x>>3)}/></div>)}
+        {decor.filter(d=>!d.tall).map(d=><div key={d.key} style={{left:d.x,top:groundY+FEET+4-d.h}}><Decor spec={d.spec} h={d.h} seed={Math.abs(d.x>>3)}/></div>)}
       </div>
       {planks.map((p,k)=>{const c=drag===p.id?{x:p.x,y:p.y}:clampPos(p.x,p.y,total(p)*U);return(
         <div key={p.id} className={'pk'+(drag===p.id?' dragging':'')} style={{left:c.x,top:c.y,zIndex:drag===p.id?40:6+(p.z%30)}}
