@@ -595,7 +595,7 @@
   const SPECIES = {
     bear:    { body: [.52, .8, .5], leg: [.3, .085], head: [.3, .27, .26], headAt: [.45, .3], snout: [.15, .09], ears: 'round', tail: 'stub', fur: 'bearFur', light: 'bearLight', face: 'animal' },
     // big-head test: a small body, a huge head with a front face (eyes, brows, expressions), signature parts kept big
-    foxBig:  { body: [.26, .4, .26], leg: [.17, .048], head: [.4, .36, .36], headAt: [.22, .36], snout: [.14, .075], ears: 'pointed', earK: 1.9, tail: 'bushy', tailK: 1.25, tailUp: true,
+    foxBig:  { body: [.26, .4, .26], leg: [.17, .048], head: [.4, .36, .36], headAt: [.22, .36], snout: [.36, .13], snoutAt: [.62, .3], noMouth: true, ears: 'pointed', earK: 1.9, tail: 'bushy', tailK: 1.25, tailUp: true,
                fur: 'foxFur', light: 'white', legMat: 'dark', face: 'buddy', eye: [.9, .36, .2], eyeK: 1.25, mouthUp: -.55, headPatch: { dir: [0, -.5, -.86], th: .5 }, browColor: '#3a1a0c' },
     fox:     { body: [.3, .78, .3], leg: [.34, .042], head: [.2, .22, .18], headAt: [.46, .26], snout: [.22, .065], ears: 'pointed', tail: 'bushy', fur: 'foxFur', light: 'white', legMat: 'dark', face: 'animal' },
     rabbit:  { body: [.44, .6, .44], leg: [.12, .07], head: [.25, .24, .23], headAt: [.33, .3], snout: [.07, .075], ears: 'long', tail: 'puff', fur: 'rabbitFur', light: 'white', face: 'animal' },
@@ -629,9 +629,10 @@
     if (sp.headPatch) head.patch = { mat: light, dir: sp.headPatch.dir.slice(), th: sp.headPatch.th }; // light cheeks / muzzle
     meshes.push(head, limb([0, -bl * S * .3, zc + bh * S * .1], hc, hw * S * .55, hw * S * .5, fur, seed * 79 + 31));
     // snout + nose
-    const s0 = [hc[0], hc[1] - hl * S * .55, hc[2] - hh * S * .3], s1 = [s0[0], s0[1] - sp.snout[0] * S, s0[2] - sp.snout[0] * S * .15];
-    const snout = limb(s0, s1, sp.snout[1] * S, sp.snout[1] * S * .6, light, seed * 79 + 32, 5); snout.bias = S * .05; meshes.push(snout);
-    const nose = icosphere(0, mat.dark, seed * 79 + 33).scale(sp.snout[1] * S * .55).move(s1[0], s1[1] - sp.snout[1] * S * .1, s1[2] + sp.snout[1] * S * .15); nose.bias = S * .1; meshes.push(nose);
+    const sa = sp.snoutAt || [.55, .3];
+    const s0 = [hc[0], hc[1] - hl * S * sa[0], hc[2] - hh * S * sa[1]], s1 = [s0[0], s0[1] - sp.snout[0] * S, s0[2] - sp.snout[0] * S * .15];
+    const snout = limb(s0, s1, sp.snout[1] * S, sp.snout[1] * S * .55, light, seed * 79 + 32, 6); snout.bias = S * .05; meshes.push(snout);
+    const nose = icosphere(0, mat.dark, seed * 79 + 33).scale(sp.snout[1] * S * (sp.noMouth ? .7 : .55)).move(s1[0], s1[1] - sp.snout[1] * S * .1, s1[2] + sp.snout[1] * S * .15); nose.bias = S * .1; meshes.push(nose);
     // ears / horns
     [-1, 1].forEach((sx, i) => {
       if (sp.ears === 'round') meshes.push(icosphere(0, fur, seed * 79 + 40 + i).scale(.07 * S, .035 * S, .07 * S).move(sx * hw * S * .62, hc[1] + hl * S * .1, hc[2] + hh * S * .78));
@@ -671,7 +672,7 @@
     const W = p => [obj.x + p[0] * C - p[1] * Sn, obj.y + p[0] * Sn + p[1] * C, obj.z + p[2]];
     const sr = sp.snout[1] * S;
     obj.face = { c: W(hc), r: hw * S, k: [hl / hw, 1, hh / hw], f: [Sn, -C, 0], u: [C, Sn, 0], style: sp.face, roar: o.roar || 0,
-      eye: sp.eye, eyeK: sp.eyeK, mouthUp: sp.mouthUp, browColor: sp.browColor, expr: o.expression || 'happy',
+      eye: sp.eye, eyeK: sp.eyeK, mouthUp: sp.mouthUp, browColor: sp.browColor, expr: o.expression || 'happy', noMouth: !!sp.noMouth, noCheeks: !!sp.noMouth,
       // mouth line in 3D along the underside of the snout: corners at the cheeks, tip at the front
       mouth: { L: W([-sr * 1.05, s0[1] + sr * .4, s0[2] - sr * .5]), tip: W([0, s1[1] - sr * .25, s1[2] - sr * .5]), R: W([sr * 1.05, s0[1] + sr * .4, s0[2] - sr * .5]), drop: sr * (.3 + 1.1 * (o.roar || 0)) } };
     return obj;
@@ -682,7 +683,7 @@
     const fur = o.mat || mat.birdBlue, hop = Math.max(0, Math.sin(t * 5)) * (Math.sin(t * 1.3) > .3 ? .12 * S : 0), meshes = [];
     // o.big: big-head test — small body, huge head with a front face; beak, wings, fan tail and thin legs stay
     const B = o.big
-      ? { zc: .3, body: [.17, .2, .17], hc: [-.06, .33], hr: [.3, .28, .28], peck: .05, beak: [.22, .46, .1], wing: [.05, .17, .11, .17], hipZ: .13, tail: [.14, .34, .3, .09] }
+      ? { zc: .3, body: [.17, .2, .17], hc: [-.06, .33], hr: [.3, .28, .28], peck: .05, beak: [.2, .6, .14], wing: [.05, .17, .11, .17], hipZ: .13, tail: [.14, .34, .3, .09] }
       : { zc: .42, body: [.22, .3, .23], hc: [-.22, .22], hr: [.15, .15, .14], peck: .12, beak: [.11, .27, .05], wing: [.05, .24, .13, .2], hipZ: .18, tail: [.24, .5, .14, .07] };
     const zc = S * B.zc + hop, peck = Math.max(0, Math.sin(t * 1.3 + 2)) * .5;
     const body = icosphere(d, fur, seed * 83 + 1).jitter(.05, rand).scale(S * B.body[0], S * B.body[1], S * B.body[2]).move(0, 0, zc);
@@ -705,7 +706,7 @@
     const r = o.rot || 0, C = Math.cos(r), Sn = Math.sin(r);
     obj.face = o.big
       ? { c: [obj.x + hc[0] * C - hc[1] * Sn, obj.y + hc[0] * Sn + hc[1] * C, obj.z + hc[2]], r: S * B.hr[0], k: [B.hr[1] / B.hr[0], 1, B.hr[2] / B.hr[0]], f: [Sn, -C, 0], u: [C, Sn, 0],
-          style: 'buddy', eye: [.88, .4, .2], eyeK: 1.2, noMouth: true, browColor: '#0f2a52', expr: o.expression || 'happy' } // the beak is the mouth
+          style: 'buddy', eye: [.88, .42, .24], eyeK: 1.2, noMouth: true, noCheeks: true, browColor: '#0f2a52', expr: o.expression || 'happy' } // the beak is the mouth
       : { c: [obj.x + hc[0] * C - hc[1] * Sn, obj.y + hc[0] * Sn + hc[1] * C, obj.z + hc[2]], r: S * .15, k: [1, 1, .93], f: [Sn, -C, 0], u: [C, Sn, 0], style: 'animal' };
     return obj;
   };
@@ -950,7 +951,7 @@
     const f1 = n => n.toFixed(1);
     const P = (d, w, fill) => `<path d="${d}" fill="${fill || 'none'}" stroke="${fill ? 'none' : E}" stroke-width="${f1(s * (w || .055))}" stroke-linecap="round" stroke-linejoin="round"/>`;
     const dotEye = (e, k) => (k *= F.eyeK || 1, `<ellipse cx="${f1(e[0])}" cy="${f1(e[1])}" rx="${f1(s * .085 * k)}" ry="${f1(s * .125 * k)}" fill="${E}"/><circle cx="${f1(e[0] + s * .03 * k)}" cy="${f1(e[1] - s * .045 * k)}" r="${f1(s * .03 * k)}" fill="#fff"/>`);
-    const cheeks = eyes.map(e => `<ellipse cx="${f1(e[0])}" cy="${f1(e[1] + s * .2)}" rx="${f1(s * .1)}" ry="${f1(s * .06)}" fill="#ff7b7b" opacity=".45"/>`).join('');
+    const cheeks = F.noCheeks ? '' : eyes.map(e => `<ellipse cx="${f1(e[0])}" cy="${f1(e[1] + s * .2)}" rx="${f1(s * .1)}" ry="${f1(s * .06)}" fill="#ff7b7b" opacity=".45"/>`).join('');
     // innerUp > 0: inner end raised (worried/sad); < 0: lowered (angry)
     const brow = (e, innerUp, lift) => P(`M${f1(e[0] - e.inner * s * .1)},${f1(e[1] - s * (lift - innerUp))} L${f1(e[0] + e.inner * s * .1)},${f1(e[1] - s * (lift + innerUp))}`, .045);
     // BIG thick brows: a tapered, slightly arched wedge, thick at the inner end. Their shape carries the expression.
@@ -958,7 +959,7 @@
     const kE = F.eyeK || 1, BC = F.browColor || E;
     const bigBrow = (e, innerUp, lift, arch, k, color) => {
       k = (k || 1) * kE;
-      const w = s * .17 * k, t0 = s * .05 * k, t1 = s * .11 * k, o0 = e[0] - e.inner * w, i0 = e[0] + e.inner * w * .85;
+      const w = s * .21 * k, t0 = s * .07 * k, t1 = s * .15 * k, o0 = e[0] - e.inner * w, i0 = e[0] + e.inner * w * .85;
       const yo = e[1] - s * (lift - innerUp) * kE, yi = e[1] - s * (lift + innerUp) * kE, cx = (o0 + i0) / 2, cy = (yo + yi) / 2 - s * arch * kE;
       const d = `M${f1(o0)},${f1(yo)} Q${f1(cx)},${f1(cy)} ${f1(i0)},${f1(yi)} L${f1(i0)},${f1(yi + t1)} Q${f1(cx)},${f1(cy + (t0 + t1) * .5)} ${f1(o0)},${f1(yo + t0)} Z`;
       return `<path d="${d}" fill="${color || BC}" stroke="${color || BC}" stroke-width="${f1(s * .025 * k)}" stroke-linejoin="round"/>`;
