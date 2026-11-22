@@ -82,3 +82,10 @@ export function mediaUrl(path: string | undefined): string | undefined {
 
 export const STAGE_KEYS = ['video', 'interactive', 'practice', 'enrichment', 'test'] as const
 export type StageKey = (typeof STAGE_KEYS)[number]
+
+/** השלבים (1–5) שיש להם תוכן בשיעור. הסרטון (1) תמיד מופיע, גם בלי תוכן. */
+export function availableStages(lesson: Lesson): number[] {
+  const st = lesson.stages
+  const has = [true, !!(st.interactive?.page || st.interactive?.cues?.length), !!st.practice, !!st.enrichment, !!st.test?.questions.length]
+  return has.flatMap((h, i) => (h ? [i + 1] : []))
+}

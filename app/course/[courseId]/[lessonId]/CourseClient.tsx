@@ -1,6 +1,6 @@
 'use client'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { fill, mediaUrl, type Course, type Lesson } from '@/lib/course/content'
+import { availableStages, fill, mediaUrl, type Course, type Lesson } from '@/lib/course/content'
 import { currentLessonIndex, meterValue, PRACTICE_STAGE, type CourseState } from '@/lib/course/progress'
 import CourseHeader from '@/components/course/CourseHeader'
 import LessonMenu, { type LessonState } from '@/components/course/LessonMenu'
@@ -23,22 +23,30 @@ type Props = {
   initialState: CourseState
 }
 
-/** השלב שנכנסים אליו בשיעור: הראשון שעוד לא הושלם */
+/** השלב שנכנסים אליו בשיעור: הראשון (מאלה שיש בהם תוכן) שעוד לא הושלם */
 function defaultStage(state: CourseState, lesson: Lesson) {
   const done = state.done[lesson.id] ?? []
-  for (let s = 1; s <= 5; s++) if (!done.includes(s)) return s
-  return 1
+  return availableStages(lesson).find(s => !done.includes(s)) ?? 1
+}
+
+/** שלב שאין בו תוכן → השלב הראשון */
+function fitStage(lesson: Lesson, s: number) {
+  return availableStages(lesson).includes(s) ? s : 1
 }
 
 export default function CourseClient({ course, childId, childName, avatar, initialLesson, initialStage, initialState }: Props) {
   const ui = course.ui
   const [state, setState] = useState(initialState)
   const [lessonIdx, setLessonIdx] = useState(initialLesson)
-  const [stage, setStage] = useState(initialStage ?? defaultStage(initialState, course.lessons[initialLesson]))
+  const [stage, setStage] = useState(initialStage ? fitStage(course.lessons[initialLesson], initialStage) : defaultStage(initialState, course.lessons[initialLesson]))
   const [celebrate, setCelebrate] = useState<Lesson | null>(null)
   const knownMastered = useRef(new Set(initialState.mastered))
 
   const lesson = course.lessons[lessonIdx]
+  // רק שלבים שיש בהם תוכן מוצגים (הסרטון תמיד). החצים והמעברים האוטומטיים מדלגים על השאר.
+  const stages = useMemo(() => availableStages(lesson), [lesson])
+  const nextOf = (s: number) => stages.find(x => x > s)
+  const prevOf = (s: number) => [...stages].reverse().find(x => x < s)
   const currentIdx = currentLessonIndex(course, state.mastered)
   const ctx = useMemo(() => ({ childId, courseId: course.courseId, lessonId: lesson.id }), [childId, course.courseId, lesson.id])
 
@@ -50,8 +58,9 @@ export default function CourseClient({ course, childId, childName, avatar, initi
   // לוקחים את השלב מהכתובת ומרעננים מהשרת.
   useEffect(() => {
     const s = Number(new URLSearchParams(window.location.search).get('stage'))
-    if (s >= 1 && s <= 5) setStage(s)
+    if (s >= 1 && s <= 5) setStage(fitStage(course.lessons[initialLesson], s))
     setTimeout(() => refreshRef.current(), 0) // אחרי שה-ref מתעדכן (effect מאוחר יותר)
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- רק בטעינה
   }, [])
 
   // הכתובת משקפת שיעור + שלב (כדי שחזרה ממשחק תנחת באותו מקום)
@@ -63,7 +72,7 @@ export default function CourseClient({ course, childId, childName, avatar, initi
   const go = useCallback((li: number, st?: number) => {
     const l = course.lessons[li]
     setLessonIdx(li)
-    setStage(st ?? defaultStage(state, l))
+    setStage(st ? fitStage(l, st) : defaultStage(state, l))
   }, [course.lessons, state])
 
   // שליטה חדשה → מסך חגיגה
@@ -102,7 +111,8 @@ export default function CourseClient({ course, childId, childName, avatar, initi
   async function completeStage(s: number, autoAdvance: boolean) {
     markDone(s)
     fetch('/api/course/progress', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...ctx, stage: s }) })
-    if (autoAdvance && s < 5) setTimeout(() => setStage(cur => (cur === s ? s + 1 : cur)), 900)
+    const n = nextOf(s)
+    if (autoAdvance && n) setTimeout(() => setStage(cur => (cur === s ? n : cur)), 900)
   }
 
   function sendAnswer(s: number, correct: boolean) {
@@ -179,8 +189,10 @@ export default function CourseClient({ course, childId, childName, avatar, initi
   }, [celebrate])
 
   // החצים זזים רק בתוך השיעור; בקצוות הם מושבתים (ועדיין מוצגים)
-  const next = () => { if (stage < 5) toStage(stage + 1) }
-  const prev = () => { if (stage > 1) toStage(stage - 1) }
+  const next = () => { const n = nextOf(stage); if (n) toStage(n) }
+  const prev = () => { const p = prevOf(stage); if (p) toStage(p) }
+  // ״המשך״ בסוף משחק: לשלב הבא שיש בו תוכן (אם אין — נשארים)
+  const toNext = (s: number) => { const n = nextOf(s); if (n) setStage(n) }
 
   const goal = Math.round(course.mastery.practice.accuracy * 100)
   const meters = course.lessons.map(l => meterValue(state, l.id))
@@ -204,7 +216,7 @@ export default function CourseClient({ course, childId, childName, avatar, initi
             )}
             {stage === 2 && (practiceSrc ? (
               <PracticeStage src={practiceSrc} enlargeLabel={ui.enlarge} shrinkLabel={ui.shrink}
-                onComplete={() => markDone(2)} onNext={() => setStage(3)} />
+                onComplete={() => markDone(2)} onNext={() => toNext(2)} />
             ) : st.interactive?.cues?.length ? (
               <InteractiveVideoStage src={mediaUrl(st.interactive.src)} cues={st.interactive.cues} playLabel={ui.playVideo} retryLabel={ui.retry}
                 onAnswer={c => sendAnswer(2, c)} onComplete={() => completeStage(2, true)} />
@@ -213,27 +225,27 @@ export default function CourseClient({ course, childId, childName, avatar, initi
             ))}
             {stage === 3 && (practiceGameSrc ? (
               <PracticeStage key={'g3' + lesson.id} src={practiceGameSrc} enlargeLabel={ui.enlarge} shrinkLabel={ui.shrink}
-                onComplete={() => gameDone(3)} onNext={() => setStage(4)} />
+                onComplete={() => gameDone(3)} onNext={() => toNext(3)} />
             ) : (
               <GameStage kind="practice" tint={tint} label="" soonLabel={ui.comingSoon} available={false} onPlay={() => {}} />
             ))}
             {stage === 4 && (enrichmentGameSrc ? (
               <PracticeStage key={'g4' + lesson.id} src={enrichmentGameSrc} enlargeLabel={ui.enlarge} shrinkLabel={ui.shrink}
-                onComplete={() => gameDone(4)} onNext={() => setStage(5)} />
+                onComplete={() => gameDone(4)} onNext={() => toNext(4)} />
             ) : (
               <GameStage kind="enrichment" tint={tint} label="" soonLabel={ui.comingSoon} available={false} onPlay={() => {}} />
             ))}
             {stage === 5 && (st.test?.questions.length ? (
               <TestStage questions={st.test.questions} count={course.mastery.test.questions} mascot={avatar} ui={ui}
-                onAnswer={c => sendAnswer(5, c)} onFinish={finishTest} onBackToPractice={() => setStage(PRACTICE_STAGE)} />
+                onAnswer={c => sendAnswer(5, c)} onFinish={finishTest} onBackToPractice={() => setStage(stages.includes(PRACTICE_STAGE) ? PRACTICE_STAGE : prevOf(5) ?? 1)} />
             ) : (
               <GameStage kind="enrichment" tint={tint} label="" soonLabel={ui.comingSoon} available={false} onPlay={() => {}} />
             ))}
           </section>
 
           <StageNav prevLabel={ui.prev} nextLabel={ui.next} onPrev={prev} onNext={next}
-            hidePrev={stage === 1} hideNext={stage === 5}>
-            <StageStepper labels={ui.stages} stage={stage} done={state.done[lesson.id] ?? []} label={ui.stagesNav} onPick={toStage} />
+            hidePrev={!prevOf(stage)} hideNext={!nextOf(stage)}>
+            <StageStepper labels={ui.stages} stages={stages} stage={stage} done={state.done[lesson.id] ?? []} label={ui.stagesNav} onPick={toStage} />
           </StageNav>
         </main>
       </div>
