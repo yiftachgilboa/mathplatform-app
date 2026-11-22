@@ -10,13 +10,14 @@ const VIRTUAL_H = 640
  * נטענת מיד כשנכנסים לשלב, מוצגת בקטן (אפשר כבר ללחוץ בה), וכפתור מגדיל למסך מלא.
  * ההתנסות מדברת עם העמוד דרך postMessage (kidodo-practice.js): complete / next / exit.
  */
-export default function PracticeStage({ src, enlargeLabel, onComplete, onNext }: {
-  src: string; enlargeLabel: string; onComplete: () => void; onNext: () => void
+export default function PracticeStage({ src, enlargeLabel, shrinkLabel, onComplete, onNext }: {
+  src: string; enlargeLabel: string; shrinkLabel?: string; onComplete: () => void; onNext: () => void
 }) {
   const boxRef = useRef<HTMLDivElement>(null)
   const frameRef = useRef<HTMLIFrameElement>(null)
   const [size, setSize] = useState<{ w: number; h: number } | null>(null)
   const [big, setBig] = useState(false)
+  const [corner, setCorner] = useState(false)   // the game asked for our button in its top-left slot
 
   // גודל התיבה → קנה המידה של ההתנסות המוקטנת
   useLayoutEffect(() => {
@@ -61,12 +62,14 @@ export default function PracticeStage({ src, enlargeLabel, onComplete, onNext }:
       if (a === 'complete') onCompleteRef.current()
       else if (a === 'next') { shrink(); onNextRef.current() }
       else if (a === 'exit') shrink()
+      else if (a === 'corner') setCorner(true)
     }
     window.addEventListener('message', onMsg)
     return () => window.removeEventListener('message', onMsg)
   }, [shrink])
 
   const scale = size ? Math.min(1, size.h / VIRTUAL_H) : 1
+  const k = big ? 1 : Math.max(.7, scale)   // the corner button follows the game's own button size
   const frameStyle: React.CSSProperties = big || !size
     ? { position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }
     : {
@@ -79,13 +82,30 @@ export default function PracticeStage({ src, enlargeLabel, onComplete, onNext }:
     <div ref={boxRef} className="box panel-in c-practice" data-big={big || undefined}
       style={big ? { position: 'fixed', inset: 0, zIndex: 60, minHeight: 0, maxHeight: 'none', aspectRatio: 'auto', background: '#fff' } : { background: '#fff', overflow: 'hidden' }}>
       <iframe ref={frameRef} src={src} title={enlargeLabel} style={frameStyle} allow="fullscreen; autoplay" />
-      {/* במסך מלא אין כפתור משלנו: ה-✕ של ההתנסות (exit) ו-Esc מחזירים לקטן */}
-      {!big && (
-        <button type="button" className="press c-practice-btn" aria-label={enlargeLabel} title={enlargeLabel} onClick={enlarge}>
-          <EnlargeIcon />
+      {corner ? (
+        /* the game left its top-left slot free: our button sits exactly there (scaled with the game), light so it stands out —
+           enlarge when small, shrink in full screen (the game has no ✕ inside the course) */
+        <button type="button" className="press c-practice-corner" aria-label={big ? shrinkLabel || enlargeLabel : enlargeLabel} title={big ? shrinkLabel || enlargeLabel : enlargeLabel}
+          onClick={big ? shrink : enlarge} style={{ left: 10 * k, top: 10 * k, width: 44 * k, height: 44 * k }}>
+          {big ? <ShrinkIcon /> : <EnlargeIcon />}
         </button>
+      ) : (
+        /* במסך מלא אין כפתור משלנו: ה-✕ של ההתנסות (exit) ו-Esc מחזירים לקטן */
+        !big && (
+          <button type="button" className="press c-practice-btn" aria-label={enlargeLabel} title={enlargeLabel} onClick={enlarge}>
+            <EnlargeIcon />
+          </button>
+        )
       )}
     </div>
+  )
+}
+
+function ShrinkIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
+    </svg>
   )
 }
 

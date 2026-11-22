@@ -8,6 +8,7 @@
  *   KidodoPractice.complete(extra)   — marks stage 2 as done (returns a Promise, never throws)
  *   KidodoPractice.next()            — back to the course, on the next stage (3)
  *   KidodoPractice.exit()            — back to the course, on this stage (2)
+ *   KidodoPractice.claimCorner()     — inside the course: the top-left slot is free for the course's enlarge/shrink button
  * Opened alone (no params), nothing is saved, and next/exit go to /course.
  *
  * Embedded: the course normally shows the practice inside its stage, in an
@@ -57,5 +58,7 @@
     },
     next: function () { if (embedded) tell('next'); else location.replace(courseUrl(STAGE + 1)) },
     exit: function () { if (embedded) tell('exit'); else location.replace(courseUrl(STAGE)) },
+    // the game leaves its top-left button slot free: the course puts its enlarge / shrink button there (instead of a ✕)
+    claimCorner: function () { if (embedded) tell('corner') },
   }
 })()

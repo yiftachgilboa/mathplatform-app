@@ -203,7 +203,7 @@ export default function CourseClient({ course, childId, childName, avatar, initi
                 playLabel={ui.playVideo} startLabel={ui.letsStart} soonLabel={ui.comingSoon} onComplete={() => completeStage(1, false)} />
             )}
             {stage === 2 && (practiceSrc ? (
-              <PracticeStage src={practiceSrc} enlargeLabel={ui.enlarge}
+              <PracticeStage src={practiceSrc} enlargeLabel={ui.enlarge} shrinkLabel={ui.shrink}
                 onComplete={() => markDone(2)} onNext={() => setStage(3)} />
             ) : st.interactive?.cues?.length ? (
               <InteractiveVideoStage src={mediaUrl(st.interactive.src)} cues={st.interactive.cues} playLabel={ui.playVideo} retryLabel={ui.retry}
@@ -212,13 +212,13 @@ export default function CourseClient({ course, childId, childName, avatar, initi
               <GameStage kind="practice" tint={tint} label="" soonLabel={ui.comingSoon} available={false} onPlay={() => {}} />
             ))}
             {stage === 3 && (practiceGameSrc ? (
-              <PracticeStage key={'g3' + lesson.id} src={practiceGameSrc} enlargeLabel={ui.enlarge}
+              <PracticeStage key={'g3' + lesson.id} src={practiceGameSrc} enlargeLabel={ui.enlarge} shrinkLabel={ui.shrink}
                 onComplete={() => gameDone(3)} onNext={() => setStage(4)} />
             ) : (
               <GameStage kind="practice" tint={tint} label="" soonLabel={ui.comingSoon} available={false} onPlay={() => {}} />
             ))}
             {stage === 4 && (enrichmentGameSrc ? (
-              <PracticeStage key={'g4' + lesson.id} src={enrichmentGameSrc} enlargeLabel={ui.enlarge}
+              <PracticeStage key={'g4' + lesson.id} src={enrichmentGameSrc} enlargeLabel={ui.enlarge} shrinkLabel={ui.shrink}
                 onComplete={() => gameDone(4)} onNext={() => setStage(5)} />
             ) : (
               <GameStage kind="enrichment" tint={tint} label="" soonLabel={ui.comingSoon} available={false} onPlay={() => {}} />

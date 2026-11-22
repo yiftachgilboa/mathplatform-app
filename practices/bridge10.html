@@ -93,6 +93,9 @@ header{display:flex;justify-content:center;align-items:center;flex:none;margin-i
 .bub{transform-box:fill-box;transform-origin:center;animation:bub 2.4s ease-in infinite}
 @keyframes bub{0%{transform:translateY(24px) scale(.3);opacity:0}30%{opacity:1}85%{transform:translateY(-6px) scale(1);opacity:1}100%{transform:translateY(-8px) scale(1.7);opacity:0}}
 .mon{animation:mon 2.2s ease-in-out infinite alternate}
+.pitfloat{transform-box:view-box;animation:pitFloat 3.6s ease-in-out infinite alternate}
+@keyframes pitFloat{from{transform:translateY(-5px)}to{transform:translateY(6px)}}
+@media(prefers-reduced-motion:reduce){.pitfloat{animation:none}}
 .mwalkpit{transform-box:view-box;transform-origin:0 0;animation:mwalkpit 7s linear infinite}
 @keyframes mwalkpit{0%{transform:translateX(var(--x0)) scaleX(1)}49.9%{transform:translateX(var(--x1)) scaleX(1)}50%{transform:translateX(var(--x1)) scaleX(-1)}99.9%{transform:translateX(var(--x0)) scaleX(-1)}100%{transform:translateX(var(--x0)) scaleX(1)}}
 .wf{animation:wf .77s step-end infinite}
@@ -406,13 +409,20 @@ const Coin=({s=34})=><span style={{display:'block',width:s,height:s,lineHeight:0
 
 /* the hero: head-body character in the kid outfit, walking right (3/4 view); scared = turns to the monster */
 const HERO_ROT=.85;
-const heroObj=(pose,t,rot)=>LP.make.buddy({outfit:'kid',size:100,pose,t,rot});
+const heroObj=(pose,t,rot,expression)=>LP.make.buddy({outfit:'kid',size:100,pose,t,rot,expression});
 const HERO_VB=lpBox(['stand','walk'].flatMap(p=>[0,.17,.33,.5].flatMap(t=>[heroObj(p,t,HERO_ROT),heroObj(p,t,-HERO_ROT)])),A_OBJ,.02,0);
+const IDLE_ACTS=[{pose:'wave',expr:'happy',ms:2200},{expr:'joy',ms:1600},{expr:'surprised',ms:1400},{expr:'sad',ms:1300},{pose:'wave',expr:'joy',ms:2000}];
 function Hero({s,walking,cheer,scared,win}){
-  const pose=win?'cheer':scared?'scared':walking?'walk':cheer?'cheer':'stand';
-  // standing = one still frame (the idle hop is CSS); walking / cheering / scared = 20 fps. win (the chest is open):
-  // faces the camera, waves both arms (and the wrapper jumps)
-  return <LPLive vb={HERO_VB} width={s*.75} height={s} dep={pose+(win?'w':'')} run={pose!=='stand'} fps={20} build={t=>heroObj(pose,t,win?0:scared?-HERO_ROT:HERO_ROT)}/>;
+  const busy=win||scared||walking||cheer;
+  // waiting at the bridge: faces the camera, and now and then waves or makes a face (one still frame between acts)
+  const [act,setAct]=useState(null);
+  useEffect(()=>{if(busy){setAct(null);return}let tm;
+    const next=()=>{tm=setTimeout(()=>{const a=IDLE_ACTS[Math.floor(Math.random()*IDLE_ACTS.length)];setAct(a);tm=setTimeout(()=>{setAct(null);next()},a.ms)},2500+Math.random()*3500)};
+    next();return()=>clearTimeout(tm)},[busy]);
+  const pose=win?'cheer':scared?'scared':walking?'walk':cheer?'cheer':(act&&act.pose)||'stand';
+  const expr=busy?undefined:(act?act.expr:'happy'), rot=win||!busy?0:scared?-HERO_ROT:HERO_ROT;
+  // still pose = one frame; moving = 20 fps. win (the chest is open): faces the camera, waves both arms (and the wrapper jumps)
+  return <LPLive vb={HERO_VB} width={s*.75} height={s} dep={pose+'|'+expr+'|'+rot} run={pose!=='stand'} fps={20} build={t=>heroObj(pose,t,rot,expr)}/>;
 }
 
 /* treasure chest (library chest). The lid opens with a little overshoot */
@@ -519,7 +529,8 @@ function Pit({type,w,h,seed=1}){
         frames+=`<g class="wf" style="animation-delay:${(-k*.1925).toFixed(3)}s">${LP.draw(o,c)}${LP.face(o,c)}</g>`}
       out.push(`<g class="mwalkpit" style="--x0:${(m+half+4).toFixed(0)}px;--x1:${(m+iw-half-4).toFixed(0)}px;animation-duration:${(5+iw/60).toFixed(1)}s">${frames}</g>`);
     }
-    return out.join('');
+    // the hazard island floats: a slow bob up and down, each pit out of step with the others
+    return `<g class="pitfloat" style="animation-delay:${(-(seed%7)*.6).toFixed(1)}s;animation-duration:${(3.4+(seed%5)*.3).toFixed(1)}s">${out.join('')}</g>`;
   },[type,w,h,seed]);
   return <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{display:'block',overflow:'hidden'}} dangerouslySetInnerHTML={{__html:html}}/>;
 }
@@ -652,6 +663,7 @@ function App(){
 
   const boardRef=useRef(null), chestRef=useRef(null), coinRef=useRef(null), bigChestRef=useRef(null);
   const R=useRef({}); R.current={...R.current,rounds,planks,phase,ri,round:rounds[ri]};
+  const keyHint=useRef(false);   // the ״two jumping planks″ hint was already said in this game
   const flow=useRef(0), finRef=useRef(null), lastSay=useRef(''), nudges=useRef([]), stats=useRef([]);
   const dragRef=useRef(null), strokeRef=useRef(null), zTop=useRef(10), idN=useRef(0);
   // what the child already knows (remembered on this device, per child): join, drag (a bridge), cut, chest
@@ -709,7 +721,7 @@ function App(){
     if(!learned.current.join||!learned.current.drag)return;   // the hand teaches first
     nudges.current=[
       later(alive,16000,()=>say('רמז: אפשר לחבר שני קרשים, ואפשר לחתוך קרש בכל מקום.')),
-      later(alive,32000,()=>{const r=R.current.round;setHl(R.current.planks.filter(p=>p.key).map(p=>p.id));say(`נסו את שני הקרשים שקופצים. ביחד הם יוצרים ${r.gap}?`)}),
+      later(alive,32000,()=>{if(keyHint.current)return;keyHint.current=true;const r=R.current.round;setHl(R.current.planks.filter(p=>p.key).map(p=>p.id));say(`נסו את שני הקרשים שקופצים. ביחד הם יוצרים ${r.gap}?`)}),   // only once a game
     ];
   }
   const bump=(id,kind)=>{setFx({[id]:kind});setFxN(n=>n+1)};
@@ -762,7 +774,7 @@ function App(){
     lastGap=null;const types=['water',...shuffle(['fire','thorns','swamp','monster'])];
     const rs=Array.from({length:ROUNDS},(_,i)=>({...genRound(i),type:types[i],landK:1+Math.random()*.5}));   // landK: how long the land after this pit is
     setWorld(newWorld());
-    stats.current=[];setRounds(rs);R.current.rounds=rs;setBuilt([]);setWorldI(0);setWalkDur(0);setCoinTaken(-1);setProgress(0);
+    keyHint.current=false;stats.current=[];setRounds(rs);R.current.rounds=rs;setBuilt([]);setWorldI(0);setWalkDur(0);setCoinTaken(-1);setProgress(0);
     setScreen('play');
     await sleep(250);
     playRound(0,true);
@@ -988,7 +1000,7 @@ function App(){
     if(round.wrong>=2){
       const laid=layout(round.planks);R.current.planks=laid;setPlanks(laid);setFallN(x=>x+1);
       setHl(round.planks.filter(x=>x.key).map(x=>x.id));
-      await say(msg+' רמז: שני הקרשים שקופצים יוצרים ביחד '+g+'.');
+      if(keyHint.current)await say(msg+' ננסה שוב!');else{keyHint.current=true;await say(msg+' רמז: שני הקרשים שקופצים יוצרים ביחד '+g+'.')}   // the jumping-planks hint: once a game
     }else{
       await say(msg+' ננסה שוב!');
     }
@@ -1021,14 +1033,16 @@ function App(){
   useEffect(()=>{if(endStage!=='done')return;const n=starCount(stats.current);for(let i=0;i<3;i++)setTimeout(()=>i<n?tone(784+i*196,.3,'sine',.12):tone(260,.15,'triangle',.05),150+i*350)},[endStage]);
   function toggleSound(){const v=!sound;setSound(v);soundOn=v;if(!v&&hasTTS)try{speechSynthesis.cancel()}catch(e){}}
   useEffect(()=>()=>{clearNudges();hush();clearTimeout(teachTimer.current)},[]);
+  useEffect(()=>{if(KP.claimCorner)KP.claimCorner()},[]);   // ask the course for its button in the top-left slot
   useEffect(()=>{start()},[]);   // no start screen: straight into the game (sound wakes on the first touch)
 
   /* ---------- render ---------- */
   const touched0=rounds[ri]&&(planks.length!==rounds[ri].planks.length||planks.some(p=>p.segs.length>1));
   const Side=(
     <div className="side">
-      <button className="iconbtn" title="יציאה" aria-label="יציאה" onClick={()=>{hush();KP.exit()}}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      {/* inside the course there is no ✕: the course's enlarge / shrink button takes this slot */}
+      {KP.embedded?<span style={{width:44,height:44,flex:'none'}} aria-hidden="true"/>:<button className="iconbtn" title="יציאה" aria-label="יציאה" onClick={()=>{hush();KP.exit()}}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>}
       <button className="iconbtn" title="קול" aria-label="קול" onClick={toggleSound}><SpeakerIcon on={sound}/></button>
       {screen==='play'&&<button className="iconbtn" title="לסדר מחדש" aria-label="לסדר מחדש" disabled={phase!=='build'||!touched0} onClick={()=>{hush();stats.current[R.current.ri].mistakes++;resetPlanks()}}>
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v5h5"/></svg></button>}
@@ -1085,7 +1099,7 @@ function App(){
       </div>
       <div className="hero" ref={heroRef} style={{left:heroX,top:groundY+FEET-hs,width:hw,height:hs,opacity:hero.vis?1:0,transition:walkDur?`left ${walkDur}s linear`:'none'}}>
         <div className={'in'+(hero.vis?' show':'')} key={hero.vis?'v':'h'}>
-          <div className={hero.win?'winhop':hero.walk||hero.cheer||scared?'':'idle'}><Hero s={hs} walking={hero.walk} cheer={hero.cheer} scared={scared} win={hero.win}/></div></div></div>
+          <div className={hero.win?'winhop':''}><Hero s={hs} walking={hero.walk} cheer={hero.cheer} scared={scared} win={hero.win}/></div></div></div>
       {screen==='play'&&<div ref={monRef} className="monster" style={{left:0,top:groundY+FEET-mh,width:mw,height:mh}}><Monster w={mw} h={mh} st={monArt}/></div>}
       {/* front layer: the small things on the land, in front of the hero (depth while walking) */}
       <div className="world front" style={{left:0,top:0,width:worldW,height:H,transform:`translateX(${-offset}px)`,transition:walkDur?`transform ${walkDur}s linear`:'none'}}>
