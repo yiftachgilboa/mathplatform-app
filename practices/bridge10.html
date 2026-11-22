@@ -16,7 +16,7 @@
 html,body{overflow:hidden;height:100%}
 body{font-family:Fredoka,system-ui,sans-serif;color:var(--ink);background:#CDEBFA;-webkit-tap-highlight-color:transparent}
 button{font-family:inherit;cursor:pointer;border:0}
-.bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;display:block}
+.bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;display:block;filter:saturate(1.15) brightness(.86) contrast(.94)}   /* the backdrop a little darker and richer, so the play layer stands out */
 .app{position:relative;z-index:1;display:flex;flex-direction:column;height:100vh;height:100dvh}
 .top{flex:none;width:100%;max-width:960px;margin:0 auto;padding:10px 14px 0 66px;display:flex;flex-direction:row;align-items:center;gap:10px;min-height:66px;position:relative;z-index:8;pointer-events:none}
 .top>*{pointer-events:auto}
@@ -81,6 +81,8 @@ header{display:flex;justify-content:center;align-items:center;flex:none;margin-i
 @keyframes rise{from{transform:translateY(24px);opacity:0}}
 .endscreen{background:rgba(255,255,255,.55);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);z-index:80}
 .idle{animation:idleHop 4.5s ease-in-out infinite}
+.winhop{animation:winHop .55s cubic-bezier(.3,0,.5,1) infinite alternate}
+@keyframes winHop{from{transform:translateY(0) scale(1.04,.96)}to{transform:translateY(-22px)}}
 @keyframes idleHop{0%,78%,100%{transform:translateY(0)}83%{transform:translateY(-16px)}88%{transform:translateY(0) scale(1.04,.96)}92%{transform:translateY(-7px)}96%{transform:translateY(0)}}
 .flame{transform-box:fill-box;transform-origin:50% 100%;animation:flick .5s ease-in-out infinite alternate}
 @keyframes flick{0%{transform:scale(1,1)}50%{transform:scale(.9,1.14)}100%{transform:scale(1.08,.86)}}
@@ -91,6 +93,11 @@ header{display:flex;justify-content:center;align-items:center;flex:none;margin-i
 .bub{transform-box:fill-box;transform-origin:center;animation:bub 2.4s ease-in infinite}
 @keyframes bub{0%{transform:translateY(24px) scale(.3);opacity:0}30%{opacity:1}85%{transform:translateY(-6px) scale(1);opacity:1}100%{transform:translateY(-8px) scale(1.7);opacity:0}}
 .mon{animation:mon 2.2s ease-in-out infinite alternate}
+.mwalkpit{transform-box:view-box;transform-origin:0 0;animation:mwalkpit 7s linear infinite}
+@keyframes mwalkpit{0%{transform:translateX(var(--x0)) scaleX(1)}49.9%{transform:translateX(var(--x1)) scaleX(1)}50%{transform:translateX(var(--x1)) scaleX(-1)}99.9%{transform:translateX(var(--x0)) scaleX(-1)}100%{transform:translateX(var(--x0)) scaleX(1)}}
+.wf{animation:wf .77s step-end infinite}
+@keyframes wf{0%{opacity:1}27%{opacity:0}100%{opacity:0}}
+@media(prefers-reduced-motion:reduce){.mwalkpit,.wf{animation:none}.wf+.wf{opacity:0}}
 @keyframes mon{to{transform:translateY(-14px)}}
 .mon .meye{transform-box:fill-box;transform-origin:center;animation:blink 3.5s infinite}
 .mon .mmouth{transform-box:fill-box;transform-origin:50% 0;animation:chomp 1.1s ease-in-out infinite alternate}
@@ -156,7 +163,7 @@ header{display:flex;justify-content:center;align-items:center;flex:none;margin-i
 .talk{display:flex;align-items:center;gap:10px;flex:1 1 auto;min-width:0}
 .bubble{flex:0 1 540px;min-width:0;background:#fff;padding:8px 14px;font-size:16px;line-height:1.35;font-weight:500;position:relative;box-shadow:0 5px 0 rgba(23,111,190,.18);border-radius:14px}
 @media(max-width:559px){.bubble{font-size:13.5px;padding:6px 10px}.pbar{width:36px;height:12px}.treasure{gap:4px}.treasure .chest{width:40px;height:32px}
-  .talk{gap:8px}.talk .speechbtn{position:absolute;right:-8px;bottom:-10px;transform:scale(.85)}.talk .spawn{margin-right:6px}}
+  .talk{gap:8px}.talk .spawn{margin-right:6px}}
 @media(min-width:700px){.bubble{padding:12px 18px;font-size:19px}}
 .bubble::before{content:"";position:absolute;right:-12px;top:50%;margin-top:-10px;border:10px solid transparent;border-left-color:#fff;border-right:0}
 .bubble .txt{animation:txtIn .35s both}
@@ -164,8 +171,6 @@ header{display:flex;justify-content:center;align-items:center;flex:none;margin-i
 .spawn{position:relative;flex:none;display:flex;flex-direction:row;align-items:center;gap:8px;padding-bottom:4px}
 .spawn::before{content:"";position:absolute;bottom:0;right:-6px;width:58px;height:18px;border-radius:50%;background:#9FD3F2;box-shadow:0 0 0 5px rgba(255,255,255,.7),0 0 0 11px rgba(255,255,255,.3)}
 .spawn svg{position:relative}
-.speechbtn{flex:none;align-self:center;width:44px;height:44px;border-radius:50%;background:#fff;color:var(--kblue);box-shadow:0 3px 0 rgba(23,111,190,.22);display:flex;align-items:center;justify-content:center}
-.speechbtn svg{position:static}
 .mascot{flex:none;overflow:visible}
 .mascot .body{transform-origin:50% 100%;transform-box:fill-box}
 .mascot.talking .body{animation:mbob .32s infinite alternate}
@@ -208,6 +213,9 @@ header{display:flex;justify-content:center;align-items:center;flex:none;margin-i
 .coinp{position:fixed;left:0;top:0;pointer-events:none;z-index:1001;will-change:transform,opacity;line-height:0}
 .coins{display:flex;align-items:center;gap:4px;font-weight:700;font-size:18px;color:#9B6A00;background:rgba(255,255,255,.85);border-radius:14px;padding:2px 10px 2px 6px}
 .coins.bump{animation:bump .5s}
+.pwrap{position:relative;display:flex;align-items:center;padding-inline-start:16px}
+.pcount{position:absolute;inset-inline-start:-6px;top:50%;margin-top:-17px;min-width:34px;height:34px;padding:0 6px;border-radius:17px;background:#fff;color:#9B6A00;font-weight:700;font-size:16px;line-height:34px;text-align:center;box-shadow:0 3px 0 rgba(23,111,190,.2)}
+.pcount.bump{animation:bump .5s}
 .endcoins{display:flex;align-items:center;gap:8px;font-weight:700;font-size:32px;color:#9B6A00;background:rgba(255,255,255,.9);border-radius:24px;padding:4px 18px 4px 10px}
 .cta.restart{background:linear-gradient(180deg,#fff 0 50%,#EEF3FA 50%);padding:10px 28px}
 /* end buttons: the same shape and size, dark with a white symbol, side by side at the bottom (RTL: "again" right, "next" left) */
@@ -250,7 +258,8 @@ function genRound(i){
   return {gap,planks:makePlanks(i,gap),wrong:0};
 }
 function makePlanks(i,gap){
-  const a=rand(1,Math.min(4,gap-1)), b=gap-a, c=rand(1,4);
+  // no number twice unless the sum needs it (2+2 for 4 is fine; 1, 1, 3 is not): the extra plank differs from both
+  const a=rand(1,Math.min(4,gap-1)), b=gap-a;let c,g=0;do{c=rand(1,4);g++}while((c===a||c===b)&&g<50);
   const ids=shuffle([0,1,2]), tag=Math.random().toString(36).slice(2,6);
   const planks=(i===0?[a,b]:[a,b,c]).map((n,k)=>({id:`r${i}-${k}-${tag}`,segs:[{n,c:ids[k]}],key:k<2}));   // first scene: just the two that make it
   return shuffle(planks);
@@ -399,10 +408,11 @@ const Coin=({s=34})=><span style={{display:'block',width:s,height:s,lineHeight:0
 const HERO_ROT=.85;
 const heroObj=(pose,t,rot)=>LP.make.buddy({outfit:'kid',size:100,pose,t,rot});
 const HERO_VB=lpBox(['stand','walk'].flatMap(p=>[0,.17,.33,.5].flatMap(t=>[heroObj(p,t,HERO_ROT),heroObj(p,t,-HERO_ROT)])),A_OBJ,.02,0);
-function Hero({s,walking,cheer,scared}){
-  const pose=scared?'scared':walking?'walk':cheer?'cheer':'stand';
-  // standing = one still frame (the idle hop is CSS); walking / cheering / scared = 20 fps
-  return <LPLive vb={HERO_VB} width={s*.75} height={s} dep={pose} run={pose!=='stand'} fps={20} build={t=>heroObj(pose,t,scared?-HERO_ROT:HERO_ROT)}/>;
+function Hero({s,walking,cheer,scared,win}){
+  const pose=win?'cheer':scared?'scared':walking?'walk':cheer?'cheer':'stand';
+  // standing = one still frame (the idle hop is CSS); walking / cheering / scared = 20 fps. win (the chest is open):
+  // faces the camera, waves both arms (and the wrapper jumps)
+  return <LPLive vb={HERO_VB} width={s*.75} height={s} dep={pose+(win?'w':'')} run={pose!=='stand'} fps={20} build={t=>heroObj(pose,t,win?0:scared?-HERO_ROT:HERO_ROT)}/>;
 }
 
 /* treasure chest (library chest). The lid opens with a little overshoot */
@@ -458,7 +468,9 @@ function Cliff({w,h,seed=1,edgeL=true,edgeR=true,pal=PALS[0]}){
 }
 /* each stretch of land between two obstacles is a biome from the library: its ground and the things that grow on it */
 const BIOMES=['meadow','hills','desert','rocky','forest','ice'];   // the last one = where the chest waits
-const PALS=BIOMES.map(n=>LP.biome(n));
+const PALS=BIOMES.map(n=>LP.biome(n)), PAL_BY=Object.fromEntries(PALS.map(b=>[b.name,b]));
+/* every new game: the biomes in a new order (the ice, where the chest waits, always last) and a new seed for shapes and places */
+const newWorld=()=>({seed:rand(1,99999),biomes:[...shuffle(BIOMES.slice(0,-1)),BIOMES[BIOMES.length-1]]});
 const decorCache={};
 function decorArt(spec,seed){const key=spec.id+'-'+seed;if(!decorCache[key]){const o=spec.make({size:100,seed}),cam=LP.camera({a:A_OBJ}),l=LP.facets(o,cam),b=LP.bounds(l);
   decorCache[key]={svg:LP.polys(l),vb:[b.x,b.y,b.w,b.h].map(v=>+v.toFixed(1)),ar:b.w/b.h}}return decorCache[key]}
@@ -476,7 +488,7 @@ const OBST={
 /* the obstacle in a pit: a small floating island down in the gap, with water / fire / thorns / swamp / a monster on it */
 function Pit({type,w,h,seed=1}){
   const html=useMemo(()=>{
-    const r=LP.rng(seed*31+5), M=LP.mat, out=[], m=22, iw=Math.max(40,w-2*m), top=Math.round(h*.24), D=10/SA;
+    const r=LP.rng(seed*31+5), M=LP.mat, out=[], m=22, iw=Math.max(40,w-2*m), top=Math.round(h*.33), D=10/SA;   // low enough that the measure line never hides the tips
     const cam=LP.camera({a:A_W,ox:m,oy:top}), at=x=>LP.camera({a:A_W,ox:m+x,oy:top+4});
     const isle=(topM,lipM)=>LP.draw(LP.make.ground({w:iw,h:h*.42/CA,depth:D,seed:seed*7,float:true,top:topM,lip:lipM||topM,side:M.stone}),cam);
     if(type==='water'){
@@ -499,10 +511,13 @@ function Pit({type,w,h,seed=1}){
       for(let k=0;k<Math.max(2,Math.round(iw/34));k++)out.push(`<circle class="bub" cx="${(m+8+r()*(iw-16)).toFixed(0)}" cy="${top+2}" r="${(2.5+r()*2.5).toFixed(1)}" fill="#a8c46a" style="animation-delay:${-(r()*2.4).toFixed(2)}s"/>`);
     }else{   // a monster standing on its island, looking up out of the pit
       // its island floats lower, so the whole monster stands in the gap below the rim
-      const low=Math.round(h*.62), o0=LP.make.critter({kind:'monster',size:100,rot:.25,seed:3}), b0=LP.bounds(LP.facets(o0,LP.camera({a:A_W})));
+      const low=Math.round(h*.66), o0=LP.make.critter({kind:'monster',size:100,rot:1.15,pose:'walk',seed:3}), b0=LP.bounds(LP.facets(o0,LP.camera({a:A_W})));
       out.push(LP.draw(LP.make.ground({w:iw,h:h*.3/CA,depth:D,seed:seed*7,float:true,top:M.stone,lip:M.stone,side:M.stone}),LP.camera({a:A_W,ox:m,oy:low})));
-      const S=Math.min(iw*1.1,100*(low-22)/b0.h), o=LP.make.critter({kind:'monster',size:S,rot:.25,roar:.45,seed:3}), c=LP.camera({a:A_W,ox:m+iw/2,oy:low+5});
-      out.push(`<g class="mon">${LP.draw(o,c)}${LP.face(o,c)}</g>`);
+      // it walks to and fro along its island: 4 walk frames shown in turn (a flip-book in CSS), the group slides and turns at the ends
+      const S=Math.min(iw*.45,100*(low-22)/b0.h), half=S*b0.w/200, c=LP.camera({a:A_W,ox:0,oy:low+5});
+      let frames='';for(let k=0;k<4;k++){const o=LP.make.critter({kind:'monster',size:S,rot:1.15,pose:'walk',t:k*.1925,roar:.3,seed:3});
+        frames+=`<g class="wf" style="animation-delay:${(-k*.1925).toFixed(3)}s">${LP.draw(o,c)}${LP.face(o,c)}</g>`}
+      out.push(`<g class="mwalkpit" style="--x0:${(m+half+4).toFixed(0)}px;--x1:${(m+iw-half-4).toFixed(0)}px;animation-duration:${(5+iw/60).toFixed(1)}s">${frames}</g>`);
     }
     return out.join('');
   },[type,w,h,seed]);
@@ -591,6 +606,8 @@ function App(){
   const [screen,setScreen]=useState('start');      // start | play | end
   const [ri,setRi]=useState(0);
   const [rounds,setRounds]=useState([]);           // all 5 made at the start, so the next pit is already there
+  const [world,setWorld]=useState(newWorld);       // biome order + seed of this game (the path feels a bit different each time)
+  const palOf=k=>PAL_BY[world.biomes[Math.min(k,world.biomes.length-1)]];
   const [planks,setPlanks]=useState([]);           // [{id,segs,key,x,y,z}] x,y = top-left on the board
   const [fallN,setFallN]=useState(0);
   const [drag,setDrag]=useState(null);
@@ -660,7 +677,7 @@ function App(){
   const heroX=LxOf(worldI)-hw-6;                     // the hero walks on the spot; the world moves (he shifts a bit to keep the pit centred)
   const C=Math.max(hw+70,Math.round(U*5),Math.round(W/2+40));   // the land between two pits: wide, so the next pit is out of view
   // world x of each pit: E[i] = left edge, S[i] = right edge (start of the next land)
-  const E=[],S=[];{let e=LxOf(0);rounds.forEach((r,i)=>{E[i]=e;S[i]=e+r.gap*U;e=S[i]+C});E[rounds.length]=e}   // E[5] = where the chest waits
+  const E=[],S=[];{let e=LxOf(0);rounds.forEach((r,i)=>{E[i]=e;S[i]=e+r.gap*U;e=S[i]+Math.round(C*(r.landK||1))});E[rounds.length]=e}   // E[5] = where the chest waits
   const gap=rounds[ri]?rounds[ri].gap:7;
   const offset=(E[worldI]??LxOf(worldI))-LxOf(worldI);
   const topY=6, maxY=groundY-T-2, layMaxY=groundY-hs-T-8;
@@ -743,7 +760,8 @@ function App(){
   async function start(){
     audio();
     lastGap=null;const types=['water',...shuffle(['fire','thorns','swamp','monster'])];
-    const rs=Array.from({length:ROUNDS},(_,i)=>({...genRound(i),type:types[i]}));
+    const rs=Array.from({length:ROUNDS},(_,i)=>({...genRound(i),type:types[i],landK:1+Math.random()*.5}));   // landK: how long the land after this pit is
+    setWorld(newWorld());
     stats.current=[];setRounds(rs);R.current.rounds=rs;setBuilt([]);setWorldI(0);setWalkDur(0);setCoinTaken(-1);setProgress(0);
     setScreen('play');
     await sleep(250);
@@ -929,7 +947,7 @@ function App(){
       say(`${n}! הגשר מוכן!`,{voice:false});
       await sleep(380); if(!alive())return;
       // walk: the hero walks on the spot, the world slides left to the next pit
-      const dist=g*geo.U+geo.C, dur=Math.max(2.4,Math.min(4,dist/240)), speed=dist/dur;
+      const dist=g*geo.U+Math.round(geo.C*(round.landK||1)), dur=Math.max(2.4,Math.min(4,dist/240)), speed=dist/dur;
       setWalkDur(dur);setWorldI(ri+1);setHero({walk:true,vis:true,cheer:false});R.current.planks=[];setPlanks([]);
       const steps=Math.floor(dur/.135);for(let k=0;k<steps;k++)later(alive,k*135,()=>sfx.step(k));
       // the coin reaches the hero when the bridge has passed under him
@@ -987,7 +1005,7 @@ function App(){
     if(endStageRef.current!=='chest')return;
     learn('chest');
     audio();hush();setDemo(null);setEndStage('coins');endStageRef.current='coins';setTaps(1);log('chest_tap');
-    setLidOpen(true);sfx.jackpot();
+    setLidOpen(true);sfx.jackpot();setHero(h=>({...h,win:true,walk:false,cheer:false}));scaredRef.current=false;setScared(false);
     const t0=Date.now();
     const iv=setInterval(()=>{coinBurst(bigChestRef.current,9);if(Math.random()<.5)sfx.coin();if(Date.now()-t0>3000){clearInterval(iv)}},200);
     setTimeout(()=>{clearInterval(iv);setEndStage('done');endStageRef.current='done'},3200);
@@ -997,12 +1015,10 @@ function App(){
     await KP.complete({rounds:ROUNDS,firstTry:stats.current.filter(s=>s&&!s.wrong).length,stars:starCount(stats.current),mistakes:stats.current.reduce((t,s)=>t+(s?s.mistakes||0:0),0)});
     KP.next();
   }
-  const [speech,setSpeech]=useState(true);
   const [endStage,setEndStageS]=useState(null), endStageRef=useRef(null);   // chest → coins → done
   const setEndStage=v=>{endStageRef.current=v;setEndStageS(v)};
   // star sound: one chime per star as they pop in
   useEffect(()=>{if(endStage!=='done')return;const n=starCount(stats.current);for(let i=0;i<3;i++)setTimeout(()=>i<n?tone(784+i*196,.3,'sine',.12):tone(260,.15,'triangle',.05),150+i*350)},[endStage]);
-  function toggleSpeech(){const v=!speech;setSpeech(v);speechOn=v;if(!v&&hasTTS)try{speechSynthesis.cancel()}catch(e){}}
   function toggleSound(){const v=!sound;setSound(v);soundOn=v;if(!v&&hasTTS)try{speechSynthesis.cancel()}catch(e){}}
   useEffect(()=>()=>{clearNudges();hush();clearTimeout(teachTimer.current)},[]);
   useEffect(()=>{start()},[]);   // no start screen: straight into the game (sound wakes on the first touch)
@@ -1020,16 +1036,16 @@ function App(){
   const Header=(
     <header>
       <div className="treasure" style={screen==='end'?{visibility:'hidden'}:null}>
-        <div className="pbar"><div className="pfill" style={{width:(progress/ROUNDS*100)+'%'}}/></div>
+        {/* the coin count is a circle at the end of the bar (no coin icon) */}
+        <div className="pwrap"><div className="pbar"><div className="pfill" style={{width:(progress/ROUNDS*100)+'%'}}/></div>
+          <span className={'pcount'+(bumpN?' bump':'')} key={'k'+bumpN} dir="ltr">{coins}</span></div>
         <Chest key={'c'+bumpN} innerRef={chestRef} bump={bumpN>0}/>
-        <span className={'coins'+(bumpN?' bump':'')} key={'k'+bumpN} dir="ltr"><Coin s={20}/>{coins}</span>
       </div>
     </header>);
 
   const Talk=(
     <div className="talk">
-      <div className="spawn"><Alien s={72} talking={!!talking}/>
-      <button className="speechbtn" title={speech?'להשתיק את הדיבור':'להפעיל את הדיבור'} aria-label={speech?'להשתיק את הדיבור':'להפעיל את הדיבור'} onClick={toggleSpeech}><SpeakerIcon on={speech}/></button></div>
+      <div className="spawn"><Alien s={72} talking={!!talking}/></div>
       <div className="bubble" aria-live="polite"><div className="txt" key={capN}>{caption||'…'}</div></div>
     </div>);
 
@@ -1039,7 +1055,7 @@ function App(){
   const cs=Math.round(Math.max(84,Math.min(145,W*.32,groundY*.34)));
   // small things on each stretch of land (never where the hero stands or the coin is)
   const decor=[];
-  cliffs.forEach((c,k)=>{const rr=rng(k*13+5), th=PALS[k%PALS.length].decor;
+  cliffs.forEach((c,k)=>{const rr=rng(world.seed*7+k*13+5), th=palOf(k).decor;
     const a=k===0?c.x1-W:c.x0+70, b=(k<ROUNDS?c.x1:E[ROUNDS])-hw-40, n=Math.max(1,Math.min(3,Math.floor((b-a)/230)));   // a few things per stretch, not a crowd
     for(let j=0;j<n;j++){const spec=th[Math.floor(rr()*th.length)], h=Math.round(hs*spec.size*(.8+rr()*.4));
       decor.push({key:k+'-'+j,spec,h,x:Math.round(a+(b-a)*(j+.2+rr()*.6)/n),tall:spec.tall})}
@@ -1051,8 +1067,8 @@ function App(){
       style={screen==='start'?{visibility:'hidden'}:null}>
       {/* the world: river, land, bridges, coins. It slides left while the hero walks on the spot */}
       <div className="world" style={{left:0,top:0,width:worldW,height:H,transform:`translateX(${-offset}px)`,transition:walkDur?`transform ${walkDur}s linear`:'none'}}>
-        {rounds.map((r,i)=><div key={'pit'+i} style={{left:E[i]-14,top:groundY+2,width:r.gap*U+28,height:H-groundY-2}}><Pit type={r.type} w={r.gap*U+28} h={Math.max(10,H-groundY-2)} seed={i+1}/></div>)}
-        {cliffs.map((c,k)=><div key={k} style={{left:c.x0,top:groundY,width:c.x1-c.x0,height:groundH}}><Cliff w={c.x1-c.x0} h={groundH} seed={k+1} edgeL={c.l} edgeR={c.r} pal={PALS[k%PALS.length]}/></div>)}
+        {rounds.map((r,i)=><div key={'pit'+i} style={{left:E[i]-14,top:groundY+2,width:r.gap*U+28,height:H-groundY-2}}><Pit type={r.type} w={r.gap*U+28} h={Math.max(10,H-groundY-2)} seed={world.seed%997+i+1}/></div>)}
+        {cliffs.map((c,k)=><div key={k} style={{left:c.x0,top:groundY,width:c.x1-c.x0,height:groundH}}><Cliff w={c.x1-c.x0} h={groundH} seed={world.seed+k+1} edgeL={c.l} edgeR={c.r} pal={palOf(k)}/></div>)}
         {decor.filter(d=>d.tall).map(d=><div key={d.key} style={{left:d.x,top:groundY+2-d.h,zIndex:1}}><Decor spec={d.spec} h={d.h} seed={Math.abs(d.x>>3)}/></div>)}
         {rounds.length>0&&<button ref={bigChestRef} className={'wchest'+(endStage==='chest'?' idle':'')} aria-label="לפתוח את תיבת האוצר"
           style={{left:E[ROUNDS]+2,top:groundY-Math.round(cs*.8)+6,width:cs}} onPointerDown={e=>e.stopPropagation()} onClick={()=>{if(screen==='end')tapChest()}}>
@@ -1069,7 +1085,7 @@ function App(){
       </div>
       <div className="hero" ref={heroRef} style={{left:heroX,top:groundY+FEET-hs,width:hw,height:hs,opacity:hero.vis?1:0,transition:walkDur?`left ${walkDur}s linear`:'none'}}>
         <div className={'in'+(hero.vis?' show':'')} key={hero.vis?'v':'h'}>
-          <div className={hero.walk||hero.cheer||scared?'':'idle'}><Hero s={hs} walking={hero.walk} cheer={hero.cheer} scared={scared}/></div></div></div>
+          <div className={hero.win?'winhop':hero.walk||hero.cheer||scared?'':'idle'}><Hero s={hs} walking={hero.walk} cheer={hero.cheer} scared={scared} win={hero.win}/></div></div></div>
       {screen==='play'&&<div ref={monRef} className="monster" style={{left:0,top:groundY+FEET-mh,width:mw,height:mh}}><Monster w={mw} h={mh} st={monArt}/></div>}
       {/* front layer: the small things on the land, in front of the hero (depth while walking) */}
       <div className="world front" style={{left:0,top:0,width:worldW,height:H,transform:`translateX(${-offset}px)`,transition:walkDur?`transform ${walkDur}s linear`:'none'}}>
