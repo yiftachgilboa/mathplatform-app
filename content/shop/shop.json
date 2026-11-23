@@ -1,0 +1,56 @@
+{
+  "testMode": true,
+  "startCoins": 100,
+  "boxPricePractices": 10,
+
+  "rewards": {
+    "video":        { "first": 5,  "repeat": 0,  "repeatPerDay": 0 },
+    "interactive":  { "first": 5,  "repeat": 0,  "repeatPerDay": 0 },
+    "practice":     { "first": 10, "repeat": 10, "repeatPerDay": 3 },
+    "enrichment":   { "first": 10, "repeat": 10, "repeatPerDay": 3 },
+    "test":         { "first": 20, "repeat": 0,  "repeatPerDay": 0 },
+    "mastery":      { "first": 30, "repeat": 0,  "repeatPerDay": 0 },
+    "platformGame": { "first": 10, "repeat": 10, "repeatPerDay": 3 }
+  },
+  "surpriseGame": { "max": 60, "perDay": 3 },
+  "giftBoxes": { "video": 0, "interactive": 0, "practice": 0, "enrichment": 0, "test": 0, "mastery": 0 },
+
+  "boxes": [
+    { "id": "red",    "name": "אדומה",  "color": "#ef5c55", "shades": ["#ef5c55", "#d63a45"] },
+    { "id": "orange", "name": "כתומה",  "color": "#f58b2e", "shades": ["#f58b2e", "#f7a54a"] },
+    { "id": "yellow", "name": "צהובה",  "color": "#f2c431", "shades": ["#f2c431", "#f7d95c"] },
+    { "id": "green",  "name": "ירוקה",  "color": "#4fae55", "shades": ["#4fae55", "#8cc63f"] },
+    { "id": "teal",   "name": "טורקיז", "color": "#2aa8a0", "shades": ["#2aa8a0", "#4cc7c0"] },
+    { "id": "blue",   "name": "כחולה",  "color": "#4776c0", "shades": ["#4776c0", "#4aa3e0"] },
+    { "id": "purple", "name": "סגולה",  "color": "#8a5fc4", "shades": ["#8a5fc4", "#a984dd"] },
+    { "id": "pink",   "name": "ורודה",  "color": "#ee77ab", "shades": ["#ee77ab", "#f59ac2"] }
+  ],
+  "items": [
+    { "slot": "shirt",   "name": "חולצה",   "weight": 3 },
+    { "slot": "pants",   "name": "מכנסיים", "weight": 3 },
+    { "slot": "shoes",   "name": "נעליים",  "weight": 2 },
+    { "slot": "hair",    "name": "שיער",    "weight": 2 },
+    { "slot": "glasses", "name": "משקפיים", "weight": 3, "kinds": ["round", "square"] },
+    { "slot": "hat",     "name": "כובע",    "weight": 3, "kinds": ["cap", "party", "crown"] }
+  ],
+
+  "ui": {
+    "shop": "לחנות",
+    "title": "החנות",
+    "coins": "מטבעות",
+    "myHero": "הדמות שלי",
+    "close": "יציאה מהחנות",
+    "prevBox": "הקופסה הקודמת",
+    "nextBox": "הקופסה הבאה",
+    "boxName": "קופסה {name}",
+    "giftName": "קופסת מתנה",
+    "gift": "מתנה",
+    "missing": "עוד {n}",
+    "open": "לפתוח!",
+    "take": "לקחת",
+    "leave": "לוותר",
+    "goal": "עוד {n} לקופסה",
+    "goalReached": "אפשר לקנות קופסה!",
+    "error": "משהו השתבש, נסו שוב"
+  }
+}

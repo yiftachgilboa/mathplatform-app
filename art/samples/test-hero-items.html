@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>בדיקה — פריטים לדמות</title>
+<style>
+  body { margin: 0; padding: 12px; font-family: system-ui, "Segoe UI", Arial, sans-serif; color: #33373b; background: #e6f6f6; }
+  h1 { font-size: 20px; margin: 4px 0; } p { margin: 0 0 10px; font-size: 14px; color: #6b7378; }
+  .g { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+  figure { margin: 0; background: #fff; border-radius: 14px; padding: 26px 8px 6px; text-align: center; font-size: 13px; }
+  svg { width: 100%; height: 130px; overflow: visible; display: block; }
+</style>
+</head>
+<body>
+<h1>בדיקה — פריטים לדמות (ממתין לאישור)</h1>
+<p>הכול דרך <code>LP.hero(look)</code>: כובע מצחייה, כובע מסיבה, כתר, משקפיים עגולים ומרובעים, צבעי בגדים, שיער ונעליים.</p>
+<div class="g" id="g"></div>
+<script src="../lowpoly.js"></script>
+<script>
+LP.useTheme('day');
+const cam = LP.camera({ a: .25 });
+const bb = LP.bounds(LP.facets(LP.hero({}, { pose: 'stand', t: 0 }), cam));
+const fig = (name, look, o) => {
+  const obj = LP.hero(look, Object.assign({ pose: 'stand', t: 0, rot: -.25, expression: 'happy' }, o));
+  return `<figure><svg viewBox="${bb.x} ${bb.y} ${bb.w} ${bb.h}">${LP.draw(obj, cam)}${LP.face(obj, cam)}</svg>${name}</figure>`;
+};
+const C = { red: '#ef5c55', blue: '#4776c0', green: '#4fae55', purple: '#8a5fc4', pink: '#ee77ab', yellow: '#f2c431', teal: '#2aa8a0', orange: '#f58b2e' };
+let h = fig('רגיל', {});
+for (const [kind, n] of [['cap', 'מצחייה'], ['party', 'מסיבה'], ['crown', 'כתר']])
+  for (const [r, rn] of [[0, 'חזית'], [-.25, ''], [.85, 'צד'], [-.85, 'צד']]) h += fig(n + ' ' + rn, { hat: { kind, color: C.purple } }, { rot: r });
+for (const [kind, n] of [['round', 'עגולים'], ['square', 'מרובעים']])
+  for (const [r, rn] of [[0, 'חזית'], [.85, 'צד']]) for (const e of ['happy', 'joy', 'scared']) h += fig(n + ' ' + rn, { glasses: { kind, color: C.blue } }, { rot: r, expression: e });
+for (const [n, c] of Object.entries(C)) h += fig(n, { shirt: { color: c }, pants: { color: c }, shoes: { color: c }, hair: { color: c } });
+h += fig('הכול', { shirt: { color: C.teal }, pants: { color: C.purple }, shoes: { color: C.orange }, hair: { color: C.pink }, hat: { kind: 'cap', color: C.yellow }, glasses: { kind: 'round', color: C.red } }, { pose: 'cheer', t: .2 });
+g.innerHTML = h;
+</script>
+</body>
+</html>

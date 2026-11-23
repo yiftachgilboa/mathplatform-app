@@ -8,8 +8,10 @@ type Result = { passed: boolean } | null
  * שלב 5 — מבחן מעבר: שאלות בסדר אקראי, בלי רמזים ובלי ניסיון שני.
  * בסוף: הדמות מגיבה. עבר → onPassed (חגיגה + מעבר). לא עבר → לנסות שוב / חזרה לתרגול.
  */
-export default function TestStage({ questions, count, mascot, ui, onAnswer, onFinish, onBackToPractice }: {
+export default function TestStage({ questions, count, mascot, hero, ui, onAnswer, onFinish, onBackToPractice }: {
   questions: Question[]; count: number; mascot: string
+  /** הדמות של הילד (במקום התמונה) */
+  hero?: React.ReactNode
   ui: { testProgress: string; testPass: string; testFail: string; retry: string; backToPractice: string }
   onAnswer: (correct: boolean, q: Question, picked: number) => void
   onFinish: (correct: number, total: number) => Promise<{ passed: boolean }>
@@ -68,8 +70,10 @@ export default function TestStage({ questions, count, mascot, ui, onAnswer, onFi
   if (idx >= total) {
     return (
       <div className="panel-in test" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 22, padding: '40px 20px 44px', textAlign: 'center' }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={mascot} alt="" className={result?.passed ? 'pop bob' : 'pop'} style={{ width: 140, height: 140, objectFit: 'contain', opacity: result ? 1 : 0.4 }} />
+        {hero ? <div className={`c-hero-mid ${result?.passed ? 'pop bob' : 'pop'}`} style={{ opacity: result ? 1 : 0.4 }}>{hero}</div> : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={mascot} alt="" className={result?.passed ? 'pop bob' : 'pop'} style={{ width: 140, height: 140, objectFit: 'contain', opacity: result ? 1 : 0.4 }} />
+        )}
         {result && (
           <>
             <p style={{ margin: 0, fontSize: 'clamp(26px, 4vw, 36px)', fontWeight: 900, letterSpacing: '-0.6px' }}>{result.passed ? ui.testPass : ui.testFail}</p>

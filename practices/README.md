@@ -36,6 +36,8 @@
 | `KidodoPractice.complete(extra)` | מסמן ✓ לשלב 2 (Promise, אף פעם לא נכשל, עד 2.5 שניות) |
 | `KidodoPractice.next()` | עובר לשלב 3 (ומקטין אם היה במסך מלא) |
 | `KidodoPractice.exit()` | מקטין חזרה לתוך השלב (בעמוד מלא: חוזר לקורס, לשלב 2) |
+| `KidodoPractice.look()` / `onLook(fn)` | מה הדמות של הילד לובשת, ועדכון באמצע משחק. **הדמות במשחק מצוירת רק דרך `LP.hero(look, {pose, t, rot})`** (לא `make.buddy`) |
+| `KidodoPractice.reward()` | כמה מטבעות מקבלים על תרגול (להצגה במשחק). `complete()` נקרא פעם אחת בכל סיום משחק |
 | `KidodoPractice.embedded` | `true` כשההתנסות בתוך הקורס (iframe) |
 | `KidodoPractice.inCourse` | `false` כשפותחים את הקובץ לבד — אז לא נשמר כלום |
 

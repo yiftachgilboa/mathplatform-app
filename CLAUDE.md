@@ -207,6 +207,9 @@ mathplatform-app/
 | image_url | text | nullable |
 | emoji | text | placeholder כשאין תמונה |
 
+### ארנק וחנות (מיגרציה `supabase/migrations/20261123_shop.sql`)
+`coin_ledger`, `child_shop`. מטבעות משתנים רק דרך הפונקציות (`award_coins`, `shop_*`). מספרים: `content/shop/shop.json`. תיעוד: `docs/course/shop-plan.md`.
+
 ### טבלאות הקורס (מיגרציה `supabase/migrations/20261113_course.sql`)
 | טבלה | מפתח | תוכן |
 |------|------|------|

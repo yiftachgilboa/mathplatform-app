@@ -9,6 +9,9 @@
  *   KidodoPractice.next()            — back to the course, on the next stage (3)
  *   KidodoPractice.exit()            — back to the course, on this stage (2)
  *   KidodoPractice.claimCorner()     — inside the course: the top-left slot is free for the course's enlarge/shrink button
+ *   KidodoPractice.look()            — what the child's hero wears (for LP.hero); {} = the default hero
+ *   KidodoPractice.onLook(fn)        — fn(look) when it changes while the game is open
+ *   KidodoPractice.reward()          — coins for finishing a practice (shown in the game)
  * Opened alone (no params), nothing is saved, and next/exit go to /course.
  *
  * Embedded: the course normally shows the practice inside its stage, in an
@@ -46,6 +49,12 @@
       '?child=' + encodeURIComponent(ctx.childId) + '&stage=' + stage
   }
 
+  // the course page keeps { look, reward } in localStorage (lib/shop/client.ts) – ready before the first drawing
+  var shopKey = 'kidodo-shop:' + ctx.childId
+  function shop() {
+    try { return (ctx.childId && JSON.parse(localStorage.getItem(shopKey))) || {} } catch (e) { return {} }
+  }
+
   window.KidodoPractice = {
     inCourse: inCourse,
     embedded: embedded,
@@ -59,6 +68,9 @@
     next: function () { if (embedded) tell('next'); else location.replace(courseUrl(STAGE + 1)) },
     exit: function () { if (embedded) tell('exit'); else location.replace(courseUrl(STAGE)) },
     // the game leaves its top-left button slot free: the course puts its enlarge / shrink button there (instead of a ✕)
+    look: function () { return shop().look || {} },
+    onLook: function (fn) { window.addEventListener('storage', function (e) { if (e.key === shopKey) fn(shop().look || {}) }) },
+    reward: function () { var r = Number(shop().reward); return r > 0 ? r : 10 },
     claimCorner: function () { if (embedded) tell('corner') },
   }
 })()

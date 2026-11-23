@@ -1,19 +1,22 @@
 import SignOutIconButton from './SignOutIconButton'
 
-/** כותרת: לוגו ימין · דמות + ברכה במרכז · מעבר לאפליקציה + יציאה שמאל */
-export default function CourseHeader({ hello, avatar, avatarLabel, logoutLabel, platformHref, platformLabel }: {
+/** כותרת: לוגו ימין · ברכה במרכז · מעבר לאפליקציה + יציאה שמאל. strip = הדמות, המטבעות והחנות (בטלפון, במקום הלוגו והברכה) */
+export default function CourseHeader({ hello, avatar, avatarLabel, logoutLabel, platformHref, platformLabel, strip }: {
   hello: string; avatar: string; avatarLabel: string; logoutLabel: string
-  platformHref: string; platformLabel: string
+  platformHref: string; platformLabel: string; strip?: React.ReactNode
 }) {
   return (
-    <header className="c-header">
+    <header className="c-header" data-strip={!!strip || undefined}>
+      {strip}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img className="logo" src="/course/kidodo-wordmark.png" alt="kidodo" />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-        <span className="ava">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={avatar} alt={avatarLabel} />
-        </span>
+      <div className="hi">
+        {!strip && (
+          <span className="ava">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={avatar} alt={avatarLabel} />
+          </span>
+        )}
         <span className="hello">{hello}</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 'none' }}>

@@ -231,16 +231,18 @@ const COIN_OBJ=LP.make.coin({size:40,rot:.45}), COIN_VB=lpBox([COIN_OBJ],A_OBJ,.
 const COIN_SVG=`<svg width="30" height="30" viewBox="${COIN_VB.join(' ')}" style="display:block;overflow:visible">${lpMarkup(COIN_OBJ,A_OBJ)}</svg>`;
 
 /* the hero: the library's head-body character in the kid outfit */
-const heroObj=(pose,t,rot,expression)=>LP.make.buddy({outfit:'kid',size:100,pose,t,rot,expression});
-const HERO_VB=lpBox(['stand','jump','scared','cheer'].flatMap(p=>[0,.17,.33,.5].map(t=>heroObj(p,t,0))),A_OBJ,.02,0);
+let LOOK=(window.KidodoPractice&&window.KidodoPractice.look&&window.KidodoPractice.look())||{};   // what the child's hero wears (the shop)
+const heroObj=(pose,t,rot,expression)=>LP.hero(LOOK,{size:100,pose,t,rot,expression});
+function useLook(){const [v,setV]=useState(0);useEffect(()=>{const K=window.KidodoPractice;if(K&&K.onLook)K.onLook(l=>{LOOK=l;setV(n=>n+1)})},[]);return v}
+const HERO_VB=lpBox(['stand','jump','scared','cheer'].flatMap(p=>[0,.17,.33,.5].map(t=>LP.hero({},{pose:p,t,rot:0}))),A_OBJ,.02,0);   // the bare hero: a hat may stick out above (overflow is visible)
 const IDLE_ACTS=[{pose:'wave',expr:'happy',ms:2200},{expr:'joy',ms:1600},{expr:'surprised',ms:1400},{pose:'wave',expr:'joy',ms:2000}];
 function Hero({s,pose:busyPose}){
-  const [act,setAct]=useState(null);
+  const [act,setAct]=useState(null), lookV=useLook();
   useEffect(()=>{if(busyPose){setAct(null);return}let tm;
     const next=()=>{tm=setTimeout(()=>{const a=IDLE_ACTS[Math.floor(Math.random()*IDLE_ACTS.length)];setAct(a);tm=setTimeout(()=>{setAct(null);next()},a.ms)},3000+Math.random()*4000)};
     next();return()=>clearTimeout(tm)},[busyPose]);
   const pose=busyPose||(act&&act.pose)||'stand', expr=busyPose?undefined:(act?act.expr:'happy');
-  return <LPLive vb={HERO_VB} width={s*HERO_VB[2]/HERO_VB[3]} height={s} dep={pose+'|'+expr} run={pose!=='stand'} fps={20} build={t=>heroObj(pose,pose==='jump'?t*CFG.CLIMB_SPEED:t,0,expr)}/>;
+  return <LPLive vb={HERO_VB} width={s*HERO_VB[2]/HERO_VB[3]} height={s} dep={pose+'|'+expr+'|'+lookV} run={pose!=='stand'} fps={20} build={t=>heroObj(pose,pose==='jump'?t*CFG.CLIMB_SPEED:t,0,expr)}/>;
 }
 
 /* treasure chest (library chest) */
@@ -442,13 +444,16 @@ function App(){
     audio();setHand(false);setEndStage('coins');setLidOpen(true);sfx.jackpot();
     const t0=Date.now(), el=chestRef.current;
     const iv=setInterval(()=>{coinBurst(el,9);if(Math.random()<.5)sfx.coin();if(Date.now()-t0>3000)clearInterval(iv)},200);
-    setTimeout(()=>{clearInterval(iv);setEndStage('done')},3200);
+    setTimeout(()=>{clearInterval(iv);setEndStage('done');finish()},3200);
   }
   const mistakes=()=>{const s=G.current.stats;return s?s.wrong+s.waterHits:0};
   useEffect(()=>{if(endStage!=='done')return;const n=starCount(mistakes());for(let i=0;i<3;i++)setTimeout(()=>i<n?tone(784+i*196,.3,'sine',.12):tone(260,.15,'triangle',.05),150+i*350)},[endStage]);
+  // every finished game is reported once (also when the child plays again without "next")
+  const doneReq=useRef(null);
+  function finish(){const s=G.current.stats;if(!doneReq.current)doneReq.current=KP.complete({answers:s.answers,correct:s.correct,wrong:s.wrong,waterHits:s.waterHits,stars:starCount(mistakes()),finalT:+G.current.T.toFixed(1)});return doneReq.current}
   async function goNext(){
-    if(leaving)return;setLeaving(true);hush();const s=G.current.stats;
-    await KP.complete({answers:s.answers,correct:s.correct,wrong:s.wrong,waterHits:s.waterHits,stars:starCount(mistakes()),finalT:+G.current.T.toFixed(1)});
+    if(leaving)return;setLeaving(true);hush();
+    await finish();
     KP.next();
   }
   function toggleSound(){const v=!sound;setSound(v);soundOn=v;if(!v)hush()}
@@ -464,6 +469,7 @@ function App(){
 
   useEffect(()=>{if(KP.claimCorner)KP.claimCorner()},[]);
   useEffect(()=>{start();return hush},[]);
+  useEffect(()=>{if(phase!=='win')doneReq.current=null},[phase]);
 
   /* ---------- render ---------- */
   const floors=[];for(let f=1;f<=TOP;f++)if(f<=built||f===TOP)floors.push(f);

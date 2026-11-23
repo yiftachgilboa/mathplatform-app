@@ -1,6 +1,8 @@
 // שרת בלבד — רישום תשובות, השלמת שלבים ושליטה. משמש את api/course/* ואת api/sdk/event.
 import type { Course } from './content'
 import { adminClient, practiceAnswers } from './admin'
+import { reward } from '@/lib/shop/wallet'
+import type { RewardKind } from '@/lib/shop/config'
 import { PRACTICE_STAGE, practiceMastered, testPassed, windowAccuracy } from './progress'
 
 type Ctx = { childId: string; course: Course; lessonId: string }
@@ -16,7 +18,9 @@ async function markMastered({ childId, course, lessonId }: Ctx, via: 'practice' 
       { onConflict: 'child_id,course_id,lesson_id', ignoreDuplicates: true })
     .select('lesson_id')
   if (error) console.error('[course] mastery', error.message)
-  return (data?.length ?? 0) > 0
+  const isNew = (data?.length ?? 0) > 0
+  if (isNew) await reward(childId, 'mastery', `course:${course.courseId}:${lessonId}:mastery`)
+  return isNew
 }
 
 async function isMastered({ childId, course, lessonId }: Ctx) {
@@ -25,7 +29,9 @@ async function isMastered({ childId, course, lessonId }: Ctx) {
   return !!data
 }
 
-/** סימון שלב כהושלם (+ כוכבים / ציון). completed=false שומר ציון בלי ✓. */
+const STAGE_REWARD: Record<number, RewardKind> = { 1: 'video', 2: 'interactive', 3: 'practice', 4: 'enrichment', 5: 'test' }
+
+/** סימון שלב כהושלם (+ כוכבים / ציון) ותגמול במטבעות. completed=false שומר ציון בלי ✓ ובלי מטבעות. */
 export async function completeStage(ctx: Ctx, stage: number, extra: { stars?: number; score?: number; completed?: boolean } = {}) {
   const row: Record<string, unknown> = {
     child_id: ctx.childId, course_id: ctx.course.courseId, lesson_id: ctx.lessonId, stage,
@@ -36,7 +42,10 @@ export async function completeStage(ctx: Ctx, stage: number, extra: { stars?: nu
   if (extra.score != null) row.score = Math.max(0, Math.min(100, Math.round(extra.score)))
   const { error } = await adminClient().from('course_progress')
     .upsert(row, { onConflict: 'child_id,course_id,lesson_id,stage' })
-  if (error) console.error('[course] progress', error.message)
+  if (error) { console.error('[course] progress', error.message); return }
+  if (extra.completed !== false && STAGE_REWARD[stage]) {
+    await reward(ctx.childId, STAGE_REWARD[stage], `course:${ctx.course.courseId}:${ctx.lessonId}:${stage}`)
+  }
 }
 
 /** תשובה אחת. בשלב התרגול — בודק שליטה לפי החלון האחרון. */

@@ -20,6 +20,10 @@ const ART_TAG = /<script\s+src="\.\.\/art\/lowpoly\.js"\s*><\/script>/
 const art = transformSync(readFileSync(join(root, 'art', 'lowpoly.js'), 'utf8'), { loader: 'js', target: 'es2019', minify: true, legalComments: 'none' }).code
 if (/<\/script/i.test(art)) throw new Error('art/lowpoly.js contains "</script" — it cannot be inlined')
 
+// the same library for the app's own pages (components/course/Hero.tsx)
+mkdirSync(join(root, 'public', 'art'), { recursive: true })
+writeFileSync(join(root, 'public', 'art', 'lowpoly.js'), `/* generated from art/lowpoly.js by scripts/build-practices.mjs */\n${art}`)
+
 for (const file of readdirSync(srcDir).filter(f => f.endsWith('.html'))) {
   let html = readFileSync(join(srcDir, file), 'utf8')
   const m = html.match(JSX_BLOCK)

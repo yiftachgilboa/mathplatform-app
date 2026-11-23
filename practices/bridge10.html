@@ -409,11 +409,13 @@ const Coin=({s=34})=><span style={{display:'block',width:s,height:s,lineHeight:0
 
 /* the hero: head-body character in the kid outfit, walking right (3/4 view); scared = turns to the monster */
 const HERO_ROT=.85;
-const heroObj=(pose,t,rot,expression)=>LP.make.buddy({outfit:'kid',size:100,pose,t,rot,expression});
-const HERO_VB=lpBox(['stand','walk'].flatMap(p=>[0,.17,.33,.5].flatMap(t=>[heroObj(p,t,HERO_ROT),heroObj(p,t,-HERO_ROT)])),A_OBJ,.02,0);
+let LOOK=(window.KidodoPractice&&window.KidodoPractice.look&&window.KidodoPractice.look())||{};   // what the child's hero wears (the shop)
+const heroObj=(pose,t,rot,expression)=>LP.hero(LOOK,{size:100,pose,t,rot,expression});
+function useLook(){const [v,setV]=useState(0);useEffect(()=>{const K=window.KidodoPractice;if(K&&K.onLook)K.onLook(l=>{LOOK=l;setV(n=>n+1)})},[]);return v}
+const HERO_VB=lpBox(['stand','walk'].flatMap(p=>[0,.17,.33,.5].flatMap(t=>[HERO_ROT,-HERO_ROT].map(rot=>LP.hero({},{pose:p,t,rot})))),A_OBJ,.02,0);   // the bare hero: a hat may stick out above (overflow is visible)
 const IDLE_ACTS=[{pose:'wave',expr:'happy',ms:2200},{expr:'joy',ms:1600},{expr:'surprised',ms:1400},{expr:'sad',ms:1300},{pose:'wave',expr:'joy',ms:2000}];
 function Hero({s,walking,cheer,scared,win}){
-  const busy=win||scared||walking||cheer;
+  const busy=win||scared||walking||cheer, lookV=useLook();
   // waiting at the bridge: faces the camera, and now and then waves or makes a face (one still frame between acts)
   const [act,setAct]=useState(null);
   useEffect(()=>{if(busy){setAct(null);return}let tm;
@@ -422,7 +424,7 @@ function Hero({s,walking,cheer,scared,win}){
   const pose=win?'cheer':scared?'scared':walking?'walk':cheer?'cheer':(act&&act.pose)||'stand';
   const expr=busy?undefined:(act?act.expr:'happy'), rot=win||!busy?0:scared?-HERO_ROT:HERO_ROT;
   // still pose = one frame; moving = 20 fps. win (the chest is open): faces the camera, waves both arms (and the wrapper jumps)
-  return <LPLive vb={HERO_VB} width={s*.75} height={s} dep={pose+'|'+expr+'|'+rot} run={pose!=='stand'} fps={20} build={t=>heroObj(pose,t,rot,expr)}/>;
+  return <LPLive vb={HERO_VB} width={s*.75} height={s} dep={pose+'|'+expr+'|'+rot+'|'+lookV} run={pose!=='stand'} fps={20} build={t=>heroObj(pose,t,rot,expr)}/>;
 }
 
 /* treasure chest (library chest). The lid opens with a little overshoot */
@@ -966,7 +968,7 @@ function App(){
       later(alive,((g*geo.U+22)/speed)*1000,async()=>{
         sfx.coin();setCoinTaken(ri);
         await flyCoin(coinRef.current,chestRef.current);
-        setProgress(ri+1);setBumpN(b=>b+1);setCoins(c=>c+10);tone(988,.25,'sine');setTimeout(()=>tone(1319,.3,'sine'),120);
+        setProgress(ri+1);setBumpN(b=>b+1);setCoins(Math.round((ri+1)/ROUNDS*(KP.reward?KP.reward():10)));tone(988,.25,'sine');setTimeout(()=>tone(1319,.3,'sine'),120);
       });
       await sleep(dur*1000+60); if(!alive())return;
       setBuilt(b=>[...b,{i:ri,p}]);setBridge(null);setWalkDur(0);
@@ -1008,6 +1010,7 @@ function App(){
   }
 
   function restart(){   // play the whole game again from the first pit
+    doneReq.current=null;
     hush();clearNudges();clearTimeout(teachTimer.current);setDemo(null);setEndStage(null);setLidOpen(false);setTaps(0);setCoins(0);setBumpN(0);
     setPlanks([]);R.current.planks=[];setBridge(null);setHero({walk:false,vis:false,cheer:false});scaredRef.current=false;setScared(false);
     {const m=mon.current;m.active=false;m.retreat=false;m.elapsed=0}
@@ -1020,11 +1023,14 @@ function App(){
     setLidOpen(true);sfx.jackpot();setHero(h=>({...h,win:true,walk:false,cheer:false}));scaredRef.current=false;setScared(false);
     const t0=Date.now();
     const iv=setInterval(()=>{coinBurst(bigChestRef.current,9);if(Math.random()<.5)sfx.coin();if(Date.now()-t0>3000){clearInterval(iv)}},200);
-    setTimeout(()=>{clearInterval(iv);setEndStage('done');endStageRef.current='done'},3200);
+    setTimeout(()=>{clearInterval(iv);setEndStage('done');endStageRef.current='done';finish()},3200);
   }
+  // every finished game is reported once (also when the child plays again without "next")
+  const doneReq=useRef(null);
+  function finish(){if(!doneReq.current)doneReq.current=KP.complete({rounds:ROUNDS,firstTry:stats.current.filter(s=>s&&!s.wrong).length,stars:starCount(stats.current),mistakes:stats.current.reduce((t,s)=>t+(s?s.mistakes||0:0),0)});return doneReq.current}
   async function goNext(){
     if(leaving)return;setLeaving(true);hush();
-    await KP.complete({rounds:ROUNDS,firstTry:stats.current.filter(s=>s&&!s.wrong).length,stars:starCount(stats.current),mistakes:stats.current.reduce((t,s)=>t+(s?s.mistakes||0:0),0)});
+    await finish();
     KP.next();
   }
   const [endStage,setEndStageS]=useState(null), endStageRef=useRef(null);   // chest → coins → done

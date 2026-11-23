@@ -1,6 +1,7 @@
 import { redirect, notFound } from 'next/navigation'
 import { getCourse, avatarImg } from '@/lib/course/content'
 import { currentUser, enrollments, purchasedCourses, loadCourseState } from '@/lib/course/admin'
+import { loadShop } from '@/lib/shop/wallet'
 import CourseClient from './CourseClient'
 
 /** עמוד השיעור — Server: הרשאה + התקדמות. ה-UI ב-CourseClient. */
@@ -24,7 +25,7 @@ export default async function LessonPage({ params, searchParams }: {
   const enr = mine.find(e => e.child_id === child) ?? mine[0]
   if (!enr) redirect('/course')
 
-  const state = await loadCourseState(enr.child_id, courseId, course)
+  const [state, shop] = await Promise.all([loadCourseState(enr.child_id, courseId, course), loadShop(enr.child_id)])
   const stageNum = Number(stage)
 
   return (
@@ -36,6 +37,7 @@ export default async function LessonPage({ params, searchParams }: {
       initialLesson={lessonIdx}
       initialStage={stageNum >= 1 && stageNum <= 5 ? stageNum : null}
       initialState={state}
+      initialShop={shop}
     />
   )
 }

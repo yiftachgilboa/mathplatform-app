@@ -31,11 +31,16 @@ export default function WelcomeClient({ courseId, ui, avatars, existing }: Props
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
-  async function start() {
+  // הדמות מגיעה מהחנות: אם אין בין מה לבחור — מדלגים על בחירת התמונה ויוצאים לדרך
+  const pickAvatar = avatars.length > 1
+  const afterWho = (id: string | null) => { setChildId(id); if (pickAvatar) setStep('avatar'); else start(id) }
+
+  async function start(id: string | null = childId) {
+    if (busy) return
     setBusy(true); setError('')
     const res = await fetch('/api/course/enroll', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ courseId, avatar, childId, name: childId ? undefined : name }),
+      body: JSON.stringify({ courseId, avatar, childId: id, name: id ? undefined : name }),
     })
     const out = await res.json().catch(() => ({}))
     if (res.ok && out.href) { router.replace(out.href); return }
@@ -60,7 +65,7 @@ export default function WelcomeClient({ courseId, ui, avatars, existing }: Props
           <h1 style={h1}>{o.pickChild}</h1>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, width: '100%' }}>
             {existing.map(k => (
-              <button key={k.id} type="button" className="press" onClick={() => { setChildId(k.id); setStep('avatar') }}
+              <button key={k.id} type="button" className="press" disabled={busy} onClick={() => afterWho(k.id)}
                 style={{ minHeight: 80, borderRadius: 26, fontSize: 24, fontWeight: 800, background: '#DFF3FF', border: '2px solid transparent', padding: '0 16px' }}>
                 {k.name}
               </button>
@@ -70,6 +75,7 @@ export default function WelcomeClient({ courseId, ui, avatars, existing }: Props
               + {o.newChild}
             </button>
           </div>
+          {error && <p role="alert" style={{ margin: 0, color: '#9B6A00', fontWeight: 700 }}>{error}</p>}
         </section>
       )}
 
@@ -79,11 +85,11 @@ export default function WelcomeClient({ courseId, ui, avatars, existing }: Props
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={avatars[0].img} alt="" className="pop bob" style={{ width: 120, height: 120, objectFit: 'contain' }} />
           <h1 style={h1}>{o.askName}</h1>
-          <form style={{ display: 'contents' }} onSubmit={e => { e.preventDefault(); if (name.trim()) { setError(''); setStep('avatar') } }}>
+          <form style={{ display: 'contents' }} onSubmit={e => { e.preventDefault(); if (name.trim()) { setError(''); afterWho(null) } }}>
             <input value={name} onChange={e => setName(e.target.value)} autoFocus maxLength={40} placeholder={o.namePlaceholder} aria-label={o.askName}
               style={{ width: '100%', maxWidth: 360, minHeight: 64, borderRadius: 22, border: '2px solid var(--line-2)', padding: '0 20px', fontSize: 26, fontWeight: 800, textAlign: 'center', background: '#fff', outlineColor: 'var(--primary)' }} />
             {error && <p role="alert" style={{ margin: 0, color: '#9B6A00', fontWeight: 700 }}>{error}</p>}
-            <button type="submit" disabled={!name.trim()} className="press c-primary" aria-label={ui.next}
+            <button type="submit" disabled={!name.trim() || busy} className="press c-primary" aria-label={ui.next}
               style={{ width: 64, height: 64, borderRadius: '50%', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M19 12H5M11 6l-6 6 6 6" /></svg>
             </button>
@@ -109,7 +115,7 @@ export default function WelcomeClient({ courseId, ui, avatars, existing }: Props
             })}
           </div>
           {error && <p role="alert" style={{ margin: 0, color: '#9B6A00', fontWeight: 700 }}>{error}</p>}
-          <button type="button" onClick={start} disabled={busy} className="press c-primary" style={bigBtn}>{o.start}</button>
+          <button type="button" onClick={() => start()} disabled={busy} className="press c-primary" style={bigBtn}>{o.start}</button>
         </section>
       )}
     </main>

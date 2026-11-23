@@ -1,5 +1,5 @@
 'use client'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { availableStages, fill, mediaUrl, type Course, type Lesson } from '@/lib/course/content'
 import { currentLessonIndex, meterValue, PRACTICE_STAGE, type CourseState } from '@/lib/course/progress'
 import CourseHeader from '@/components/course/CourseHeader'
@@ -11,6 +11,11 @@ import InteractiveVideoStage from '@/components/course/InteractiveVideoStage'
 import GameStage from '@/components/course/GameStage'
 import PracticeStage from '@/components/course/PracticeStage'
 import TestStage from '@/components/course/TestStage'
+import Shop from '@/components/course/Shop'
+import Hero from '@/components/course/Hero'
+import { HeroCard, HeroStrip, flyCoins, useHeroPose } from '@/components/course/HeroCard'
+import type { ShopState } from '@/lib/shop/config'
+import { shareLook, shopAction, tone } from '@/lib/shop/client'
 import { practiceUrl, prefetch, PRACTICE_ASSETS, warmSpeech } from '@/lib/course/practice'
 
 type Props = {
@@ -21,6 +26,8 @@ type Props = {
   initialLesson: number
   initialStage: number | null
   initialState: CourseState
+  /** הארנק, הדמות והחנות. null = עוד לא מותקן (הקורס עובד בלעדיהם) */
+  initialShop: ShopState | null
 }
 
 /** השלב שנכנסים אליו בשיעור: הראשון (מאלה שיש בהם תוכן) שעוד לא הושלם */
@@ -34,13 +41,58 @@ function fitStage(lesson: Lesson, s: number) {
   return availableStages(lesson).includes(s) ? s : 1
 }
 
-export default function CourseClient({ course, childId, childName, avatar, initialLesson, initialStage, initialState }: Props) {
+export default function CourseClient({ course, childId, childName, avatar, initialLesson, initialStage, initialState, initialShop }: Props) {
   const ui = course.ui
   const [state, setState] = useState(initialState)
   const [lessonIdx, setLessonIdx] = useState(initialLesson)
   const [stage, setStage] = useState(initialStage ? fitStage(course.lessons[initialLesson], initialStage) : defaultStage(initialState, course.lessons[initialLesson]))
   const [celebrate, setCelebrate] = useState<Lesson | null>(null)
   const knownMastered = useRef(new Set(initialState.mastered))
+
+  // ---- הארנק, הדמות והחנות ----
+  const [shop, setShop] = useState(initialShop)
+  const [shopOpen, setShopOpen] = useState(false)
+  const [happy, setHappy] = useState(0)          // גדל בכל פעם שהדמות חוגגת
+  const heroPose = useHeroPose(happy)
+  const coinsRef = useRef(initialShop?.coins ?? 0)
+  const look = shop?.look
+  // המשחקים (iframe) מקבלים את המראה מכאן — לפני שהם נטענים, ושוב כשהוא משתנה
+  useLayoutEffect(() => { if (look) shareLook(childId, look) }, [childId, look])
+
+  // מטבעות חדשים: עפים לארנק והדמות חוגגת. אם המשחק במסך מלא — מחכים שיוקטן
+  const takeShop = useCallback((s: ShopState | null | undefined) => {
+    if (!s) return
+    const gain = s.coins - coinsRef.current
+    coinsRef.current = s.coins
+    if (gain <= 0) { setShop(s); return }
+    const celebrateCoins = () => {
+      if (document.querySelector('.c-practice[data-big]')) { setTimeout(celebrateCoins, 400); return }
+      flyCoins(Math.min(12, Math.max(4, Math.round(gain / 2))))
+      tone(988, .1, 'triangle', .06, .9); tone(1319, .25, 'triangle', .06, 1)
+      setTimeout(() => {
+        setShop(prev => ({ ...(prev ?? s), coins: coinsRef.current, gifts: s.gifts, started: true }))
+        setHappy(n => n + 1)
+      }, 900)
+    }
+    celebrateCoins()
+  }, [])
+
+  const onShop = useCallback(async (a: Record<string, unknown>) => {
+    const r = await shopAction(childId, course.courseId, a)
+    if (r?.shop) { coinsRef.current = r.shop.coins; setShop(r.shop) }
+    return r
+  }, [childId, course.courseId])
+
+  // כניסה ראשונה: מגיעים ישר לחנות, עם מטבעות הפתיחה
+  const firstTime = !!initialShop && !initialShop.started
+  useEffect(() => {
+    if (!firstTime) return
+    setShopOpen(true)
+    onShop({ action: 'start' })
+  }, [firstTime, onShop])
+
+  const openShop = useCallback(() => setShopOpen(true), [])
+  const closeShop = useCallback(() => { setShopOpen(false); setHappy(n => n + 1) }, [])
 
   const lesson = course.lessons[lessonIdx]
   // רק שלבים שיש בהם תוכן מוצגים (הסרטון תמיד). החצים והמעברים האוטומטיים מדלגים על השאר.
@@ -86,11 +138,12 @@ export default function CourseClient({ course, childId, childName, avatar, initi
   const refresh = useCallback(async () => {
     const res = await fetch(`/api/course/progress?childId=${childId}&courseId=${course.courseId}`, { cache: 'no-store' })
     if (!res.ok) return
-    const fresh: CourseState = await res.json()
+    const { shop: freshShop, ...fresh }: CourseState & { shop?: ShopState | null } = await res.json()
     setState(fresh)
+    takeShop(freshShop)
     const gained = fresh.mastered.find(id => !knownMastered.current.has(id))
     if (gained) onMastered(gained)
-  }, [childId, course.courseId, onMastered])
+  }, [childId, course.courseId, onMastered, takeShop])
 
   useEffect(() => { refreshRef.current = refresh }, [refresh])
 
@@ -111,6 +164,7 @@ export default function CourseClient({ course, childId, childName, avatar, initi
   async function completeStage(s: number, autoAdvance: boolean) {
     markDone(s)
     fetch('/api/course/progress', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...ctx, stage: s }) })
+      .then(r => (r.ok ? r.json() : null)).then(r => takeShop(r?.shop)).catch(() => {})
     const n = nextOf(s)
     if (autoAdvance && n) setTimeout(() => setStage(cur => (cur === s ? n : cur)), 900)
   }
@@ -168,6 +222,7 @@ export default function CourseClient({ course, childId, childName, avatar, initi
     const out = res.ok ? await res.json() : { passed: false, score: 0 }
     setState(prev => ({ ...prev, testScore: { ...prev.testScore, [lesson.id]: out.score } }))
     if (out.passed) {
+      setTimeout(refresh, 600)   // המטבעות של המבחן
       markDone(5)
       setState(prev => prev.mastered.includes(lesson.id) ? prev : { ...prev, mastered: [...prev.mastered, lesson.id] })
       setTimeout(() => onMastered(lesson.id), 900)
@@ -201,13 +256,17 @@ export default function CourseClient({ course, childId, childName, avatar, initi
 
   return (
     <>
-      <CourseHeader hello={fill(ui.welcome, { name: childName })} avatar={avatar} avatarLabel={ui.yourAvatar} logoutLabel={ui.logout} platformHref={`/child/${childId}`} platformLabel={ui.toPlatform} />
+      <CourseHeader hello={fill(ui.welcome, { name: childName })} avatar={avatar} avatarLabel={ui.yourAvatar} logoutLabel={ui.logout} platformHref={`/child/${childId}`} platformLabel={ui.toPlatform}
+        strip={shop && <HeroStrip shop={shop} pose={heroPose} onShop={openShop} />} />
       <div className="c-wrap">
+        <div className="c-side">
+        {shop && <HeroCard shop={shop} name={childName} pose={heroPose} onShop={openShop} />}
         <LessonMenu lessons={course.lessons} states={lessonStates} selected={lessonIdx} label={ui.lessonsNav}
           meters={meters} achieved={course.lessons.map((l, i) => state.mastered.includes(l.id) || meters[i] >= goal)}
           goal={goal} meterLabel={ui.meter} doneLabel={ui.lessonDone}
           titleOf={l => fill(ui.lessonTitle, { key: l.key })} numberOf={n => fill(ui.lessonNumber, { n: String(n) })}
           onPick={i => go(i)} onReset={resetLesson} />
+        </div>
         <main className="c-main">
           <section className="c-stage" key={`${lesson.id}-${stage}`}>
             {stage === 1 && (
@@ -236,7 +295,7 @@ export default function CourseClient({ course, childId, childName, avatar, initi
               <GameStage kind="enrichment" tint={tint} label="" soonLabel={ui.comingSoon} available={false} onPlay={() => {}} />
             ))}
             {stage === 5 && (st.test?.questions.length ? (
-              <TestStage questions={st.test.questions} count={course.mastery.test.questions} mascot={avatar} ui={ui}
+              <TestStage questions={st.test.questions} count={course.mastery.test.questions} mascot={avatar} ui={ui} hero={shop && <Hero look={shop.look} pose="stand" className="c-hero" />}
                 onAnswer={c => sendAnswer(5, c)} onFinish={finishTest} onBackToPractice={() => setStage(stages.includes(PRACTICE_STAGE) ? PRACTICE_STAGE : prevOf(5) ?? 1)} />
             ) : (
               <GameStage kind="enrichment" tint={tint} label="" soonLabel={ui.comingSoon} available={false} onPlay={() => {}} />
@@ -250,13 +309,17 @@ export default function CourseClient({ course, childId, childName, avatar, initi
         </main>
       </div>
 
+      {shopOpen && shop && <Shop shop={shop} onAction={onShop} onClose={closeShop} />}
+
       {celebrate && (
         <div role="dialog" aria-modal="true" aria-label={fill(ui.mastered, { key: celebrate.key })} onClick={closeCelebration}
           style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(22,62,107,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div className="pop" onClick={e => e.stopPropagation()}
             style={{ background: celebrate.tint, borderRadius: 32, padding: '32px 24px', maxWidth: 460, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, textAlign: 'center' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={avatar} alt="" className="bob" style={{ width: 150, height: 150, objectFit: 'contain' }} />
+            {shop ? <div className="c-hero-mid"><Hero look={shop.look} pose="cheer" className="c-hero" /></div> : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatar} alt="" className="bob" style={{ width: 150, height: 150, objectFit: 'contain' }} />
+            )}
             <p style={{ margin: 0, fontSize: 'clamp(26px, 5vw, 34px)', fontWeight: 900, letterSpacing: '-0.035em', lineHeight: 1.15 }}>
               {fill(ui.mastered, { key: celebrate.key })}
             </p>
