@@ -1021,8 +1021,8 @@ function App(){
     learn('chest');
     audio();hush();setDemo(null);setEndStage('coins');endStageRef.current='coins';setTaps(1);log('chest_tap');
     setLidOpen(true);sfx.jackpot();setHero(h=>({...h,win:true,walk:false,cheer:false}));scaredRef.current=false;setScared(false);
-    const t0=Date.now();
-    const iv=setInterval(()=>{coinBurst(bigChestRef.current,9);if(Math.random()<.5)sfx.coin();if(Date.now()-t0>3000){clearInterval(iv)}},200);
+    const t0=performance.now();
+    const iv=setInterval(()=>{coinBurst(bigChestRef.current,9);if(Math.random()<.5)sfx.coin();if(performance.now()-t0>3000){clearInterval(iv)}},200);
     setTimeout(()=>{clearInterval(iv);setEndStage('done');endStageRef.current='done';finish()},3200);
   }
   // every finished game is reported once (also when the child plays again without "next")
@@ -1040,6 +1040,8 @@ function App(){
   function toggleSound(){const v=!sound;setSound(v);soundOn=v;if(!v&&hasTTS)try{speechSynthesis.cancel()}catch(e){}}
   useEffect(()=>()=>{clearNudges();hush();clearTimeout(teachTimer.current)},[]);
   useEffect(()=>{if(KP.claimCorner)KP.claimCorner()},[]);   // ask the course for its button in the top-left slot
+  // back after a pause: the first pit's instruction is said again
+  useEffect(()=>{if(KP.onResume)KP.onResume(()=>{if(R.current.phase==='build'&&R.current.ri===0&&lastSay.current&&!dragRef.current)say(lastSay.current)})},[]);
   useEffect(()=>{start()},[]);   // no start screen: straight into the game (sound wakes on the first touch)
 
   /* ---------- render ---------- */

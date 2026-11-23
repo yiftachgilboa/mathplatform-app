@@ -492,7 +492,7 @@ function App(){
     setHero(1);setHeroPos('out');setHeroVis(false);setFacing('right');setWalking(false);setCabinF(1);setCabinDur(0);setDoors(true);setLitTo(r.part);setHappy(false);setBusy(true);R.current.busy=true;
     setPhase('guess');R.current.phase='guess';
     enterScene('blocks');
-    showPad(alive,2300);guessStart.current=Date.now()+2300;
+    showPad(alive,2300);guessStart.current=performance.now()+2300;
     await sleep(400); if(!alive())return;
     if(i===0){
       await say(`אני מציג לכם כאן קובייה ארוכה עם המספר ${r.total}. מתחתיה אני שם את הקובייה ${r.part}. בואו תחשבו: איזו קובייה חסרה כדי להשלים ל־${r.total}?`); if(!alive())return;
@@ -508,7 +508,7 @@ function App(){
 
   async function onGuess(n){
     const alive=newFlow(), i=R.current.ri, r=R.current.rounds[i];
-    const ms=Date.now()-(guessStart.current||Date.now()); guessStart.current=0;
+    const ms=performance.now()-(guessStart.current||performance.now()); guessStart.current=0;
     clearNudges();hush();setBusy(true);R.current.busy=true;
     r.guess=n;r.guessMs=ms;log('guess_made',{total:r.total,part:r.part,guess:n,ms});
     setSlot('guess');setChip('show');tone(660,.12);setTimeout(()=>tone(880,.18),90);
@@ -638,6 +638,9 @@ function App(){
   }
   useEffect(()=>{const h=e=>{const n=parseInt(e.key,10);if(n>=1&&n<=9)pick(n)};window.addEventListener('keydown',h);return()=>window.removeEventListener('keydown',h)});
   useEffect(()=>()=>{clearNudges();hush()},[]);
+  useEffect(()=>{if(KP.embedded)start()},[]);   // inside the course its Play button is the start screen
+  // back after a pause: the last instruction is said again
+  useEffect(()=>{if(KP.onResume)KP.onResume(()=>{if(R.current.rounds.length&&!R.current.busy&&lastSay.current)say(lastSay.current)})},[]);
 
   function toggleSound(){const v=!sound;setSound(v);soundOn=v;if(!v&&hasTTS)try{speechSynthesis.cancel()}catch(e){}}
 

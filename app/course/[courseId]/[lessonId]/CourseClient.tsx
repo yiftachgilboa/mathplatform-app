@@ -255,6 +255,7 @@ export default function CourseClient({ course, childId, childName, avatar, initi
   const meters = course.lessons.map(l => meterValue(state, l.id))
   const st = lesson.stages
   const tint = lesson.tint
+  const covered = shopOpen || !!celebrate   // מסך מעל הקורס: המשחק / הסרטון נעצר
 
   return (
     <>
@@ -273,10 +274,10 @@ export default function CourseClient({ course, childId, childName, avatar, initi
           <section className="c-stage" key={`${lesson.id}-${stage}`}>
             {stage === 1 && (
               <VideoStage lessonId={lesson.id} src={mediaUrl(st.video?.src)} poster={mediaUrl(st.video?.poster)} tint={tint}
-                playLabel={ui.playVideo} startLabel={ui.letsStart} soonLabel={ui.comingSoon} onComplete={() => completeStage(1, false)} />
+                playLabel={ui.playVideo} startLabel={ui.letsStart} soonLabel={ui.comingSoon} paused={covered} onComplete={() => completeStage(1, false)} />
             )}
             {stage === 2 && (practiceSrc ? (
-              <PracticeStage src={practiceSrc} enlargeLabel={ui.enlarge} shrinkLabel={ui.shrink}
+              <PracticeStage src={practiceSrc} enlargeLabel={ui.enlarge} shrinkLabel={ui.shrink} startLabel={ui.letsStart} tint={tint} paused={covered}
                 onComplete={() => markDone(2)} onNext={() => toNext(2)} />
             ) : st.interactive?.cues?.length ? (
               <InteractiveVideoStage src={mediaUrl(st.interactive.src)} cues={st.interactive.cues} playLabel={ui.playVideo} retryLabel={ui.retry}
@@ -285,13 +286,13 @@ export default function CourseClient({ course, childId, childName, avatar, initi
               <GameStage kind="practice" tint={tint} label="" soonLabel={ui.comingSoon} available={false} onPlay={() => {}} />
             ))}
             {stage === 3 && (practiceGameSrc ? (
-              <PracticeStage key={'g3' + lesson.id} src={practiceGameSrc} enlargeLabel={ui.enlarge} shrinkLabel={ui.shrink}
+              <PracticeStage key={'g3' + lesson.id} src={practiceGameSrc} enlargeLabel={ui.enlarge} shrinkLabel={ui.shrink} startLabel={ui.letsStart} tint={tint} paused={covered}
                 onComplete={() => gameDone(3)} onNext={() => toNext(3)} />
             ) : (
               <GameStage kind="practice" tint={tint} label="" soonLabel={ui.comingSoon} available={false} onPlay={() => {}} />
             ))}
             {stage === 4 && (enrichmentGameSrc ? (
-              <PracticeStage key={'g4' + lesson.id} src={enrichmentGameSrc} enlargeLabel={ui.enlarge} shrinkLabel={ui.shrink}
+              <PracticeStage key={'g4' + lesson.id} src={enrichmentGameSrc} enlargeLabel={ui.enlarge} shrinkLabel={ui.shrink} startLabel={ui.letsStart} tint={tint} paused={covered}
                 onComplete={() => gameDone(4)} onNext={() => toNext(4)} />
             ) : (
               <GameStage kind="enrichment" tint={tint} label="" soonLabel={ui.comingSoon} available={false} onPlay={() => {}} />

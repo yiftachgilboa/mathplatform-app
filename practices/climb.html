@@ -442,8 +442,8 @@ function App(){
     if(endStageRef.current!=='chest')return;
     try{localStorage.setItem('kidodo-chest-learned-'+((KP.ctx&&KP.ctx.childId)||'anon'),'1')}catch(e){}
     audio();setHand(false);setEndStage('coins');setLidOpen(true);sfx.jackpot();
-    const t0=Date.now(), el=chestRef.current;
-    const iv=setInterval(()=>{coinBurst(el,9);if(Math.random()<.5)sfx.coin();if(Date.now()-t0>3000)clearInterval(iv)},200);
+    const t0=performance.now(), el=chestRef.current;
+    const iv=setInterval(()=>{coinBurst(el,9);if(Math.random()<.5)sfx.coin();if(performance.now()-t0>3000)clearInterval(iv)},200);
     setTimeout(()=>{clearInterval(iv);setEndStage('done');finish()},3200);
   }
   const mistakes=()=>{const s=G.current.stats;return s?s.wrong+s.waterHits:0};
@@ -468,6 +468,8 @@ function App(){
     window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)});
 
   useEffect(()=>{if(KP.claimCorner)KP.claimCorner()},[]);
+  // back after a pause: the instruction is said again (when the voice is on)
+  useEffect(()=>{if(KP.onResume)KP.onResume(()=>{const g=G.current;if(g.phase==='ask'&&qRef.current&&voiceOn)say(instruction(qRef.current),{show:g.climbs<CFG.VERBAL_CLIMBS})})},[]);
   useEffect(()=>{start();return hush},[]);
   useEffect(()=>{if(phase!=='win')doneReq.current=null},[phase]);
 

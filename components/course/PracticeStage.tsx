@@ -1,23 +1,90 @@
 'use client'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { warmSpeech } from '@/lib/course/practice'
+import { PlayIcon } from './art'
 
 /** גובה ה"מסך" שההתנסות רואה כשהיא מוקטנת בתוך השלב (היא מעוצבת למסך מלא). */
 const VIRTUAL_H = 640
 
+/** שליטה במשחק שב-iframe (אותו מקור): KidodoPause מגיע מ-public/practices/kidodo-practice.js */
+type GameWindow = Window & { KidodoPause?: { pause: () => void; play: () => void; silence: () => void }; KidodoPractice?: { corner?: boolean } }
+
 /**
  * שלב 2 — התנסות (public/practices) בתוך השלב, כמו סרטון:
- * נטענת מיד כשנכנסים לשלב, מוצגת בקטן (אפשר כבר ללחוץ בה), וכפתור מגדיל למסך מלא.
+ * נטענת מיד כשנכנסים לשלב ומוצגת בקטן, קפואה ושקטה, מאחורי כפתור Play. כפתור מגדיל למסך מלא.
+ * רק Play מתחיל קול, זמן ותנועה. החנות / החגיגה (paused) והסתרת הדף עוצרות את המשחק, וחוזרים שוב ב-Play.
+ * משחק SDK ישן (/games) לא יודע להיטען קפוא: הוא נטען רק ב-Play, ומקבל את אותו קובץ עצירה.
  * ההתנסות מדברת עם העמוד דרך postMessage (kidodo-practice.js): complete / next / exit.
  */
-export default function PracticeStage({ src, enlargeLabel, shrinkLabel, onComplete, onNext }: {
-  src: string; enlargeLabel: string; shrinkLabel?: string; onComplete: () => void; onNext: () => void
+export default function PracticeStage({ src, enlargeLabel, shrinkLabel, startLabel, tint, paused = false, onComplete, onNext }: {
+  src: string; enlargeLabel: string; shrinkLabel?: string; startLabel: string; tint?: string; paused?: boolean; onComplete: () => void; onNext: () => void
 }) {
   const boxRef = useRef<HTMLDivElement>(null)
   const frameRef = useRef<HTMLIFrameElement>(null)
   const [size, setSize] = useState<{ w: number; h: number } | null>(null)
   const [big, setBig] = useState(false)
   const [corner, setCorner] = useState(false)   // the game asked for our button in its top-left slot
+  const [running, setRunning] = useState(false)  // the child tapped Play
+  const [started, setStarted] = useState(false)  // ...at least once
+  const ownsPause = src.startsWith('/practices/')
+  const runningRef = useRef(false)
+
+  // ---- עצירה והמשך ----
+  const game = () => frameRef.current?.contentWindow as GameWindow | null | undefined
+  const sync = useCallback(() => {
+    try {
+      const g = (frameRef.current?.contentWindow as GameWindow | null | undefined)?.KidodoPause
+      if (runningRef.current) g?.play(); else g?.pause()
+    } catch { /* not our page */ }
+  }, [])
+
+  function play() {
+    warmSpeech()
+    runningRef.current = true
+    setRunning(true); setStarted(true)
+    sync()               // בתוך הלחיצה עצמה: כך הדפדפן מרשה קול
+    setTimeout(() => frameRef.current?.focus(), 50)
+  }
+
+  const stop = useCallback(() => {
+    runningRef.current = false
+    setRunning(false)
+    sync()
+  }, [sync])
+
+  // מסך אחר עלה על הקורס (במסך מלא הוא לא מכסה את המשחק)
+  const covered = paused && !big
+  useEffect(() => { if (covered) stop() }, [covered, stop])   // eslint-disable-line react-hooks/set-state-in-effect
+
+  useEffect(() => {
+    const onHide = () => { if (document.hidden) stop() }
+    document.addEventListener('visibilitychange', onHide)
+    return () => document.removeEventListener('visibilitychange', onHide)
+  }, [stop])
+
+  // יציאה מהשלב: הקראה שהתחילה לא ממשיכה אחרי שה-iframe נמחק
+  useLayoutEffect(() => {
+    const el = frameRef
+    return () => {
+      try { (el.current?.contentWindow as GameWindow | null | undefined)?.KidodoPause?.silence() } catch { /* not our page */ }
+      try { window.speechSynthesis?.cancel() } catch { /* no speech */ }
+    }
+  }, [])
+
+  // דף שנפתח ישר על המשחק: ההודעה corner נשלחה לפני שהקורס הקשיב
+  useEffect(() => {
+    try { if ((frameRef.current?.contentWindow as GameWindow | null | undefined)?.KidodoPractice?.corner) setCorner(true) } catch { /* not our page */ }   // eslint-disable-line react-hooks/set-state-in-effect
+  }, [])
+
+  function onLoad() {
+    const doc = frameRef.current?.contentDocument
+    if (ownsPause || !doc || game()?.KidodoPause) { sync(); return }
+    const s = doc.createElement('script')
+    s.src = '/practices/kidodo-practice.js'
+    s.dataset.run = ''
+    s.onload = sync
+    doc.head.appendChild(s)
+  }
 
   // גודל התיבה → קנה המידה של ההתנסות המוקטנת
   useLayoutEffect(() => {
@@ -81,7 +148,17 @@ export default function PracticeStage({ src, enlargeLabel, shrinkLabel, onComple
   return (
     <div ref={boxRef} className="box panel-in c-practice" data-big={big || undefined}
       style={big ? { position: 'fixed', inset: 0, zIndex: 60, minHeight: 0, maxHeight: 'none', aspectRatio: 'auto', background: '#fff' } : { background: '#fff', overflow: 'hidden' }}>
-      <iframe ref={frameRef} src={src} title={enlargeLabel} style={frameStyle} allow="fullscreen; autoplay" />
+      {(ownsPause || started) && <iframe ref={frameRef} src={src} title={enlargeLabel} style={frameStyle} allow="fullscreen; autoplay" onLoad={onLoad} />}
+      {!running && (
+        <div className="c-gate" style={ownsPause || started ? undefined : { background: tint }} onClick={play}>
+          <div className="c-start">
+            {!started && <p>{startLabel}</p>}
+            <button type="button" className="press c-play" aria-label={startLabel} style={{ background: '#fff' }}>
+              <span className="breathe"><PlayIcon color="var(--primary)" /></span>
+            </button>
+          </div>
+        </div>
+      )}
       {corner ? (
         /* the game left its top-left slot free: our button sits exactly there (scaled with the game), light so it stands out —
            enlarge when small, shrink in full screen (the game has no ✕ inside the course) */

@@ -1,6 +1,7 @@
 'use client'
 import { useCallback, useLayoutEffect, useState } from 'react'
 import Shop from '@/components/course/Shop'
+import PracticeStage from '@/components/course/PracticeStage'
 import { HeroCard, HeroStrip, useHeroPose } from '@/components/course/HeroCard'
 import { GIFT_BOX, SHOP, boxPrice, practiceReward, rollItem, type ShopState } from '@/lib/shop/config'
 import { afterDecide, shareLook, type ShopReply } from '@/lib/shop/client'
@@ -47,7 +48,7 @@ export default function ShopTestPage() {
             <button type="button" className="press c-light" style={btn} onClick={() => setShop(s => ({ ...s, gifts: s.gifts + 1 }))}>קופסת מתנה על יעד</button>
             <button type="button" className="press c-light" style={btn} onClick={() => setGame(g => !g)}>{game ? 'לסגור את המשחק' : 'לראות את הדמות במשחק'}</button>
           </div>
-          {game && <iframe src="/practices/climb.html?childId=shop-test" title="משחק" style={{ width: '100%', height: 560, border: 0, borderRadius: 24 }} />}
+          {game && <section className="c-stage"><PracticeStage src="/practices/climb.html?childId=shop-test" enlargeLabel="להגדיל" shrinkLabel="להקטין" startLabel="בואו נתחיל" paused={open} onComplete={() => {}} onNext={() => {}} /></section>}
         </main>
       </div>
       {open && <Shop shop={shop} onAction={onAction} onClose={() => { setOpen(false); setHappy(n => n + 1) }} />}
