@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>הדמיה — חנות ודמות בעמוד הקורס</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap">
+<style>
+  :root { --ink: #33373b; --muted: #6b7177; --line: #e5ecef; --blue: #176fbe; --tint: #fff0b8; --gold: #9b6a00; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Fredoka, system-ui, "Segoe UI", Arial, sans-serif; color: var(--ink); background: #eef3f5; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 22px; margin: 4px 0; } h2 { font-size: 17px; margin: 24px 0 8px; }
+  p.note { margin: 0 0 8px; color: var(--muted); font-size: 14px; }
+  .frame { background: #fffefa; border: 1px solid var(--line); border-radius: 20px; overflow: hidden; }
+  .head { height: 58px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; border-bottom: 1px solid var(--line); }
+  .logo { font-weight: 700; font-size: 22px; color: var(--blue); }
+  .round { width: 44px; height: 44px; flex: none; padding: 0; border-radius: 50%; border: 1px solid #d6e6ee; background: #edf6fa; }
+  .desk { display: grid; grid-template-columns: 290px 1fr; gap: 18px; padding: 18px; }
+  .side { display: flex; flex-direction: column; gap: 12px; }
+  /* the hero card: on top of the lessons menu */
+  .card { position: relative; border-radius: 26px; padding: 10px 14px 14px; background: linear-gradient(#bfe8ec, #eaf7f4); display: grid; grid-template-columns: 128px 1fr; align-items: end; gap: 8px; }
+  .hero { border: 0; background: none; padding: 0; display: block; height: 138px; }
+  .hero svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .info { display: flex; flex-direction: column; gap: 8px; align-items: stretch; padding-bottom: 4px; }
+  .name { font-weight: 600; font-size: 20px; }
+  .coins { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 20px; color: var(--gold); background: rgba(255,255,255,.9); border-radius: 999px; padding: 2px 14px 2px 8px; align-self: flex-start; }
+  .coins svg { width: 26px; height: 26px; }
+  .shop { min-height: 46px; border: 0; border-radius: 999px; background: var(--blue); color: #fff; font-weight: 600; font-size: 18px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; }
+  .goal { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; font-size: 14px; color: #3d5560; }
+  .goal i { flex: 1; height: 8px; border-radius: 9px; background: #fff; overflow: hidden; } .goal b { display: block; height: 100%; width: 70%; background: #f1c43e; border-radius: 9px; }
+  .lesson { border-radius: 20px; background: #fff; border: 1px solid var(--line); padding: 12px 18px; width: 55%; font-weight: 600; }
+  .lesson.sel { width: 100%; background: var(--tint); border-color: transparent; font-size: 22px; }
+  .stage { border: 1px solid var(--line); border-radius: 26px; background: linear-gradient(#8fd0dc, #e6f6f6 70%, #a9cf47 70%); min-height: 380px; position: relative; }
+  .stage .hero { position: absolute; left: 50%; bottom: 22%; transform: translateX(-50%); width: 110px; height: 120px; pointer-events: none; }
+  .stage span { position: absolute; top: 14px; right: 18px; font-weight: 600; color: #20505c; }
+  .cols { display: grid; grid-template-columns: 375px 1fr; gap: 24px; align-items: start; }
+  .phone .head { height: 66px; padding: 0 12px; gap: 8px; }
+  .phone .head .hero { width: 62px; height: 74px; margin-bottom: -14px; }
+  .phone .coins { align-self: center; font-size: 18px; padding: 2px 12px 2px 8px; } .phone .coins svg { width: 22px; height: 22px; }
+  .phone .shop { min-height: 44px; padding: 0 14px; font-size: 16px; }
+  .phone .menu { display: flex; gap: 8px; padding: 20px 12px 10px; } .phone .lesson { width: auto; padding: 8px 14px; } .phone .lesson.sel { font-size: 18px; width: auto; }
+  .phone .stage { min-height: 250px; margin: 0 12px 12px; }
+  /* the shop */
+  .store { display: grid; grid-template-columns: 200px 1fr; gap: 18px; padding: 18px; }
+  .mirror { border-radius: 22px; background: linear-gradient(#bfe8ec, #eaf7f4); display: flex; flex-direction: column; align-items: center; padding: 14px; gap: 10px; }
+  .mirror .hero { width: 170px; height: 190px; } .mirror .coins { align-self: center; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .tabs button { min-height: 44px; padding: 0 14px; border-radius: 999px; border: 2px solid var(--line); background: #fff; font-weight: 500; }
+  .tabs button[aria-pressed=true] { background: var(--blue); border-color: var(--blue); color: #fff; } .tabs button:disabled { opacity: .45; cursor: default; }
+  .items { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 10px; }
+  .item { border: 2px solid var(--line); border-radius: 18px; background: #fff; padding: 10px 6px 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 104px; font-weight: 600; }
+  .item i { width: 46px; height: 46px; border-radius: 50%; border: 3px solid rgba(0,0,0,.07); } .item[aria-pressed=true] { border-color: var(--blue); background: #f1f8ff; }
+  .item small { font-size: 14px; color: var(--gold); display: flex; align-items: center; gap: 4px; direction: ltr; } .item small svg { width: 18px; height: 18px; }
+  @media (max-width: 900px) { .cols, .desk { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 480px) { .wrap { padding: 10px 8px; } .store { grid-template-columns: minmax(0, 1fr); } .phone .round { display: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>הדמיה — הדמות, הכסף והחנות</h1>
+  <p class="note">לוחצים על צבע בחנות, והדמות משתנה בכל המקומות. זו הדמות מהספרייה, בלי ציור חדש. הקנייה כאן מדומה.</p>
+
+  <h2>1. עמוד הקורס במחשב — הדמות מעל תפריט השיעורים</h2>
+  <div class="frame">
+    <div class="head"><span class="logo">kidodo</span><span><button class="round" aria-label="לאפליקציה">🎮</button> <button class="round" aria-label="יציאה">⏻</button></span></div>
+    <div class="desk">
+      <div class="side">
+        <div class="card">
+          <button class="hero" data-hero="wave" aria-label="הדמות שלי"></button>
+          <div class="info"><span class="name">נועה</span><span class="coins" dir="ltr"><span data-coin></span><span data-bal></span></span><button class="shop">לחנות</button></div>
+          <div class="goal"><span>עוד 15 לכובע</span><i><b></b></i></div>
+        </div>
+        <div class="lesson sel">מפתח המדרגות</div><div class="lesson">מעלית</div><div class="lesson">פירוק</div>
+      </div>
+      <div class="stage"><span>המשחק — אותה דמות</span><div class="hero" data-hero="jump"></div></div>
+    </div>
+  </div>
+
+  <div class="cols">
+    <div>
+      <h2>2. טלפון — הכול בשורה אחת</h2>
+      <div class="frame phone">
+        <div class="head"><button class="hero" data-hero="stand" aria-label="הדמות שלי"></button><span class="coins" dir="ltr"><span data-coin></span><span data-bal></span></span><button class="shop">לחנות</button><button class="round" aria-label="עוד">⋯</button></div>
+        <div class="menu"><div class="lesson sel">מדרגות</div><div class="lesson">מעלית</div><div class="lesson">פירוק</div></div>
+        <div class="stage"><div class="hero" data-hero="jump"></div></div>
+      </div>
+    </div>
+    <div>
+      <h2>3. החנות — שלב ראשון, צבעים בלבד</h2>
+      <div class="frame store">
+        <div class="mirror"><div class="hero" data-hero="cheer"></div><span class="coins" dir="ltr"><span data-coin></span><span data-bal></span></span></div>
+        <div><div class="tabs" id="tabs"></div><div class="items" id="items"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="../lowpoly.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+LP.useTheme('day');
+// a whole material from one color: dark → base → light (this is all a color item needs)
+const hsl = h => { const n = parseInt(h.slice(1), 16), r = (n >> 16) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255, M = Math.max(r, g, b), m = Math.min(r, g, b), d = M - m, l = (M + m) / 2;
+  return [d ? (M === r ? ((g - b) / d + 6) % 6 : M === g ? (b - r) / d + 2 : (r - g) / d + 4) * 60 : 0, d ? d / (1 - Math.abs(2 * l - 1)) : 0, l]; };
+const hex = (h, s, l) => '#' + [0, 8, 4].map(n => { const k = (n + h / 30 + 12) % 12, v = l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1)); return Math.round(v * 255).toString(16).padStart(2, '0'); }).join('');
+const dye = c => { const [h, s, l] = hsl(c); return LP.material([hex(h - 4, s, l * .58), hex(h, s, l * .88), c, hex(h + 4, s, l + (1 - l) * .42)], .04); };
+
+const COLORS = [['אדום', '#ef5c55', 30], ['כתום', '#f58b2e', 30], ['צהוב', '#f2c431', 30], ['ירוק', '#4fae55', 30], ['טורקיז', '#2aa8a0', 40], ['כחול', '#4776c0', 40], ['סגול', '#8a5fc4', 50], ['ורוד', '#ee77ab', 50]];
+const HAIR = [['חום', '#5e4130', 0], ['שחור', '#3a3a44', 20], ['בלונד', '#e2b04a', 30], ['ג׳ינג׳י', '#c8622a', 30], ['ורוד', '#ee77ab', 60], ['כחול', '#4776c0', 60]];
+const SLOTS = { shirt: ['חולצה', COLORS], pants: ['מכנסיים', COLORS], hair: ['שיער', HAIR] };
+const look = { shirt: '#ef5c55', pants: '#4776c0', hair: '#5e4130' }, owned = new Set(['shirt#ef5c55', 'pants#4776c0', 'hair#5e4130']);
+let balance = 135, slot = 'shirt';
+
+const heroObj = (pose, t, rot) => LP.make.buddy({ outfit: 'kid', size: 100, pose, t, rot, shirt: dye(look.shirt), pants: dye(look.pants), hair: dye(look.hair) });
+const cam = LP.camera({ a: .25 });
+const box = os => { let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; os.forEach(o => { const b = LP.bounds(LP.facets(o, cam)); x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y); x1 = Math.max(x1, b.x + b.w); y1 = Math.max(y1, b.y + b.h); }); return [x0 - 2, y0 - 2, x1 - x0 + 4, y1 - y0 + 4]; };
+const VB = box(['stand', 'wave'].flatMap(p => [0, .25, .5].map(t => heroObj(p, t, -.25)))).map(n => n.toFixed(1)).join(' ');
+const heroes = [...document.querySelectorAll('[data-hero]')];
+heroes.forEach(e => { e.innerHTML = `<svg viewBox="${VB}" preserveAspectRatio="xMidYMax meet"></svg>`; });
+const paint = t => heroes.forEach(e => { const o = heroObj(e.dataset.hero, t, -.25); e.firstChild.innerHTML = LP.polys(LP.facets(o, cam)) + LP.face(o, cam); });
+const coin = LP.make.coin({ size: 40, rot: .45 }), coinSvg = `<svg viewBox="${box([coin]).join(' ')}">${LP.polys(LP.facets(coin, cam))}</svg>`;
+document.querySelectorAll('[data-coin]').forEach(e => { e.innerHTML = coinSvg; e.style.display = 'contents'; });
+
+function ui() {
+  document.querySelectorAll('[data-bal]').forEach(e => { e.textContent = balance; });
+  $('tabs').innerHTML = Object.entries(SLOTS).map(([k, [n]]) => `<button data-s="${k}" aria-pressed="${k === slot}">${n}</button>`).join('') + ['נעליים', 'כובעים', 'משקפיים'].map(n => `<button disabled>🔒 ${n}</button>`).join('');
+  $('items').innerHTML = SLOTS[slot][1].map(([n, c, p]) => `<button class="item" data-c="${c}" data-p="${p}" aria-pressed="${look[slot] === c}"><i style="background:${c}"></i>${n}${owned.has(slot + c) ? '<small>שלי</small>' : `<small>${coinSvg}${p}</small>`}</button>`).join('');
+}
+$('tabs').onclick = e => { const b = e.target.closest('[data-s]'); if (b) { slot = b.dataset.s; ui(); } };
+$('items').onclick = e => {
+  const b = e.target.closest('[data-c]'); if (!b) return;
+  const id = slot + b.dataset.c, p = +b.dataset.p;
+  if (!owned.has(id)) { if (p > balance) return; balance -= p; owned.add(id); }
+  look[slot] = b.dataset.c; ui(); paint(.2);
+};
+ui(); paint(.2);
+if (!matchMedia('(prefers-reduced-motion: reduce)').matches) setInterval(() => document.hidden || paint(performance.now() / 1400), 80);
+</script>
+</body>
+</html>
