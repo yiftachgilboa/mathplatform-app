@@ -20,12 +20,12 @@ function Check() {
 
 /**
  * תפריט השיעורים: דסקטופ — עמודה נגללת (פס הגלילה מימין); טלפון — פס אופקי.
- * לא נבחר: חצי רוחב, ממורכז — בר אפור קטן, שם, ״שיעור N״.
+ * לא נבחר: 60% רוחב — בר אפור קטן, שם, ״שיעור N״.
  * נבחר: בר רמזור, ״מפתח ה...״ והמשפט.
  * שיעור שהושג (מבחן עבר או 90% בתרגול): וי ירוק במקום הבר.
  */
-export default function LessonMenu({ lessons, states, selected, label, meters, achieved, meterLabel, doneLabel, goal, titleOf, numberOf, onPick, onReset }: {
-  lessons: Lesson[]; states: LessonState[]; selected: number; label: string
+export default function LessonMenu({ lessons, states, selected, label, title, meters, achieved, meterLabel, doneLabel, goal, titleOf, numberOf, onPick, onReset }: {
+  lessons: Lesson[]; states: LessonState[]; selected: number; label: string; title: string
   meters: number[]; achieved: boolean[]; meterLabel: string; doneLabel: string; goal: number
   titleOf: (l: Lesson) => string; numberOf: (n: number) => string
   onPick: (i: number) => void
@@ -51,6 +51,8 @@ export default function LessonMenu({ lessons, states, selected, label, meters, a
   }, [selected])
 
   return (
+    <div className="c-menubox">
+    <h2 className="c-menutitle">{title}</h2>
     <nav ref={navRef} className="c-menu" aria-label={label}>
       {lessons.map((l, i) => {
         const sel = i === selected, m = meters[i]
@@ -80,5 +82,6 @@ export default function LessonMenu({ lessons, states, selected, label, meters, a
         )
       })}
     </nav>
+    </div>
   )
 }

@@ -16,8 +16,10 @@ type GameWindow = Window & { KidodoPause?: { pause: () => void; play: () => void
  * משחק SDK ישן (/games) לא יודע להיטען קפוא: הוא נטען רק ב-Play, ומקבל את אותו קובץ עצירה.
  * ההתנסות מדברת עם העמוד דרך postMessage (kidodo-practice.js): complete / next / exit.
  */
-export default function PracticeStage({ src, enlargeLabel, shrinkLabel, startLabel, tint, paused = false, onComplete, onNext }: {
+export default function PracticeStage({ src, enlargeLabel, shrinkLabel, startLabel, tint, paused = false, onRunning, onComplete, onNext }: {
   src: string; enlargeLabel: string; shrinkLabel?: string; startLabel: string; tint?: string; paused?: boolean; onComplete: () => void; onNext: () => void
+  /** המשחק רץ / נעצר. נקרא לפני שהמשחק מתחיל לדבר */
+  onRunning?: (running: boolean) => void
 }) {
   const boxRef = useRef<HTMLDivElement>(null)
   const frameRef = useRef<HTMLIFrameElement>(null)
@@ -38,7 +40,11 @@ export default function PracticeStage({ src, enlargeLabel, shrinkLabel, startLab
     } catch { /* not our page */ }
   }, [])
 
+  const onRunningRef = useRef(onRunning)
+  useEffect(() => { onRunningRef.current = onRunning })
+
   function play() {
+    onRunningRef.current?.(true)
     warmSpeech()
     runningRef.current = true
     setRunning(true); setStarted(true)
@@ -47,6 +53,7 @@ export default function PracticeStage({ src, enlargeLabel, shrinkLabel, startLab
   }
 
   const stop = useCallback(() => {
+    if (runningRef.current) onRunningRef.current?.(false)
     runningRef.current = false
     setRunning(false)
     sync()

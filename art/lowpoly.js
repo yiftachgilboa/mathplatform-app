@@ -1059,7 +1059,7 @@
     if (outfit === 'wizard') obj.front = { group: 'armR', ref: egg, margin: rx * .3 };
     const r = o.rot || 0;
     obj.face = { c: [obj.x, obj.y, obj.z + zc], r: rx, browColor: outfit === 'wizard' ? '#f4f5f6' : outfit === 'kid' ? (o.browColor || '#3a271b') : '#4a1216', glasses: o.glasses, k: [.9, 1, rz / rx], f: [Math.sin(r), -Math.cos(r), 0], u: [Math.cos(r), Math.sin(r), 0],
-      style: 'buddy', eyeK: 1.4, noMouth: outfit === 'wizard',
+      style: 'buddy', eyeK: 1.4, noMouth: outfit === 'wizard', gaze: o.gaze, blink: o.blink, talk: o.talk,
       expr: o.expression || poseExpression[o.pose || 'stand'] || 'happy' };
     return obj;
   };
@@ -1085,7 +1085,10 @@
     both.forEach((e, i) => { e.inner = Math.sign(both[1 - i][0] - e[0]) || 1; });
     const f1 = n => n.toFixed(1);
     const P = (d, w, fill) => `<path d="${d}" fill="${fill || 'none'}" stroke="${fill ? 'none' : E}" stroke-width="${f1(s * (w || .055))}" stroke-linecap="round" stroke-linejoin="round"/>`;
-    const dotEye = (e, k) => (k *= F.eyeK || 1, `<ellipse cx="${f1(e[0])}" cy="${f1(e[1])}" rx="${f1(s * .085 * k)}" ry="${f1(s * .125 * k)}" fill="${E}"/><circle cx="${f1(e[0] + s * .03 * k)}" cy="${f1(e[1] - s * .045 * k)}" r="${f1(s * .03 * k)}" fill="#fff"/>`);
+    // optional life: gaze [x, y] in -1..1 moves the pupils (frames and brows stay), blink closes the eyes, talk 0..1 opens the mouth
+    const gz = F.gaze ? [F.gaze[0] * s * .075, F.gaze[1] * s * .06] : [0, 0];
+    const dotEye = (e, k) => F.blink ? P(`M${f1(e[0] - s * .1 * k)},${f1(e[1])} Q${f1(e[0])},${f1(e[1] + s * .06)} ${f1(e[0] + s * .1 * k)},${f1(e[1])}`)
+      : (k *= F.eyeK || 1, e = [e[0] + gz[0], e[1] + gz[1]], `<ellipse cx="${f1(e[0])}" cy="${f1(e[1])}" rx="${f1(s * .085 * k)}" ry="${f1(s * .125 * k)}" fill="${E}"/><circle cx="${f1(e[0] + s * .03 * k)}" cy="${f1(e[1] - s * .045 * k)}" r="${f1(s * .03 * k)}" fill="#fff"/>`);
     const cheeks = F.noCheeks ? '' : eyes.map(e => `<ellipse cx="${f1(e[0])}" cy="${f1(e[1] + s * .2)}" rx="${f1(s * .1)}" ry="${f1(s * .06)}" fill="#ff7b7b" opacity=".45"/>`).join('');
     // innerUp > 0: inner end raised (worried/sad); < 0: lowered (angry)
     const brow = (e, innerUp, lift) => P(`M${f1(e[0] - e.inner * s * .1)},${f1(e[1] - s * (lift - innerUp))} L${f1(e[0] + e.inner * s * .1)},${f1(e[1] - s * (lift + innerUp))}`, .045);
@@ -1177,7 +1180,8 @@
         break;
       default: // happy
         out += eyes.map(e => dotEye(e, 1)).join('') + brows('happy');
-        if (!F.noMouth) out += P(`M${f1(m[0] - s * .18)},${f1(m[1] - s * .03)} Q${f1(m[0])},${f1(m[1] + s * .15)} ${f1(m[0] + s * .18)},${f1(m[1] - s * .03)}`);
+        if (!F.noMouth) out += F.talk ? P(`M${f1(m[0] - s * .16)},${f1(m[1] - s * .04)} Q${f1(m[0])},${f1(m[1] + s * (.1 + .24 * F.talk))} ${f1(m[0] + s * .16)},${f1(m[1] - s * .04)} Z`, 0, R)
+          : P(`M${f1(m[0] - s * .18)},${f1(m[1] - s * .03)} Q${f1(m[0])},${f1(m[1] + s * .15)} ${f1(m[0] + s * .18)},${f1(m[1] - s * .03)}`);
         out += cheeks;
     }
     return `<g class="face">${out}${glasses()}</g>`;

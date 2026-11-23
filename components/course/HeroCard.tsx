@@ -1,13 +1,13 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { SHOP_UI, boxPrice, type ShopState } from '@/lib/shop/config'
 import { fill } from '@/lib/course/content'
-import Hero, { type HeroPose } from './Hero'
+import { LiveHero, type Act, type HeroPose } from './Hero'
 import { CoinPill } from './Shop'
 import { StoreIcon } from './ShopArt'
 
 /** הדמות מנופפת בכניסה, וחוגגת כש-happy משתנה (מטבעות חדשים / פריט חדש). שאר הזמן — פריים אחד. */
-export function useHeroPose(happy: number): HeroPose {
+export function useHeroPose(happy: number): Act | null {
   const [pose, setPose] = useState<HeroPose>('wave')
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- תגובה לאירוע, ואז חזרה לעמידה
@@ -15,15 +15,29 @@ export function useHeroPose(happy: number): HeroPose {
     const t = setTimeout(() => setPose('stand'), 2200)
     return () => clearTimeout(t)
   }, [happy])
-  return pose
+  return useMemo(() => (pose === 'stand' ? null : { pose, ms: 0 }), [pose])
+}
+
+type HeroProps = {
+  shop: ShopState
+  act: Act | null
+  talking?: boolean
+  /** הילד משחק או צופה: הדמות עומדת */
+  calm?: boolean
+  onShop: () => void
+  /** נגיעה בדמות (קופצת ומסבירה שוב) */
+  onHero: () => void
+  /** בועת ההוראות */
+  bubble?: React.ReactNode
 }
 
 /** מחשב: כרטיס הדמות מעל תפריט השיעורים — דמות, מטבעות, כפתור חנות (באותו גודל) ובר לקופסה הבאה */
-export function HeroCard({ shop, pose, onShop }: { shop: ShopState; pose: HeroPose; onShop: () => void }) {
+export function HeroCard({ shop, act, talking, calm, onShop, onHero, bubble }: HeroProps) {
   const left = Math.max(0, boxPrice - shop.coins)
   return (
     <div className="c-herocard">
-      <button type="button" className="press c-herobtn" onClick={onShop} aria-label={SHOP_UI.myHero}><Hero look={shop.look} pose={pose} className="c-hero" /></button>
+      <button type="button" className="press c-herobtn" onClick={onHero} aria-label={SHOP_UI.myHero}><LiveHero look={shop.look} act={act} talking={talking} calm={calm} className="c-hero" /></button>
+      {bubble}
       <div className="info">
         <CoinPill coins={shop.coins} id="c-coins-desk" />
         <ShopButton onClick={onShop} />
@@ -43,12 +57,32 @@ function ShopButton({ onClick }: { onClick: () => void }) {
 }
 
 /** טלפון: אותו דבר בשורת הכותרת */
-export function HeroStrip({ shop, pose, onShop }: { shop: ShopState; pose: HeroPose; onShop: () => void }) {
+export function HeroStrip({ shop, act, talking, calm, onShop, onHero, bubble }: HeroProps) {
   return (
     <div className="c-herostrip">
-      <button type="button" className="press c-herobtn" onClick={onShop} aria-label={SHOP_UI.myHero}><Hero look={shop.look} pose={pose} className="c-hero" /></button>
+      <button type="button" className="press c-herobtn" onClick={onHero} aria-label={SHOP_UI.myHero}><LiveHero look={shop.look} act={act} talking={talking} calm={calm} className="c-hero" /></button>
+      {bubble}
       <CoinPill coins={shop.coins} id="c-coins-phone" />
       <ShopButton onClick={onShop} />
+    </div>
+  )
+}
+
+/** בועת ההוראות: מה עושים עכשיו, לילד ולמי שעוזר לו. רמקול = להקריא / להשתיק, X = לסגור */
+export function GuideBubble({ text, talking, sayLabel, closeLabel, onSay, onClose }: {
+  text: string; talking: boolean; sayLabel: string; closeLabel: string; onSay: () => void; onClose: () => void
+}) {
+  return (
+    <div className="c-bubble" role="status">
+      <p>{text}</p>
+      <button type="button" className="press say" data-on={talking || undefined} aria-label={sayLabel} title={sayLabel} aria-pressed={talking} onClick={onSay}>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z" fill="currentColor" /><path d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11" />
+        </svg>
+      </button>
+      <button type="button" className="x" aria-label={closeLabel} title={closeLabel} onClick={onClose}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6L6 18" /></svg>
+      </button>
     </div>
   )
 }

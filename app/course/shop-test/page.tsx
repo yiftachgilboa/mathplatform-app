@@ -15,7 +15,7 @@ export default function ShopTestPage() {
   const [open, setOpen] = useState(true)
   const [happy, setHappy] = useState(0)
   const [game, setGame] = useState(false)
-  const pose = useHeroPose(happy)
+  const act = useHeroPose(happy)
 
   useLayoutEffect(() => { shareLook('shop-test', shop.look) }, [shop.look])
 
@@ -33,15 +33,15 @@ export default function ShopTestPage() {
     return { result, shop: next }
   }, [shop])
 
-  const btn: React.CSSProperties = { minHeight: 48, padding: '0 18px', borderRadius: 999, fontSize: 17, fontWeight: 700 }
+  const btn: React.CSSProperties = { minHeight: 48, padding: '0 18px', borderRadius: 999, fontSize: 17, fontWeight: 500 }
   return (
     <>
       <header className="c-header" data-strip>
-        <HeroStrip shop={shop} pose={pose} onShop={() => setOpen(true)} />
+        <HeroStrip shop={shop} act={act} onShop={() => setOpen(true)} onHero={() => setHappy(n => n + 1)} />
         <span className="hello hi">עמוד בדיקה — חנות</span>
       </header>
       <div className="c-wrap">
-        <div className="c-side"><HeroCard shop={shop} pose={pose} onShop={() => setOpen(true)} /></div>
+        <div className="c-side"><HeroCard shop={shop} act={act} onShop={() => setOpen(true)} onHero={() => setHappy(n => n + 1)} /></div>
         <main className="c-main">
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
             <button type="button" className="press c-light" style={btn} onClick={() => { setShop(s => ({ ...s, coins: s.coins + practiceReward })); setHappy(n => n + 1) }}>סיימתי תרגול (+{practiceReward})</button>

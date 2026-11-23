@@ -12,8 +12,9 @@ import GameStage from '@/components/course/GameStage'
 import PracticeStage from '@/components/course/PracticeStage'
 import TestStage from '@/components/course/TestStage'
 import Shop from '@/components/course/Shop'
-import Hero from '@/components/course/Hero'
-import { HeroCard, HeroStrip, flyCoins, useHeroPose } from '@/components/course/HeroCard'
+import Hero, { useIdleAct, type Act } from '@/components/course/Hero'
+import { useGuide } from '@/components/course/useGuide'
+import { GuideBubble, HeroCard, HeroStrip, flyCoins, useHeroPose } from '@/components/course/HeroCard'
 import type { ShopState } from '@/lib/shop/config'
 import { afterDecide, shareLook, shopAction, tone } from '@/lib/shop/client'
 import { practiceUrl, prefetch, PRACTICE_ASSETS, warmSpeech } from '@/lib/course/practice'
@@ -53,7 +54,7 @@ export default function CourseClient({ course, childId, childName, avatar, initi
   const [shop, setShop] = useState(initialShop)
   const [shopOpen, setShopOpen] = useState(false)
   const [happy, setHappy] = useState(0)          // גדל בכל פעם שהדמות חוגגת
-  const heroPose = useHeroPose(happy)
+  const moodAct = useHeroPose(happy)
   const coinsRef = useRef(initialShop?.coins ?? 0)
   const look = shop?.look
   // המשחקים (iframe) מקבלים את המראה מכאן — לפני שהם נטענים, ושוב כשהוא משתנה
@@ -156,7 +157,30 @@ export default function CourseClient({ course, childId, childName, avatar, initi
     return () => { document.removeEventListener('visibilitychange', onShow); window.removeEventListener('pageshow', onShow) }
   }, [refresh])
 
+  // ---- הדמות מסבירה מה עושים (בועה) ----
+  const covered = shopOpen || !!celebrate   // מסך מעל הקורס: המשחק / הסרטון נעצר
+  const here = `${lesson.id}-${stage}`
+  const [runningAt, setRunningAt] = useState<string | null>(null)   // השלב שמשחק או סרטון רץ בו עכשיו
+  const busy = runningAt === here
+  const guide = useGuide({ enabled: !!shop, course, state, lessonIdx, stage, name: childName, covered, busy })
+  const onRunning = (on: boolean) => { setRunningAt(on ? here : null); if (on) guide.close() }
+
+  // נגיעה בדמות: קופצת ומסבירה שוב
+  const [poke, setPoke] = useState<Act | null>(null)
+  useEffect(() => {
+    if (!poke) return
+    const t = setTimeout(() => setPoke(null), poke.ms)
+    return () => clearTimeout(t)
+  }, [poke])
+  const onHero = () => { setPoke({ pose: 'jump', expression: 'joy', ms: 1000 }); guide.show({ type: 'remind' }) }
+  const idleAct = useIdleAct(!!shop && !covered && !busy && !guide.talking)
+  const heroProps = shop && {
+    shop, act: moodAct ?? poke ?? idleAct, talking: guide.talking, calm: (busy && !moodAct) || covered, onShop: openShop, onHero,
+    bubble: guide.text && <GuideBubble key={guide.id} text={guide.text} talking={guide.talking} sayLabel={ui.guide.say} closeLabel={ui.guide.close} onSay={guide.toggleSay} onClose={guide.close} />,
+  }
+
   function markDone(s: number) {
+    guide.noteDone(s)
     setState(prev => {
       const done = prev.done[lesson.id] ?? []
       return done.includes(s) ? prev : { ...prev, done: { ...prev.done, [lesson.id]: [...done, s] } }
@@ -222,6 +246,7 @@ export default function CourseClient({ course, childId, childName, avatar, initi
   async function finishTest(correct: number, total: number) {
     const res = await fetch('/api/course/test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...ctx, correct, total }) })
     const out = res.ok ? await res.json() : { passed: false, score: 0 }
+    if (!out.passed) guide.show({ type: 'testFail' })
     setState(prev => ({ ...prev, testScore: { ...prev.testScore, [lesson.id]: out.score } }))
     if (out.passed) {
       setTimeout(refresh, 600)   // המטבעות של המבחן
@@ -249,35 +274,35 @@ export default function CourseClient({ course, childId, childName, avatar, initi
   const next = () => { const n = nextOf(stage); if (n) toStage(n) }
   const prev = () => { const p = prevOf(stage); if (p) toStage(p) }
   // ״המשך״ בסוף משחק: לשלב הבא שיש בו תוכן (אם אין — נשארים)
-  const toNext = (s: number) => { const n = nextOf(s); if (n) setStage(n) }
+  const toNext = (s: number) => { const n = nextOf(s); if (n) setStage(n); else guide.show({ type: 'done', stage: s }) }
 
   const goal = Math.round(course.mastery.practice.accuracy * 100)
   const meters = course.lessons.map(l => meterValue(state, l.id))
   const st = lesson.stages
   const tint = lesson.tint
-  const covered = shopOpen || !!celebrate   // מסך מעל הקורס: המשחק / הסרטון נעצר
 
   return (
     <>
       <CourseHeader hello={fill(ui.welcome, { name: childName })} avatar={avatar} avatarLabel={ui.yourAvatar} logoutLabel={ui.logout} platformHref={`/child/${childId}`} platformLabel={ui.toPlatform}
-        strip={shop && <HeroStrip shop={shop} pose={heroPose} onShop={openShop} />} />
+        strip={heroProps && <HeroStrip {...heroProps} />} />
       <div className="c-wrap">
         <div className="c-side">
-        {shop && <HeroCard shop={shop} pose={heroPose} onShop={openShop} />}
-        <LessonMenu lessons={course.lessons} states={lessonStates} selected={lessonIdx} label={ui.lessonsNav}
+        {heroProps && <HeroCard {...heroProps} />}
+        <LessonMenu lessons={course.lessons} states={lessonStates} selected={lessonIdx} label={ui.lessonsNav} title={ui.menuTitle}
           meters={meters} achieved={course.lessons.map((l, i) => state.mastered.includes(l.id) || meters[i] >= goal)}
           goal={goal} meterLabel={ui.meter} doneLabel={ui.lessonDone}
           titleOf={l => fill(ui.lessonTitle, { key: l.key })} numberOf={n => fill(ui.lessonNumber, { n: String(n) })}
           onPick={i => go(i)} onReset={resetLesson} />
         </div>
         <main className="c-main">
-          <section className="c-stage" key={`${lesson.id}-${stage}`}>
+          <section className="c-stage" key={here} onPointerDownCapture={guide.close}>
             {stage === 1 && (
               <VideoStage lessonId={lesson.id} src={mediaUrl(st.video?.src)} poster={mediaUrl(st.video?.poster)} tint={tint}
-                playLabel={ui.playVideo} startLabel={ui.letsStart} soonLabel={ui.comingSoon} paused={covered} onComplete={() => completeStage(1, false)} />
+                playLabel={ui.playVideo} startLabel={ui.letsStart} soonLabel={ui.comingSoon} paused={covered} onRunning={onRunning}
+                onComplete={() => completeStage(1, false)} onEnded={() => { onRunning(false); guide.show({ type: 'done', stage: 1 }) }} />
             )}
             {stage === 2 && (practiceSrc ? (
-              <PracticeStage src={practiceSrc} enlargeLabel={ui.enlarge} shrinkLabel={ui.shrink} startLabel={ui.letsStart} tint={tint} paused={covered}
+              <PracticeStage src={practiceSrc} enlargeLabel={ui.enlarge} shrinkLabel={ui.shrink} startLabel={ui.letsStart} tint={tint} paused={covered} onRunning={onRunning}
                 onComplete={() => markDone(2)} onNext={() => toNext(2)} />
             ) : st.interactive?.cues?.length ? (
               <InteractiveVideoStage src={mediaUrl(st.interactive.src)} cues={st.interactive.cues} playLabel={ui.playVideo} retryLabel={ui.retry}
@@ -286,13 +311,13 @@ export default function CourseClient({ course, childId, childName, avatar, initi
               <GameStage kind="practice" tint={tint} label="" soonLabel={ui.comingSoon} available={false} onPlay={() => {}} />
             ))}
             {stage === 3 && (practiceGameSrc ? (
-              <PracticeStage key={'g3' + lesson.id} src={practiceGameSrc} enlargeLabel={ui.enlarge} shrinkLabel={ui.shrink} startLabel={ui.letsStart} tint={tint} paused={covered}
+              <PracticeStage key={'g3' + lesson.id} src={practiceGameSrc} enlargeLabel={ui.enlarge} shrinkLabel={ui.shrink} startLabel={ui.letsStart} tint={tint} paused={covered} onRunning={onRunning}
                 onComplete={() => gameDone(3)} onNext={() => toNext(3)} />
             ) : (
               <GameStage kind="practice" tint={tint} label="" soonLabel={ui.comingSoon} available={false} onPlay={() => {}} />
             ))}
             {stage === 4 && (enrichmentGameSrc ? (
-              <PracticeStage key={'g4' + lesson.id} src={enrichmentGameSrc} enlargeLabel={ui.enlarge} shrinkLabel={ui.shrink} startLabel={ui.letsStart} tint={tint} paused={covered}
+              <PracticeStage key={'g4' + lesson.id} src={enrichmentGameSrc} enlargeLabel={ui.enlarge} shrinkLabel={ui.shrink} startLabel={ui.letsStart} tint={tint} paused={covered} onRunning={onRunning}
                 onComplete={() => gameDone(4)} onNext={() => toNext(4)} />
             ) : (
               <GameStage kind="enrichment" tint={tint} label="" soonLabel={ui.comingSoon} available={false} onPlay={() => {}} />
@@ -323,11 +348,11 @@ export default function CourseClient({ course, childId, childName, avatar, initi
               // eslint-disable-next-line @next/next/no-img-element
               <img src={avatar} alt="" className="bob" style={{ width: 150, height: 150, objectFit: 'contain' }} />
             )}
-            <p style={{ margin: 0, fontSize: 'clamp(26px, 5vw, 34px)', fontWeight: 900, letterSpacing: '-0.035em', lineHeight: 1.15 }}>
+            <p style={{ margin: 0, fontSize: 'clamp(26px, 5vw, 34px)', fontWeight: 500, lineHeight: 1.15 }}>
               {fill(ui.mastered, { key: celebrate.key })}
             </p>
             <button type="button" className="press c-primary" onClick={closeCelebration} autoFocus
-              style={{ minHeight: 56, padding: '0 32px', borderRadius: 999, fontSize: 20, fontWeight: 800 }}>{ui.continue}</button>
+              style={{ minHeight: 56, padding: '0 32px', borderRadius: 999, fontSize: 20, fontWeight: 500 }}>{ui.continue}</button>
           </div>
         </div>
       )}

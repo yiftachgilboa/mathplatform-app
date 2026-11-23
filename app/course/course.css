@@ -2,7 +2,7 @@
 .course{--bg:#FFFEFA;--surface:#FFF;--ink:#33373B;--ink-soft:#4A4F54;--muted:#6B7177;--navy:#3A3F44;
   --primary:#176FBE;--primary-hover:#0B5FA9;--light:#DFF6EE;--light-border:#B7E8D7;--light-hover:#CDEFE2;
   --line:#E1EDF1;--line-2:#D6E3ED;--future:#F3F8FB;--dot:#FFA45D;--success:#58C9AD;--warn:#FDBD22;
-  font-family:var(--font-fredoka),'Fredoka',Arial,sans-serif;color:var(--ink);background:var(--bg);direction:rtl;
+  font-family:var(--font-main),'Rubik',Arial,sans-serif;color:var(--ink);background:var(--bg);direction:rtl;
   min-height:100vh;min-height:100dvh;font-size:17px;line-height:1.4;box-sizing:border-box}
 .course *,.course *::before,.course *::after{box-sizing:border-box}
 .course button,.course input{font-family:inherit;color:inherit}
@@ -43,7 +43,7 @@
 .c-header{height:64px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 16px;border-bottom:1px solid var(--line);background:var(--bg)}
 .c-header .logo{width:84px;height:32px;object-fit:contain}
 .c-header .hi{display:flex;align-items:center;gap:10px;min-width:0}
-.c-header .hello{font-size:18px;font-weight:900;letter-spacing:-.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-header .hello{font-size:18px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .c-header .ava{flex:none;width:42px;height:42px;border-radius:50%;background:#DFF3FF;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .c-header .ava img{width:34px;height:34px;object-fit:contain}
 
@@ -53,11 +53,11 @@
 /* תפריט שיעורים — טלפון: פס אופקי */
 .c-menu{display:flex;gap:10px;overflow-x:auto;padding:4px 16px 6px;align-items:center;scroll-behavior:smooth}
 .c-lesson{flex:none;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px;text-align:right;
-  border-radius:22px;font-weight:800;letter-spacing:-.3px;min-height:58px;padding:8px 18px;font-size:16px;
+  border-radius:22px;font-weight:500;min-height:72px;padding:10px 20px;font-size:21px;
   background:var(--future);color:var(--muted);border:2px solid transparent;white-space:nowrap}
 .c-lesson[data-state=done]{background:var(--tint);color:var(--ink)}
 .c-lesson .nm{line-height:1.1}
-.c-lesson .sub{font-size:.68em;font-weight:600;letter-spacing:0;color:var(--muted);line-height:1}
+.c-lesson .sub{font-size:max(14px,.72em);font-weight:400;color:var(--ink-soft);line-height:1.15}
 /* בר אפור קטן (לא נבחר) */
 .c-meter{display:block;width:100%;height:6px;border-radius:999px;background:#E2EAF0;overflow:hidden}
 .c-meter .fill{display:block;height:100%;border-radius:999px;background:#B3C3CF;transition:width .5s,background-color .5s}
@@ -66,16 +66,17 @@
 /* הנבחר: בר רמזור, ״מפתח ה...״, המשפט — מיושר לימין */
 .c-lesson[data-sel=true]{align-items:stretch;text-align:right;gap:6px;min-height:74px;padding:10px 24px;
   font-size:21px;background:var(--tint);color:var(--ink);border-color:var(--tint)}
-.c-lesson[data-sel=true] .nm{font-weight:900;letter-spacing:-.6px}
+.c-lesson[data-sel=true] .nm{font-weight:500}
 .c-lesson[data-sel=true] .c-meter{height:8px;background:#fff}
 .c-lesson[data-sel=true] .check{align-self:flex-start;width:28px;height:28px}
-.c-lesson .tag{display:none;font-size:.56em;font-weight:500;letter-spacing:0;line-height:1.3;color:var(--ink-soft);white-space:normal}
+.c-menutitle{display:none}
+.c-lesson .tag{display:none;font-size:.6em;font-weight:400;line-height:1.3;color:var(--ink-soft);white-space:normal}
 
 /* שורת שלבים */
 .c-tabs{display:flex;align-items:center;gap:8px;overflow-x:auto;margin:0 -16px;padding:0 16px}
 .c-tabs .seg{display:flex;align-items:center;flex:none}
 .c-tabs .line{display:none}
-.c-tab{flex:none;border-radius:999px;white-space:nowrap;font-weight:800;min-height:44px;padding:0 16px;font-size:15px;background:#fff;color:var(--ink);border:1px solid var(--line-2)}
+.c-tab{flex:none;border-radius:999px;white-space:nowrap;font-weight:500;min-height:44px;padding:0 16px;font-size:15px;background:#fff;color:var(--ink);border:1px solid var(--line-2)}
 .c-tab[data-done=true]{background:var(--light);border-color:var(--light-border)}
 .c-tab[aria-selected=true]{min-height:56px;padding:0 26px;font-size:19px;background:var(--primary);color:#fff;border-color:var(--primary)}
 
@@ -85,7 +86,7 @@
 .c-play{position:relative;width:84px;height:84px;border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;padding:0 0 0 6px}
 /* מסך פתיחה של הסרטון */
 .c-start{position:relative;display:flex;flex-direction:column;align-items:center;gap:18px}
-.c-start p{margin:0;font-size:30px;font-weight:900;letter-spacing:-.8px;color:var(--ink)}
+.c-start p{margin:0;font-size:30px;font-weight:500;color:var(--ink)}
 .c-start .c-play{width:96px;height:96px;box-shadow:0 8px 22px rgba(22,62,107,.16),0 2px 6px rgba(22,62,107,.08)}
 .c-start .c-play svg{width:52px;height:52px}
 .c-start .breathe{display:flex}
@@ -117,7 +118,7 @@
 
   .c-header{height:calc(72*var(--u));padding:0 max(24px,calc((100% - 1320px)/2))}
   .c-header .logo{width:calc(112*var(--u));height:calc(42*var(--u))}
-  .c-header .hello{font-size:calc(22*var(--u));letter-spacing:-.5px}
+  .c-header .hello{font-size:calc(22*var(--u))}
   .c-header .ava{width:calc(48*var(--u));height:calc(48*var(--u))}
   .c-header .ava img{width:calc(40*var(--u));height:calc(40*var(--u))}
   .c-header .c-light{width:calc(46*var(--u))!important;height:calc(46*var(--u))!important;min-width:40px;min-height:40px}
@@ -126,15 +127,19 @@
     padding:calc(24*var(--u)) 24px calc(24*var(--u))}
   .c-main{flex:999 1 560px;gap:calc(18*var(--u));padding:0}
 
-  .c-menu{flex:1 1 calc(340*var(--u));max-width:calc(400*var(--u));flex-direction:column;align-items:stretch;gap:calc(14*var(--u));
-    overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;
-    max-height:calc(100dvh - 120*var(--u));min-height:0;background:var(--surface);border:1px solid var(--line);
-    border-radius:calc(32*var(--u));padding:calc(22*var(--u));position:sticky;top:calc(24*var(--u))}
+  /* הלוח: כותרת קבועה, ומתחתיה השיעורים נגללים */
+  .c-menubox{flex:1 1 calc(340*var(--u));max-width:calc(400*var(--u));display:flex;flex-direction:column;min-height:0;overflow:hidden;
+    max-height:calc(100dvh - 120*var(--u));background:var(--surface);border:1px solid var(--line);
+    border-radius:calc(32*var(--u));position:sticky;top:calc(24*var(--u))}
+  .c-menutitle{display:block;flex:none;margin:0;padding:calc(20*var(--u)) calc(28*var(--u)) calc(8*var(--u));font-size:max(17px,calc(23*var(--u)));font-weight:500;line-height:1.2}
+  .c-menu{flex:1 1 auto;min-height:0;flex-direction:column;align-items:stretch;gap:calc(14*var(--u));
+    overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;padding:calc(8*var(--u)) calc(22*var(--u)) calc(22*var(--u))}
   /* פס הגלילה מימין: המיכל ltr, הכרטיסים rtl */
   .c-menu{direction:ltr}
-  .c-lesson{direction:rtl;width:50%;align-self:flex-end;border-radius:calc(24*var(--u));min-height:calc(88*var(--u));
-    gap:calc(7*var(--u));padding:calc(12*var(--u)) calc(18*var(--u));font-size:calc(19*var(--u))}
-  .c-meter{height:calc(7*var(--u));min-height:5px}
+  .c-lesson{direction:rtl;width:60%;align-self:flex-end;border-radius:calc(24*var(--u));min-height:calc(112*var(--u));
+    gap:calc(5*var(--u));padding:calc(13*var(--u)) calc(20*var(--u)) calc(15*var(--u));font-size:max(18px,calc(26*var(--u)))}
+  .c-meter{height:calc(7*var(--u));min-height:5px;margin-bottom:calc(9*var(--u))}
+  .c-lesson[data-sel=true] .c-meter{margin-bottom:0}
   .c-lesson .check{width:calc(26*var(--u));height:calc(26*var(--u));min-width:18px;min-height:18px}
   .c-lesson[data-sel=true]{width:100%;gap:calc(10*var(--u));min-height:calc(112*var(--u));padding:calc(20*var(--u)) calc(30*var(--u));font-size:calc(30*var(--u))}
   .c-lesson[data-sel=true] .c-meter{height:calc(12*var(--u));min-height:8px}
@@ -178,7 +183,7 @@
 @keyframes hop{0%{transform:none}18%{transform:scale(1.07,.9)}48%{transform:translateY(-26px) scale(.96,1.05)}78%{transform:scale(1.04,.96)}100%{transform:none}}
 
 /* ---------- הדמות, המטבעות והחנות ---------- */
-.s-coins{display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 14px 0 8px;border-radius:999px;background:#fff;border:1px solid #F1E2B4;font-weight:700;font-size:21px;color:#9B6A00;white-space:nowrap}
+.s-coins{display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 14px 0 8px;border-radius:999px;background:#fff;border:1px solid #F1E2B4;font-weight:500;font-size:21px;color:#9B6A00;white-space:nowrap}
 .s-num{display:inline-block;animation:pop .35s cubic-bezier(.2,.9,.3,1.5)}
 .c-hero{width:100%;height:100%}
 .c-hero-mid{width:150px;height:160px}
@@ -193,6 +198,20 @@
 .c-header[data-strip]>.logo,.c-header[data-strip]>.hi{display:none}
 .c-side{display:flex;flex-direction:column;min-width:0}
 
+/* בועת ההוראות של הדמות: טלפון — מתחת לכותרת, מחשב — לצד הדמות, מעל השלב */
+.c-header[data-strip]{position:relative;z-index:30}
+.c-bubble{position:absolute;top:calc(100% + 10px);right:12px;left:12px;z-index:30;background:#fff;border:2px solid #BFE8EC;border-radius:22px;padding:14px 16px 14px 60px;min-height:106px;
+  display:flex;align-items:center;text-align:right;filter:drop-shadow(0 6px 12px rgba(22,62,107,.14));animation:bubbleUp .3s cubic-bezier(.2,.9,.3,1.2);transform-origin:calc(100% - 30px) 0}
+.c-bubble::after{content:'';position:absolute;width:22px;height:22px;background:linear-gradient(45deg,transparent 50%,#fff 50%);border:2px solid transparent;border-top-color:#BFE8EC;border-right-color:#BFE8EC;top:-13px;right:20px;transform:rotate(-45deg)}
+.c-bubble p{position:relative;z-index:1;margin:0;font-size:17px;line-height:1.4;text-wrap:pretty}
+.c-bubble .x{position:absolute;z-index:2;top:4px;left:8px;width:44px;height:44px;border:0;padding:0;border-radius:50%;background:none;color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.c-bubble .x:hover{color:var(--ink);background:var(--future)}
+.c-bubble .say{position:absolute;bottom:8px;left:8px;width:44px;height:44px;border:0;padding:0;border-radius:50%;background:var(--light);color:#23866E;display:flex;align-items:center;justify-content:center}
+.c-bubble .say[data-on]{background:var(--success);color:#fff}
+@keyframes bubbleUp{from{opacity:0;transform:translateY(-8px) scale(.94)}}
+@keyframes bubbleSide{from{opacity:0;transform:translateX(12px) scale(.94)}}
+@media (prefers-reduced-motion:reduce){.c-bubble{animation:none}}
+
 .s-shop{position:fixed;inset:0;z-index:55;display:flex;flex-direction:column;background:linear-gradient(#BFE8EC,#EAF7F4 70%);animation:fadeIn .25s;overflow:hidden}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .s-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;flex:none}
@@ -203,7 +222,7 @@
 .s-hero{height:100%;width:100%;max-width:300px}
 .s-stage{flex:1 1 64%;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding-bottom:16px;position:relative;container-type:inline-size}
 .s-stage>*{--bw:min(43cqw,32vh,260px);--ph:44px}
-.s-error{position:absolute;bottom:8px;margin:0;font-weight:700;color:#9B3D00}
+.s-error{position:absolute;bottom:8px;margin:0;font-weight:500;color:#9B3D00}
 
 /* שלוש קופסאות: גדולה באמצע ואחת קטנה מכל צד, בלי חיתוך */
 .s-carousel{position:relative;width:100%}
@@ -220,10 +239,10 @@
 .s-box[data-sel]:active{transform:scale(.96)}
 .s-box:focus-visible,.s-open:focus-visible{outline:3px solid var(--primary);outline-offset:4px;border-radius:24px}
 .s-chest{width:88%;height:auto;display:block;overflow:visible;transform-origin:50% 100%;filter:drop-shadow(0 7px 0 rgba(23,80,130,.14))}
-.s-price{display:inline-flex;align-items:center;gap:8px;height:var(--ph);font-size:40px;font-weight:700;line-height:1.1;color:#9B6A00}
+.s-price{display:inline-flex;align-items:center;gap:8px;height:var(--ph);font-size:40px;font-weight:500;line-height:1.1;color:#9B6A00}
 .s-price s{font-size:20px;font-weight:500;color:var(--muted)}
 .s-box[data-poor] .s-price{color:var(--muted)}
-.s-missing{position:absolute;top:100%;white-space:nowrap;font-size:18px;font-weight:600;color:var(--ink-soft)}
+.s-missing{position:absolute;top:100%;white-space:nowrap;font-size:18px;font-weight:500;color:var(--ink-soft)}
 .s-arrow{display:none}
 
 /* התיבה שנקנתה: מחכה כמו תיבת האוצר במשחקים (chestCall) */
@@ -258,17 +277,22 @@
   .c-herostrip{display:none}
   .c-header[data-strip]>.logo,.c-header[data-strip]>.hi{display:flex}
   .c-header[data-strip]>.logo{display:block}
-  .c-side{flex:1 1 calc(340*var(--u));max-width:calc(400*var(--u));gap:calc(14*var(--u));position:sticky;top:calc(24*var(--u));max-height:calc(100dvh - 120*var(--u))}
-  .c-side .c-menu{flex:1 1 auto;max-width:none;max-height:none;position:static}
-  .c-herocard{flex:none;display:grid;grid-template-columns:calc(140*var(--u)) 1fr;align-items:end;gap:calc(10*var(--u));padding:calc(12*var(--u)) calc(18*var(--u)) calc(14*var(--u));
+  .c-side{z-index:5;flex:1 1 calc(340*var(--u));max-width:calc(400*var(--u));gap:calc(14*var(--u));position:sticky;top:calc(24*var(--u));max-height:calc(100dvh - 120*var(--u))}
+  .c-side .c-menubox{flex:1 1 auto;max-width:none;max-height:none;position:static}
+  /* הדמות בצד של השלב (שמאל), והבועה יוצאת ממנה אל מעל השלב */
+  .c-herocard{position:relative;flex:none;display:grid;grid-template-columns:1fr calc(140*var(--u));align-items:end;gap:calc(10*var(--u));padding:calc(12*var(--u)) calc(18*var(--u)) calc(14*var(--u));
     border-radius:calc(32*var(--u));background:linear-gradient(#BFE8EC,#EAF7F4)}
-  .c-herocard .c-herobtn{height:calc(140*var(--u))}
+  .c-herocard .c-herobtn{height:calc(140*var(--u));order:1}
   .c-herocard .info{display:flex;flex-direction:column;align-items:stretch;justify-content:center;align-self:center;gap:calc(12*var(--u));width:max-content;min-width:calc(150*var(--u));margin:0 auto}
   .c-herocard .s-coins,.c-herocard .c-shopbtn{width:100%;height:max(44px,calc(52*var(--u)));min-height:0;justify-content:center}
   .c-herocard .s-coins{font-size:calc(23*var(--u))}
-  .c-herocard .goal{grid-column:1/-1;display:flex;align-items:center;gap:10px;font-size:calc(16*var(--u));color:var(--ink-soft)}
+  .c-herocard .goal{order:2;grid-column:1/-1;display:flex;align-items:center;gap:10px;font-size:calc(16*var(--u));color:var(--ink-soft)}
   .c-herocard .bar{flex:1;height:calc(9*var(--u));border-radius:999px;background:#fff;overflow:hidden}
   .c-herocard .bar b{display:block;height:100%;border-radius:999px;background:#F1C43E;transition:width .6s}
+  .c-herocard .c-bubble{top:calc(10*var(--u));right:calc(100% + 6*var(--u));left:auto;width:min(calc(480*var(--u)),40vw);
+    padding:calc(20*var(--u)) calc(24*var(--u)) calc(20*var(--u)) 66px;min-height:calc(124*var(--u));border-radius:calc(26*var(--u));animation-name:bubbleSide;transform-origin:100% 60px}
+  .c-herocard .c-bubble::after{top:calc(52*var(--u));right:-13px;transform:rotate(45deg)}
+  .c-herocard .c-bubble p{font-size:max(17px,calc(22*var(--u)))}
   .s-top{padding:18px 28px}
   .s-body{flex-direction:row;align-items:stretch}
   .s-mirror{flex:0 0 34%;align-items:center;padding:0}
@@ -290,4 +314,10 @@
 @media (prefers-reduced-motion:reduce){
   .s-num,.s-shop,.s-grow,.s-open .s-chest,.s-item-art,.s-choice button,.s-box .s-chest{animation:none!important}
   .s-box,.s-track{transition:none}
+}
+/* טלפון צר: הדמות, 4 ספרות מטבעות והכפתורים נכנסים בשורה אחת */
+@media (max-width:400px){
+  .c-herostrip{gap:6px}
+  .c-herostrip .c-shopbtn{width:46px}
+  .c-herostrip .s-coins{font-size:18px;gap:4px;padding:0 10px 0 6px}
 }

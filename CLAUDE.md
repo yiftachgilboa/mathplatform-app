@@ -45,7 +45,7 @@ mathplatform-app/
 │   ├── games/
 │   │   └── math-writing-board-001/       ✅ לוח כתיבה
 │   ├── course/                           ✅ אתר הקורס kidodo (ראו "אתר הקורס" למטה)
-│   │   ├── layout.tsx + course.css       Fredoka + טוקנים
+│   │   ├── layout.tsx + course.css       Rubik + טוקנים
 │   │   ├── page.tsx                      הרשאות → welcome / שיעור נוכחי / "הקורסים שלי"
 │   │   ├── no-access/page.tsx
 │   │   ├── [courseId]/welcome/           כניסה ראשונה: ילד → שם → דמות
@@ -350,7 +350,8 @@ MathPlatformSDK.emit('GAME_OVER', { score, maxScore, stars, correctAnswers, tota
 ### כללים
 - **שום טקסט בקוד** — הכל ב-`content/courses/<courseId>.json` (ui, שיעורים, צבעים, אייקונים, סרטונים, משחקים, שאלות, ספי שליטה). קורס חדש = קובץ + שורה ב-`COURSES` ב-`lib/course/content.ts`.
 - אין נעילות. "השיעור הנוכחי" = הראשון בלי שליטה. שליטה = ≥90% ב-30 תשובות התרגול האחרונות (מינימום 20) **או** ≥90% במבחן → חגיגה + מעבר אוטומטי.
-- עיצוב: שטוח (אין box-shadow), Fredoka (עגול), טקסט אפור כהה `--ink:#33373B`, RTL, מובייל פירסט (שבירה ב-700px), כפתורים ≥ 44px, `prefers-reduced-motion`. טוקנים ב-`app/course/course.css`; מצבי כרטיסיות ב-`data-state`/`data-sel`.
+- עיצוב: שטוח (אין box-shadow), Rubik (400 לטקסט, 500 לכותרות, בלי משקלים כבדים יותר), טקסט אפור כהה `--ink:#33373B`, RTL, מובייל פירסט (שבירה ב-700px), כפתורים ≥ 44px, `prefers-reduced-motion`. טוקנים ב-`app/course/course.css`; מצבי כרטיסיות ב-`data-state`/`data-sel`.
+- הדמות (`LiveHero` ב-`components/course/Hero.tsx`) עוקבת אחרי העכבר/נגיעה, ממצמצת ומדברת; כשמשחק או סרטון רץ היא עומדת (`calm`). בועת ההוראות: מתי — `components/course/useGuide.ts`, מה נאמר — `lib/course/guide.ts`, טקסטים — `ui.guide` ב-JSON, הקראה — `lib/course/speak.ts`.
 - סרטונים: נתיבים יחסיים ל-bucket `kidodo-media` (`mediaUrl()`); אם הקובץ חסר — "יעלה בקרוב". התנסות בלי סרטון → השאלות ברצף.
 
 ### משחקים מתוך הקורס

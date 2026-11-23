@@ -94,7 +94,7 @@ export default function InteractiveVideoStage({ src, cues, playLabel, retryLabel
       {showCard && cue && (
         <div key={cueIdx} className="pop qcard" role="dialog" aria-live="polite"
           style={{ position: 'relative', width: '100%', maxWidth: 500, background: '#fff', borderRadius: 28, padding: 'clamp(20px, 4vw, 30px)', display: 'flex', flexDirection: 'column', gap: 22 }}>
-          <p className="q" style={{ margin: 0, fontSize: 'clamp(22px, 3.4vw, 28px)', fontWeight: 900, lineHeight: 1.2, letterSpacing: '-0.6px' }}>{cue.q}</p>
+          <p className="q" style={{ margin: 0, fontSize: 'clamp(22px, 3.4vw, 28px)', fontWeight: 500, lineHeight: 1.2 }}>{cue.q}</p>
           <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(cue.answers.length, 4)}, minmax(0, 1fr))`, gap: 12 }}>
             {cue.answers.map((a, i) => {
               const m = mark?.i === i ? mark.tone : null
@@ -102,14 +102,14 @@ export default function InteractiveVideoStage({ src, cues, playLabel, retryLabel
               const ring = m === 'bad' ? 'var(--warn)' : m ? 'var(--success)' : 'var(--line-2)'
               return (
                 <button key={i} type="button" className="press c-ans a" onClick={() => pick(i)}
-                  style={{ fontSize: a.length > 3 ? 24 : 'clamp(30px, 5vw, 40px)', fontWeight: 900, minHeight: 84, borderRadius: 22, border: `2px solid ${ring}`, background: bg, padding: '0 8px' }}>
+                  style={{ fontSize: a.length > 3 ? 24 : 'clamp(30px, 5vw, 40px)', fontWeight: 500, minHeight: 84, borderRadius: 22, border: `2px solid ${ring}`, background: bg, padding: '0 8px' }}>
                   {a}
                 </button>
               )
             })}
           </div>
           {mark?.tone === 'bad' && cue.hint && (
-            <p className="pop" style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#9B6A00' }}>{cue.hint}</p>
+            <p className="pop" style={{ margin: 0, fontSize: 18, fontWeight: 500, color: '#9B6A00' }}>{cue.hint}</p>
           )}
         </div>
       )}

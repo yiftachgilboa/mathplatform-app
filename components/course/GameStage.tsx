@@ -16,7 +16,7 @@ export default function GameStage({ kind, tint, label, soonLabel, available, onP
           <PlayIcon color="#FFFFFF" />
         </button>
       ) : (
-        <p style={{ position: 'relative', margin: 0, padding: '14px 26px', borderRadius: 999, background: '#fff', fontSize: 20, fontWeight: 800 }}>{soonLabel}</p>
+        <p style={{ position: 'relative', margin: 0, padding: '14px 26px', borderRadius: 999, background: '#fff', fontSize: 20, fontWeight: 500 }}>{soonLabel}</p>
       )}
     </div>
   )

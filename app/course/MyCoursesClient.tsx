@@ -11,7 +11,7 @@ export default function MyCoursesClient({ title, cards }: { title: string; cards
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/course/kidodo-wordmark.png" alt="kidodo" style={{ width: 140, height: 52, objectFit: 'contain' }} />
       </div>
-      <h1 style={{ margin: '0 0 24px', fontSize: 40, fontWeight: 900, letterSpacing: '-0.035em', textAlign: 'center' }}>
+      <h1 style={{ margin: '0 0 24px', fontSize: 40, fontWeight: 500, textAlign: 'center' }}>
         {title}
         <span aria-hidden style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: 'var(--dot)', marginInlineStart: 5 }} />
       </h1>
@@ -27,7 +27,7 @@ export default function MyCoursesClient({ title, cards }: { title: string; cards
                 <img src={c.avatar} alt="" style={{ width: 60, height: 60, objectFit: 'contain' }} />
               </span>
               <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-                <span style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-0.5px' }}>{c.childName}</span>
+                <span style={{ fontSize: 26, fontWeight: 500 }}>{c.childName}</span>
                 <span style={{ fontSize: 16, fontWeight: 500, color: 'var(--ink-soft)' }}>{c.courseTitle}</span>
               </span>
             </Link>

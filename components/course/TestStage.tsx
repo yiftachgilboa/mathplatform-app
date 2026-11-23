@@ -76,14 +76,14 @@ export default function TestStage({ questions, count, mascot, hero, ui, onAnswer
         )}
         {result && (
           <>
-            <p style={{ margin: 0, fontSize: 'clamp(26px, 4vw, 36px)', fontWeight: 900, letterSpacing: '-0.6px' }}>{result.passed ? ui.testPass : ui.testFail}</p>
+            <p style={{ margin: 0, fontSize: 'clamp(26px, 4vw, 36px)', fontWeight: 500 }}>{result.passed ? ui.testPass : ui.testFail}</p>
             {dots}
             {!result.passed && (
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
                 <button type="button" className="press c-primary" onClick={() => setRound(r => r + 1)}
-                  style={{ minHeight: 56, padding: '0 28px', borderRadius: 999, fontSize: 19, fontWeight: 800 }}>{ui.retry}</button>
+                  style={{ minHeight: 56, padding: '0 28px', borderRadius: 999, fontSize: 19, fontWeight: 500 }}>{ui.retry}</button>
                 <button type="button" className="press c-light" onClick={onBackToPractice}
-                  style={{ minHeight: 56, padding: '0 28px', borderRadius: 999, fontSize: 19, fontWeight: 800 }}>{ui.backToPractice}</button>
+                  style={{ minHeight: 56, padding: '0 28px', borderRadius: 999, fontSize: 19, fontWeight: 500 }}>{ui.backToPractice}</button>
               </div>
             )}
           </>
@@ -95,7 +95,7 @@ export default function TestStage({ questions, count, mascot, hero, ui, onAnswer
   return (
     <div key={`${round}-${idx}`} className="panel-in test" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 28, padding: 'clamp(28px, 5vw, 44px) 20px 48px' }}>
       {dots}
-      <p className="tq" style={{ margin: 0, fontSize: 'clamp(44px, 9vw, 72px)', fontWeight: 900, direction: 'ltr', letterSpacing: '-1px', textAlign: 'center' }}>
+      <p className="tq" style={{ margin: 0, fontSize: 'clamp(44px, 9vw, 72px)', fontWeight: 500, direction: 'ltr', textAlign: 'center' }}>
         {q.q.includes('?') ? (
           <>
             {q.q.split('?')[0]}
@@ -109,7 +109,7 @@ export default function TestStage({ questions, count, mascot, hero, ui, onAnswer
           const on = picked === i
           return (
             <button key={i} type="button" className="press c-ans ta" onClick={() => pick(i)}
-              style={{ fontSize: 'clamp(28px, 5vw, 36px)', fontWeight: 900, minHeight: 80, borderRadius: 22, border: `2px solid ${on ? 'var(--primary)' : 'var(--line-2)'}`, background: on ? 'var(--primary)' : '#fff', color: on ? '#fff' : 'var(--ink)' }}>
+              style={{ fontSize: 'clamp(28px, 5vw, 36px)', fontWeight: 500, minHeight: 80, borderRadius: 22, border: `2px solid ${on ? 'var(--primary)' : 'var(--line-2)'}`, background: on ? 'var(--primary)' : '#fff', color: on ? '#fff' : 'var(--ink)' }}>
               {a}
             </button>
           )

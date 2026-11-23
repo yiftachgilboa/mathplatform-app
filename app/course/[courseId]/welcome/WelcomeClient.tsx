@@ -16,9 +16,9 @@ const card: React.CSSProperties = {
   width: '100%', maxWidth: 560, background: 'var(--surface)', border: '1px solid var(--line)',
   borderRadius: 32, padding: '30px 22px', display: 'flex', flexDirection: 'column', gap: 22, alignItems: 'center',
 }
-const h1: React.CSSProperties = { margin: 0, fontSize: 'clamp(30px, 7vw, 44px)', fontWeight: 900, letterSpacing: '-0.035em', textAlign: 'center', lineHeight: 1.1 }
+const h1: React.CSSProperties = { margin: 0, fontSize: 'clamp(30px, 7vw, 44px)', fontWeight: 500, textAlign: 'center', lineHeight: 1.1 }
 const bigBtn: React.CSSProperties = {
-  minHeight: 64, padding: '0 40px', borderRadius: 999, fontSize: 24, fontWeight: 900, width: '100%', maxWidth: 360,
+  minHeight: 64, padding: '0 40px', borderRadius: 999, fontSize: 24, fontWeight: 500, width: '100%', maxWidth: 360,
 }
 
 export default function WelcomeClient({ courseId, ui, avatars, existing }: Props) {
@@ -66,16 +66,16 @@ export default function WelcomeClient({ courseId, ui, avatars, existing }: Props
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, width: '100%' }}>
             {existing.map(k => (
               <button key={k.id} type="button" className="press" disabled={busy} onClick={() => afterWho(k.id)}
-                style={{ minHeight: 80, borderRadius: 26, fontSize: 24, fontWeight: 800, background: '#DFF3FF', border: '2px solid transparent', padding: '0 16px' }}>
+                style={{ minHeight: 80, borderRadius: 26, fontSize: 24, fontWeight: 500, background: '#DFF3FF', border: '2px solid transparent', padding: '0 16px' }}>
                 {k.name}
               </button>
             ))}
             <button type="button" className="press" onClick={() => { setChildId(null); setStep('name') }}
-              style={{ minHeight: 80, borderRadius: 26, fontSize: 22, fontWeight: 800, background: 'var(--future)', color: 'var(--ink)', border: '2px dashed var(--line-2)', padding: '0 16px' }}>
+              style={{ minHeight: 80, borderRadius: 26, fontSize: 22, fontWeight: 500, background: 'var(--future)', color: 'var(--ink)', border: '2px dashed var(--line-2)', padding: '0 16px' }}>
               + {o.newChild}
             </button>
           </div>
-          {error && <p role="alert" style={{ margin: 0, color: '#9B6A00', fontWeight: 700 }}>{error}</p>}
+          {error && <p role="alert" style={{ margin: 0, color: '#9B6A00', fontWeight: 500 }}>{error}</p>}
         </section>
       )}
 
@@ -87,8 +87,8 @@ export default function WelcomeClient({ courseId, ui, avatars, existing }: Props
           <h1 style={h1}>{o.askName}</h1>
           <form style={{ display: 'contents' }} onSubmit={e => { e.preventDefault(); if (name.trim()) { setError(''); afterWho(null) } }}>
             <input value={name} onChange={e => setName(e.target.value)} autoFocus maxLength={40} placeholder={o.namePlaceholder} aria-label={o.askName}
-              style={{ width: '100%', maxWidth: 360, minHeight: 64, borderRadius: 22, border: '2px solid var(--line-2)', padding: '0 20px', fontSize: 26, fontWeight: 800, textAlign: 'center', background: '#fff', outlineColor: 'var(--primary)' }} />
-            {error && <p role="alert" style={{ margin: 0, color: '#9B6A00', fontWeight: 700 }}>{error}</p>}
+              style={{ width: '100%', maxWidth: 360, minHeight: 64, borderRadius: 22, border: '2px solid var(--line-2)', padding: '0 20px', fontSize: 26, fontWeight: 500, textAlign: 'center', background: '#fff', outlineColor: 'var(--primary)' }} />
+            {error && <p role="alert" style={{ margin: 0, color: '#9B6A00', fontWeight: 500 }}>{error}</p>}
             <button type="submit" disabled={!name.trim() || busy} className="press c-primary" aria-label={ui.next}
               style={{ width: 64, height: 64, borderRadius: '50%', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M19 12H5M11 6l-6 6 6 6" /></svg>
@@ -114,7 +114,7 @@ export default function WelcomeClient({ courseId, ui, avatars, existing }: Props
               )
             })}
           </div>
-          {error && <p role="alert" style={{ margin: 0, color: '#9B6A00', fontWeight: 700 }}>{error}</p>}
+          {error && <p role="alert" style={{ margin: 0, color: '#9B6A00', fontWeight: 500 }}>{error}</p>}
           <button type="button" onClick={() => start()} disabled={busy} className="press c-primary" style={bigBtn}>{o.start}</button>
         </section>
       )}

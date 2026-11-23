@@ -30,6 +30,32 @@ export function useArt(): any {
 
 const NS = 'http://www.w3.org/2000/svg'
 
+/** מצייר אובייקט לתוך svg עם מאגר פוליגונים קבוע. all = הכול, face = רק שכבת הפנים (זול). */
+export function painter(LP: any, el: SVGSVGElement, tilt: number) {
+  const g = document.createElementNS(NS, 'g'), fg = document.createElementNS(NS, 'g')
+  const pool: SVGPolygonElement[] = []
+  el.replaceChildren(g, fg)
+  const cam = LP.camera({ a: tilt })
+  const face = (o: any) => { if (o.face) fg.innerHTML = LP.face(o, cam) }
+  const all = (o: any) => {
+    const list = LP.facets(o, cam)
+    for (let i = 0; i < Math.max(list.length, pool.length); i++) {
+      let p = pool[i]
+      if (!p) {
+        p = document.createElementNS(NS, 'polygon')
+        p.setAttribute('stroke-width', '.7'); p.setAttribute('stroke-linejoin', 'round')
+        g.appendChild(p); pool.push(p)
+      }
+      const f = list[i]
+      if (!f) { p.setAttribute('points', ''); continue }
+      p.setAttribute('points', f.pts.map((q: number[]) => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '))
+      p.setAttribute('fill', f.fill); p.setAttribute('stroke', f.fill)
+    }
+    face(o)
+  }
+  return { all, face }
+}
+
 /**
  * אובייקט חי מהספרייה: build(LP, t) → אובייקט. run = מצויר שוב ושוב (עד until שניות), אחרת פריים אחד.
  * מאגר פוליגונים קבוע, בלי innerHTML בכל פריים (כמו במשחקים). משנים dep כדי לצייר מחדש.
@@ -49,26 +75,8 @@ export default function LowPoly({ build, viewBox, tilt, run = false, until, fps 
       const el = ref.current
       if (dead || !el) return
       el.setAttribute('viewBox', fns.current.viewBox(LP))
-      const g = document.createElementNS(NS, 'g'), fg = document.createElementNS(NS, 'g')
-      const pool: SVGPolygonElement[] = []
-      el.replaceChildren(g, fg)
-      const cam = LP.camera({ a: tilt })
-      const draw = (t: number) => {
-        const o = fns.current.build(LP, t), list = LP.facets(o, cam)
-        for (let i = 0; i < Math.max(list.length, pool.length); i++) {
-          let p = pool[i]
-          if (!p) {
-            p = document.createElementNS(NS, 'polygon')
-            p.setAttribute('stroke-width', '.7'); p.setAttribute('stroke-linejoin', 'round')
-            g.appendChild(p); pool.push(p)
-          }
-          const f = list[i]
-          if (!f) { p.setAttribute('points', ''); continue }
-          p.setAttribute('points', f.pts.map((q: number[]) => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '))
-          p.setAttribute('fill', f.fill); p.setAttribute('stroke', f.fill)
-        }
-        if (o.face) fg.innerHTML = LP.face(o, cam)
-      }
+      const paint = painter(LP, el, tilt)
+      const draw = (t: number) => paint.all(fns.current.build(LP, t))
       const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       if (!run || still) { draw(run && until != null ? until : 0); return }
       draw(0)

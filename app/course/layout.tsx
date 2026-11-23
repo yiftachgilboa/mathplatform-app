@@ -1,15 +1,16 @@
 import type { Metadata } from 'next'
-import { Fredoka } from 'next/font/google'
+import { Rubik } from 'next/font/google'
 import './course.css'
 
-// גופן עגול (Fredoka, משקלים 300–700). משקלים 800/900 בקוד מוצגים כ-700.
-const fredoka = Fredoka({
-  variable: '--font-fredoka',
+// Rubik: עברי מודרני, פינות מעט מעוגלות, דק וקריא גם בקטן. שני משקלים בלבד:
+// 400 לטקסט, 500 לכותרות ולכפתורים (בלי משקלים כבדים יותר).
+const rubik = Rubik({
+  variable: '--font-main',
   subsets: ['latin', 'hebrew'],
 })
 
 export const metadata: Metadata = { title: 'kidodo' }
 
 export default function CourseLayout({ children }: { children: React.ReactNode }) {
-  return <div className={`course ${fredoka.variable}`}>{children}</div>
+  return <div className={`course ${rubik.variable}`}>{children}</div>
 }
