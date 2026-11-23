@@ -206,10 +206,10 @@
 /* שלוש קופסאות: גדולה באמצע ואחת קטנה מכל צד, בלי חיתוך */
 .s-carousel{position:relative;width:100%}
 .s-row{position:relative;height:calc(var(--bw) * .75 + 96px);touch-action:pan-y;cursor:grab}
-.s-track{position:absolute;left:50%;top:0;height:100%;width:0;transition:transform .2s cubic-bezier(.2,.8,.3,1);will-change:transform}
+.s-track{position:absolute;left:50%;top:0;height:100%;width:0;transition:transform .6s cubic-bezier(.35,.05,.2,1);will-change:transform}
 .s-box{position:absolute;bottom:4px;width:var(--bw);margin-left:calc(var(--bw) / -2);padding:0;border:0;background:none;
   display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;
-  transform:scale(.3);transform-origin:50% 65%;opacity:0;pointer-events:none;transition:transform .16s,opacity .16s}
+  transform:scale(.3);transform-origin:50% 65%;opacity:0;pointer-events:none;transition:transform .6s cubic-bezier(.35,.05,.2,1),opacity .6s ease}
 .s-box[data-near]{transform:scale(.56);opacity:.9;pointer-events:auto}
 .s-box[data-sel]{transform:none;opacity:1;pointer-events:auto}
 .s-box[data-sel] .s-chest{animation:hopIdle 2.6s cubic-bezier(.3,.7,.4,1) 2s infinite}
@@ -239,16 +239,18 @@
 .s-hand{position:absolute;left:calc(50% - 16px);top:52%;pointer-events:none;filter:drop-shadow(0 4px 4px rgba(23,80,130,.3));line-height:0}
 /* ההפתעה: על המכסה הפתוח, ומשני צדיו וי ואיקס */
 .s-choice{position:absolute;left:50%;bottom:calc(var(--w) * .9);transform:translate(-50%,50%);display:flex;align-items:center;gap:calc(var(--w) * .24 + 14px)}
-.s-choice button{width:64px;height:64px;flex:none;border-radius:50%;border:0;padding:15px;color:#fff;display:flex;animation:pop .25s .15s both,callBtn 5.4s ease-in-out .9s infinite}
-.s-choice .s-no{animation-delay:.15s,3.6s}
+.s-choice button{width:64px;height:64px;flex:none;border-radius:50%;border:0;padding:15px;color:#fff;display:flex;animation:pop .25s .15s both,callBtn 6s ease-in-out .9s infinite}
+.s-choice .s-no{animation-delay:.15s,3.9s}
 .s-choice svg{width:100%;height:100%}
 /* מושך את העין: הירוק גדל וקטן, 2 שניות הפסקה, האדום, 2 שניות הפסקה, וחוזר */
-@keyframes callBtn{0%,13%,100%{transform:none}3.5%,10%{transform:scale(1.28)}6.5%{transform:scale(1.04)}}
+@keyframes callBtn{0%,17%,100%{transform:none}8.5%{transform:scale(1.02)}}
 .s-item-art{width:calc(var(--w) * .56);height:calc(var(--w) * .56);flex:none;border-radius:50%;background:#fff;padding:calc(var(--w) * .08);
-  box-shadow:0 0 0 calc(var(--w) * .025) color-mix(in srgb,var(--c) 35%,#fff);animation:outOfChest .45s cubic-bezier(.2,.9,.3,1.25)}
+  box-shadow:0 0 0 calc(var(--w) * .025) color-mix(in srgb,var(--c) 35%,#fff);animation:outOfChest .45s cubic-bezier(.2,.9,.3,1.25),breatheGift 3.2s ease-in-out .45s infinite}
+@keyframes breatheGift{50%{transform:scale(1.07)}}
 @keyframes outOfChest{from{transform:translateY(calc(var(--w) * .5)) scale(.15)}}
-.s-yes{background:#2FA36B}
-.s-no{background:#D9534F}
+/* ירוק הפלטה של הקורס (--success), ואדום של ספריית הארט */
+.s-yes{background:var(--success)}
+.s-no{background:#EF5C55}
 
 @media (min-width:700px){
   .c-herostrip{display:none}

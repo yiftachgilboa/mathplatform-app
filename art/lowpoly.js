@@ -581,19 +581,24 @@
     // o.open like the chest (same body, same lid, same hinge, so every chest animation works on it)
     giftChest(o) {
       const S = o.size || 120, seed = o.seed || 1, w = S, d = S * .62, h = S * .5, lh = S * .26, phi = o.open || 0;
-      const m = o.mat || dye(o.color || '#ef5c55'), rb = o.ribbon || mat.white, inner = o.inner || dye(shade(o.color || '#ef5c55', .62));
+      const m = o.mat || dye(o.color || '#ef5c55'), rb = o.ribbon || mat.white, dark = k => { const c = shade(o.color || '#ef5c55', k); return material([c, c], .02); }, inner = o.inner || dye(shade(o.color || '#ef5c55', .5));
       const body = box(w, d, h, m, seed * 41, .08), meshes = [body];
       const strip = frontBack(box(w * .15, d * 1.04, h * 1.02, rb, seed * 41 + 1, .04)); strip.bias = S; meshes.push(strip);
+      // (colors of the inside come from the paper, so every box is dark in its own color)
       const onLid = (mesh, bias) => { const q = hingeX(mesh, d * .51, h, phi); q.bias = bias; meshes.push(q); };
-      onLid(lidPrism(w * 1.06, d * 1.06, lh, 4, m, seed * 41 + 3, inner).move(0, 0, h), 0);
-      onLid(noEnds(lidPrism(w * .15, d * 1.1, lh * 1.05, 4, rb, seed * 41 + 4)).move(0, 0, h), S * 2);
+      onLid(lidPrism(w * 1.06, d * 1.06, lh, 4, m, seed * 41 + 3, inner).move(0, 0, h), phi > .05 && phi < .9 ? S * 1.5 : 0);
+      onLid(noEnds(lidPrism(w * .15, d * 1.1, lh * 1.05, 4, rb, seed * 41 + 4)).move(0, 0, h), phi > .9 ? S * .3 : S * 2);
       // the bow: two loops, two short tails and a knot, on the top of the lid (it swings with the lid)
       const top = h + lh, part = (x, z, rx, rz, tilt, k) => onLid(icosphere(0, rb, seed * 41 + 10 + k).scale(S * rx, S * .075, S * rz).rotY(tilt)
         .move(S * x, -d * .04, top + S * z), (phi > .9 ? -S * 4 : S * 3) + k); // the open lid hides the bow
       part(-.15, .1, .15, .085, .5, 0); part(.15, .1, .15, .085, -.5, 1); part(0, .04, .062, .062, 0, 2);
-      if (phi > .3) { // white tissue paper inside
-        const heap = icosphere(1, mat.white, seed * 41 + 6).jitter(.14, rng(seed)).scale(w * .36, d * .34, h * .3).floor(-.1 * h).move(0, 0, h * .9);
-        meshes.push(heap);
+      if (phi > .05) { // the dark inside, seen between the rims: deeper (darker) toward the back wall
+        const iw = w * .47, zi = h + S * .045, strips = [[-.46, -.2, .4], [-.2, .12, .3], [.12, .47, .22]];
+        strips.forEach(([y0, y1, k], n) => {
+          const q = new Mesh(dark(k), seed * 41 + 20 + n);
+          const a = q.add([-iw, d * y0, zi]), b = q.add([iw, d * y0, zi]), e = q.add([iw, d * y1, zi]), f = q.add([-iw, d * y1, zi]);
+          q.tri(a, b, e); q.tri(a, e, f); q.center = [0, 0, 0]; q.bias = S * .6 + n; meshes.push(q);
+        });
       }
       return place(meshes, o, S * .45, { ordered: 'depth' });
     },
