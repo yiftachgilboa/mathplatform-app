@@ -204,6 +204,7 @@
   display:flex;align-items:center;text-align:right;filter:drop-shadow(0 6px 12px rgba(22,62,107,.14));animation:bubbleUp .3s cubic-bezier(.2,.9,.3,1.2);transform-origin:calc(100% - 30px) 0}
 .c-bubble::after{content:'';position:absolute;width:22px;height:22px;background:linear-gradient(45deg,transparent 50%,#fff 50%);border:2px solid transparent;border-top-color:#BFE8EC;border-right-color:#BFE8EC;top:-13px;right:20px;transform:rotate(-45deg)}
 .c-bubble p{position:relative;z-index:1;margin:0;font-size:17px;line-height:1.4;text-wrap:pretty}
+.c-tail{display:none}
 .c-bubble .x{position:absolute;z-index:2;top:4px;left:8px;width:44px;height:44px;border:0;padding:0;border-radius:50%;background:none;color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer}
 .c-bubble .x:hover{color:var(--ink);background:var(--future)}
 .c-bubble .say{position:absolute;bottom:8px;left:8px;width:44px;height:44px;border:0;padding:0;border-radius:50%;background:var(--light);color:#23866E;display:flex;align-items:center;justify-content:center}
@@ -275,23 +276,25 @@
 
 @media (min-width:700px){
   .c-herostrip{display:none}
+  .c-header[data-strip]{z-index:auto}
   .c-header[data-strip]>.logo,.c-header[data-strip]>.hi{display:flex}
   .c-header[data-strip]>.logo{display:block}
   .c-side{z-index:5;flex:1 1 calc(340*var(--u));max-width:calc(400*var(--u));gap:calc(14*var(--u));position:sticky;top:calc(24*var(--u));max-height:calc(100dvh - 120*var(--u))}
   .c-side .c-menubox{flex:1 1 auto;max-width:none;max-height:none;position:static}
-  /* הדמות בצד של השלב (שמאל), והבועה יוצאת ממנה אל מעל השלב */
-  .c-herocard{position:relative;flex:none;display:grid;grid-template-columns:1fr calc(140*var(--u));align-items:end;gap:calc(10*var(--u));padding:calc(12*var(--u)) calc(18*var(--u)) calc(14*var(--u));
+  .c-herocard{position:relative;flex:none;display:grid;grid-template-columns:calc(140*var(--u)) 1fr;align-items:end;gap:calc(10*var(--u));padding:calc(12*var(--u)) calc(18*var(--u)) calc(14*var(--u));
     border-radius:calc(32*var(--u));background:linear-gradient(#BFE8EC,#EAF7F4)}
-  .c-herocard .c-herobtn{height:calc(140*var(--u));order:1}
+  .c-herocard .c-herobtn{height:calc(140*var(--u))}
   .c-herocard .info{display:flex;flex-direction:column;align-items:stretch;justify-content:center;align-self:center;gap:calc(12*var(--u));width:max-content;min-width:calc(150*var(--u));margin:0 auto}
   .c-herocard .s-coins,.c-herocard .c-shopbtn{width:100%;height:max(44px,calc(52*var(--u)));min-height:0;justify-content:center}
   .c-herocard .s-coins{font-size:calc(23*var(--u))}
-  .c-herocard .goal{order:2;grid-column:1/-1;display:flex;align-items:center;gap:10px;font-size:calc(16*var(--u));color:var(--ink-soft)}
+  .c-herocard .goal{grid-column:1/-1;display:flex;align-items:center;gap:10px;font-size:calc(16*var(--u));color:var(--ink-soft)}
   .c-herocard .bar{flex:1;height:calc(9*var(--u));border-radius:999px;background:#fff;overflow:hidden}
   .c-herocard .bar b{display:block;height:100%;border-radius:999px;background:#F1C43E;transition:width .6s}
-  .c-herocard .c-bubble{top:calc(10*var(--u));right:calc(100% + 6*var(--u));left:auto;width:min(calc(480*var(--u)),40vw);
-    padding:calc(20*var(--u)) calc(24*var(--u)) calc(20*var(--u)) 66px;min-height:calc(124*var(--u));border-radius:calc(26*var(--u));animation-name:bubbleSide;transform-origin:100% 60px}
-  .c-herocard .c-bubble::after{top:calc(52*var(--u));right:-13px;transform:rotate(45deg)}
+  /* הבועה צמודה לדמות (מכסה את המטבעות והחנות) והכי גבוה בעמוד, כדי להסתיר מעט מהשלב. החץ לפה מצויר ב-GuideBubble */
+  .c-herocard .c-bubble{top:calc(-88*var(--u));right:calc(142*var(--u));left:auto;width:min(calc(680*var(--u)),50vw);
+    padding:calc(20*var(--u)) calc(24*var(--u)) calc(20*var(--u)) 66px;min-height:calc(118*var(--u));border-radius:calc(26*var(--u));animation-name:bubbleSide;transform-origin:100% 100%}
+  .c-herocard .c-bubble::after{display:none}
+  .c-tail{display:block;position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible;pointer-events:none}
   .c-herocard .c-bubble p{font-size:max(17px,calc(22*var(--u)))}
   .s-top{padding:18px 28px}
   .s-body{flex-direction:row;align-items:stretch}

@@ -98,7 +98,7 @@ export default async function ChildDashboardPage({
   if (course) {
     try {
       const state = await loadCourseState(id, course.courseId, course)
-      const lesson = course.lessons[currentLessonIndex(course, state.mastered)]
+      const lesson = course.lessons[currentLessonIndex(course, state)]
       courseHref = `/course/${course.courseId}/${lesson.id}?child=${id}`
     } catch {
       courseHref = '/course'

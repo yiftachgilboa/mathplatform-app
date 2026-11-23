@@ -6,16 +6,19 @@ import { guideText, type GuideEvent } from '@/lib/course/guide'
 import { canSpeak, speak } from '@/lib/course/speak'
 
 const SETTLE = 600            // מחכים רגע אחרי מעבר, שהמסך יתייצב (וגם הכתובת בטעינה)
+const CLOSE_AFTER = 30_000    // אחרי שההקראה נגמרה, הבועה נסגרת לבד
 const EVENTS = ['pointerdown', 'pointermove', 'keydown'] as const
 const REMIND_AFTER = 60_000   // בלי נגיעה, בלי משחק פתוח: תזכורת אחת לכל שלב
 
 /**
  * בועת ההוראות של הדמות: מה כתוב בה, מתי היא נפתחת ומתי היא מדברת.
  * נפתחת בכניסה, במעבר שיעור או שלב, בסיום שלב, בחזרה מהחנות, בנגיעה בדמות, ופעם אחת כשהילד תקוע.
- * נסגרת ב-X, בנגיעה בשלב, וכשמשחק או סרטון מתחילים (busy).
+ * נסגרת ב-X, לבד 30 שניות אחרי ההקראה, בנגיעה בשלב, וכשמשחק או סרטון מתחילים (busy).
  */
-export function useGuide({ enabled, course, state, lessonIdx, stage, name, covered, busy }: {
+export function useGuide({ enabled, course, state, lessonIdx, stage, name, covered, busy, pending }: {
   enabled: boolean; course: Course; state: CourseState; lessonIdx: number; stage: number; name: string; covered: boolean; busy: boolean
+  /** רענון של מצב הילד מהשרת שעוד בדרך */
+  pending: React.RefObject<Promise<void> | null>
 }) {
   const [msg, setMsg] = useState<{ text: string; id: number } | null>(null)
   const [talking, setTalking] = useState(false)
@@ -24,17 +27,25 @@ export function useGuide({ enabled, course, state, lessonIdx, stage, name, cover
   const stopRef = useRef<(() => void) | null>(null)
   const justDone = useRef<number | null>(null)
   const reminded = useRef('')
+  const turn = useRef(0)
   const seen = useRef<{ lesson: number; stage: number } | null>(null)
 
   /** עוצר את ההקראה מיד, לפני שמשחק מתחיל לדבר (אחרת היינו קוטעים אותו) */
   const quiet = useCallback(() => { stopRef.current?.(); stopRef.current = null; setTalking(false) }, [])
-  const close = useCallback(() => { quiet(); setMsg(null) }, [quiet])
-  const show = useCallback((ev: GuideEvent) => {
+  const close = useCallback(() => { turn.current++; quiet(); setMsg(null) }, [quiet])
+  const show = useCallback(async (ev: GuideEvent) => {
     if (!enabled) return
-    const l = live.current
     quiet()
+    // קודם מצב מעודכן של הילד (עד 1.5 שניות), ורק אז מדברים
+    const mine = ++turn.current
+    if (pending.current) {
+      await Promise.race([pending.current, new Promise(r => setTimeout(r, 1500))])
+      await new Promise(r => setTimeout(r, 50))   // שהמצב החדש ייכנס לעמוד
+      if (mine !== turn.current) return           // בינתיים נסגר או הוחלף
+    }
+    const l = live.current
     setMsg(m => ({ text: guideText(l.course, l.state, l.lessonIdx, l.stage, l.name, ev), id: (m?.id ?? 0) + 1 }))
-  }, [enabled, quiet])
+  }, [enabled, quiet, pending])
 
   /** שלב הושלם: השבח נאמר במעבר לשלב הבא */
   const noteDone = useCallback((s: number) => { justDone.current = s }, [])
@@ -93,6 +104,13 @@ export function useGuide({ enabled, course, state, lessonIdx, stage, name, cover
     document.addEventListener('visibilitychange', onHide)
     return () => { document.removeEventListener('visibilitychange', onHide); stopRef.current?.() }
   }, [quiet])
+
+  // נשארה פתוחה: נסגרת לבד 30 שניות אחרי ההקראה
+  useEffect(() => {
+    if (!msg || talking) return
+    const t = setTimeout(close, CLOSE_AFTER)
+    return () => clearTimeout(t)
+  }, [msg, talking, close])
 
   // תזכורת אחת כשלא קורה כלום
   const open = !!msg

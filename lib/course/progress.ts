@@ -16,9 +16,14 @@ export type CourseState = {
   testScore: Record<string, number | null>
 }
 
-/** "השיעור הנוכחי" = הראשון ברשימה שעוד אין בו שליטה. הכל נשלט → האחרון. */
-export function currentLessonIndex(course: Course, mastered: string[]): number {
-  const i = course.lessons.findIndex(l => !mastered.includes(l.id))
+/** שיעור שהושג: שליטה שנרשמה בשרת, או 90% בתרגול / במבחן. ההגדרה היחידה: הווי הירוק, השיעור הנוכחי ומה שהדמות אומרת. */
+export function isAchieved(course: Course, state: CourseState, lessonId: string): boolean {
+  return state.mastered.includes(lessonId) || meterValue(state, lessonId) >= Math.round(course.mastery.practice.accuracy * 100)
+}
+
+/** "השיעור הנוכחי" = הראשון ברשימה שעוד לא הושג. הכל הושג → האחרון. */
+export function currentLessonIndex(course: Course, state: CourseState): number {
+  const i = course.lessons.findIndex(l => !isAchieved(course, state, l.id))
   return i === -1 ? course.lessons.length - 1 : i
 }
 

@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { SHOP_UI, boxPrice, type ShopState } from '@/lib/shop/config'
 import { fill } from '@/lib/course/content'
 import { LiveHero, type Act, type HeroPose } from './Hero'
@@ -68,12 +68,55 @@ export function HeroStrip({ shop, act, talking, calm, onShop, onHero, bubble }: 
   )
 }
 
+/** מחשב: החץ של הבועה, באלכסון מהפינה שלה אל הפה של הדמות (נמדד, כי גובה הבועה משתנה לפי הטקסט) */
+function useTail(ref: React.RefObject<HTMLDivElement | null>) {
+  const [tail, setTail] = useState<{ fill: string; line: string } | null>(null)
+  useLayoutEffect(() => {
+    const el = ref.current, card = el?.closest<HTMLElement>('.c-herocard'), hero = card?.querySelector<HTMLElement>('.c-herobtn')
+    if (!el || !card || !hero) return
+    const draw = () => {
+      const W = el.clientWidth, H = el.clientHeight, w = hero.offsetWidth, h = hero.offsetHeight
+      if (!W || !w) return
+      // הכול ביחס לתוך הבועה (בלי המסגרת)
+      const mouth = [hero.offsetLeft + w * .48 - el.offsetLeft - el.clientLeft, hero.offsetTop + h * .68 - el.offsetTop - el.clientTop]
+      const k = w / 140, low = mouth[1] - 34 * k > H   // הפה מתחת לבועה: החץ יוצא מהתחתית, אחרת מהצד
+      const root = low ? [W - 56 * k, H] : [W, Math.min(H - 34 * k, mouth[1] - 22 * k)]
+      const dx = mouth[0] - root[0], dy = mouth[1] - root[1], len = Math.hypot(dx, dy) || 1
+      const gap = Math.min(len * .6, w * .31)          // עוצר ליד הלחי
+      const tip = [mouth[0] - dx / len * gap, mouth[1] - dy / len * gap]
+      const half = (low ? 21 : 14) * k
+      const at = (d: number, inset: number) => (low ? [root[0] + d, H - inset] : [W - inset, root[1] + d])
+      const n = (p: number[]) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`
+      // צדדים מעט קעורים, כמו בועת קומיקס
+      const mid = (p: number[], s: number) => [(p[0] + tip[0]) / 2 - dy / len * s, (p[1] + tip[1]) / 2 + dx / len * s]
+      const path = (inset: number) => {
+        const a = at(-half, inset), b = at(half, inset)
+        return `M${n(a)} Q${n(mid(a, -3 * k))} ${n(tip)} Q${n(mid(b, -3 * k))} ${n(b)}`
+      }
+      setTail({ fill: path(1) + 'Z', line: path(-1) })
+    }
+    draw()
+    const ro = new ResizeObserver(draw)
+    ro.observe(el); ro.observe(hero)
+    return () => ro.disconnect()
+  }, [ref])
+  return tail
+}
+
 /** בועת ההוראות: מה עושים עכשיו, לילד ולמי שעוזר לו. רמקול = להקריא / להשתיק, X = לסגור */
 export function GuideBubble({ text, talking, sayLabel, closeLabel, onSay, onClose }: {
   text: string; talking: boolean; sayLabel: string; closeLabel: string; onSay: () => void; onClose: () => void
 }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const tail = useTail(ref)
   return (
-    <div className="c-bubble" role="status">
+    <div ref={ref} className="c-bubble" role="status">
+      {tail && (
+        <svg className="c-tail" aria-hidden>
+          <path d={tail.fill} fill="#fff" />
+          <path d={tail.line} fill="none" stroke="#BFE8EC" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+        </svg>
+      )}
       <p>{text}</p>
       <button type="button" className="press say" data-on={talking || undefined} aria-label={sayLabel} title={sayLabel} aria-pressed={talking} onClick={onSay}>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>

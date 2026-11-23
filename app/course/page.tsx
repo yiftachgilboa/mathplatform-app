@@ -8,7 +8,7 @@ import MyCoursesClient, { type CourseCard } from './MyCoursesClient'
 async function lessonHref(courseId: string, childId: string) {
   const course = getCourse(courseId)!
   const state = await loadCourseState(childId, courseId, course)
-  const lesson = course.lessons[currentLessonIndex(course, state.mastered)]
+  const lesson = course.lessons[currentLessonIndex(course, state)]
   return `/course/${courseId}/${lesson.id}?child=${childId}`
 }
 

@@ -1,7 +1,7 @@
 'use client'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { availableStages, fill, mediaUrl, type Course, type Lesson } from '@/lib/course/content'
-import { currentLessonIndex, meterValue, PRACTICE_STAGE, type CourseState } from '@/lib/course/progress'
+import { currentLessonIndex, isAchieved, meterValue, PRACTICE_STAGE, type CourseState } from '@/lib/course/progress'
 import CourseHeader from '@/components/course/CourseHeader'
 import LessonMenu, { type LessonState } from '@/components/course/LessonMenu'
 import StageStepper from '@/components/course/StageStepper'
@@ -102,11 +102,12 @@ export default function CourseClient({ course, childId, childName, avatar, initi
   const stages = useMemo(() => availableStages(lesson), [lesson])
   const nextOf = (s: number) => stages.find(x => x > s)
   const prevOf = (s: number) => [...stages].reverse().find(x => x < s)
-  const currentIdx = currentLessonIndex(course, state.mastered)
+  const currentIdx = currentLessonIndex(course, state)
   const ctx = useMemo(() => ({ childId, courseId: course.courseId, lessonId: lesson.id }), [childId, course.courseId, lesson.id])
 
-  const lessonStates: LessonState[] = course.lessons.map((l, i) =>
-    state.mastered.includes(l.id) ? 'done' : i === currentIdx ? 'cur' : 'future')
+  const achieved = course.lessons.map(l => isAchieved(course, state, l.id))
+  const lessonStates: LessonState[] = course.lessons.map((_, i) =>
+    achieved[i] ? 'done' : i === currentIdx ? 'cur' : 'future')
 
   const refreshRef = useRef<() => void>(() => {})
   // בחזרה ממשחק (router.back) Next משחזר את העמוד מה-cache עם props ישנים:
@@ -138,7 +139,8 @@ export default function CourseClient({ course, childId, childName, avatar, initi
   }, [course.lessons])
 
   // רענון מהשרת (בכניסה, ובחזרה ממשחק — שם נרשמות התשובות דרך ה-SDK)
-  const refresh = useCallback(async () => {
+  const pending = useRef<Promise<void> | null>(null)   // רענון שבדרך: הדמות מחכה לו לפני שהיא מדברת
+  const load = useCallback(async () => {
     const res = await fetch(`/api/course/progress?childId=${childId}&courseId=${course.courseId}`, { cache: 'no-store' })
     if (!res.ok) return
     const { shop: freshShop, ...fresh }: CourseState & { shop?: ShopState | null } = await res.json()
@@ -147,6 +149,10 @@ export default function CourseClient({ course, childId, childName, avatar, initi
     const gained = fresh.mastered.find(id => !knownMastered.current.has(id))
     if (gained) onMastered(gained)
   }, [childId, course.courseId, onMastered, takeShop])
+  const refresh = useCallback(() => {
+    const p: Promise<void> = load().catch(() => {}).finally(() => { if (pending.current === p) pending.current = null })
+    pending.current = p
+  }, [load])
 
   useEffect(() => { refreshRef.current = refresh }, [refresh])
 
@@ -162,7 +168,7 @@ export default function CourseClient({ course, childId, childName, avatar, initi
   const here = `${lesson.id}-${stage}`
   const [runningAt, setRunningAt] = useState<string | null>(null)   // השלב שמשחק או סרטון רץ בו עכשיו
   const busy = runningAt === here
-  const guide = useGuide({ enabled: !!shop, course, state, lessonIdx, stage, name: childName, covered, busy })
+  const guide = useGuide({ enabled: !!shop, course, state, lessonIdx, stage, name: childName, covered, busy, pending })
   const onRunning = (on: boolean) => { setRunningAt(on ? here : null); if (on) guide.close() }
 
   // נגיעה בדמות: קופצת ומסבירה שוב
@@ -260,7 +266,7 @@ export default function CourseClient({ course, childId, childName, avatar, initi
   function closeCelebration() {
     setCelebrate(null)
     // מעבר לשיעור הנוכחי החדש (הראשון בלי שליטה)
-    go(currentLessonIndex(course, state.mastered))
+    go(currentLessonIndex(course, state))
   }
 
   useEffect(() => {
@@ -274,7 +280,7 @@ export default function CourseClient({ course, childId, childName, avatar, initi
   const next = () => { const n = nextOf(stage); if (n) toStage(n) }
   const prev = () => { const p = prevOf(stage); if (p) toStage(p) }
   // ״המשך״ בסוף משחק: לשלב הבא שיש בו תוכן (אם אין — נשארים)
-  const toNext = (s: number) => { const n = nextOf(s); if (n) setStage(n); else guide.show({ type: 'done', stage: s }) }
+  const toNext = (s: number) => { const n = nextOf(s); refresh(); if (n) setStage(n); else guide.show({ type: 'done', stage: s }) }
 
   const goal = Math.round(course.mastery.practice.accuracy * 100)
   const meters = course.lessons.map(l => meterValue(state, l.id))
@@ -289,7 +295,7 @@ export default function CourseClient({ course, childId, childName, avatar, initi
         <div className="c-side">
         {heroProps && <HeroCard {...heroProps} />}
         <LessonMenu lessons={course.lessons} states={lessonStates} selected={lessonIdx} label={ui.lessonsNav} title={ui.menuTitle}
-          meters={meters} achieved={course.lessons.map((l, i) => state.mastered.includes(l.id) || meters[i] >= goal)}
+          meters={meters} achieved={achieved}
           goal={goal} meterLabel={ui.meter} doneLabel={ui.lessonDone}
           titleOf={l => fill(ui.lessonTitle, { key: l.key })} numberOf={n => fill(ui.lessonNumber, { n: String(n) })}
           onPick={i => go(i)} onReset={resetLesson} />
