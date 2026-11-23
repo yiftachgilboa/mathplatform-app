@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kidodo · מטפסים לפני המים</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
+<script src="/practices/kidodo-practice.js"></script>
+<script src="../art/lowpoly.js"></script>
+<style>
+:root{--ink:#33373b;--kblue:#176fbe;--coral:#FF6450;--sky:#2EB6EA;--ok:#1FA36A}
+*{box-sizing:border-box;margin:0}
+html,body{overflow:hidden;height:100%}
+body{font-family:Fredoka,system-ui,sans-serif;color:var(--ink);background:#CDEBFA;-webkit-tap-highlight-color:transparent}
+button{font-family:inherit;cursor:pointer;border:0}
+.bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;display:block;filter:saturate(1.15) brightness(.86) contrast(.94)}
+.dim{position:fixed;inset:0;z-index:0;background:linear-gradient(180deg,transparent 0 38%,rgba(18,42,66,.2) 62%);pointer-events:none}
+.cloud{animation:cloudDrift linear infinite}
+@keyframes cloudDrift{from{transform:translateX(-220px)}to{transform:translateX(1300px)}}
+.app{position:relative;z-index:1;display:flex;flex-direction:column;height:100vh;height:100dvh}
+.side{position:absolute;left:10px;top:10px;display:flex;flex-direction:column;gap:8px;z-index:90}
+.iconbtn{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--kblue);background:#F4F8FF;box-shadow:0 4px 0 rgba(23,111,190,.22)}
+.top{flex:none;width:100%;max-width:960px;margin:0 auto;padding:10px 14px 0 66px;display:flex;align-items:center;min-height:66px;position:relative;z-index:8;pointer-events:none}
+.talk{display:flex;align-items:center;gap:10px;flex:1 1 auto;min-width:0;transition:opacity .3s}
+.talk.hide{opacity:0}
+.bubble{flex:0 1 540px;min-width:0;background:#fff;padding:8px 14px;font-size:17px;line-height:1.35;font-weight:500;position:relative;box-shadow:0 5px 0 rgba(23,111,190,.18);border-radius:14px}
+.bubble::before{content:"";position:absolute;right:-12px;top:50%;margin-top:-10px;border:10px solid transparent;border-left-color:#fff;border-right:0}
+.bubble .txt{animation:txtIn .35s both}
+@keyframes txtIn{from{opacity:0;transform:translateY(6px)}}
+@media(max-width:559px){.bubble{font-size:14.5px;padding:6px 10px}}
+@media(min-width:700px){.bubble{padding:12px 18px;font-size:20px}}
+.alienlp{transform-origin:50% 100%}
+.alienlp.talking{animation:mbob .32s infinite alternate}
+@keyframes mbob{to{transform:scale(1.03,.97) rotate(-2deg)}}
+
+/* main: the tower above the answers (portrait), or the answers in a column beside it (landscape) */
+.main{flex:1;min-height:0;display:flex;flex-direction:column}
+.board{position:relative;flex:1;min-height:0;overflow:hidden;user-select:none;-webkit-user-select:none}
+.board>*{position:absolute}
+.answers{flex:none;display:flex;justify-content:center;gap:12px;padding:10px 14px max(14px,env(safe-area-inset-bottom));direction:ltr;position:relative;z-index:6}
+@media(min-aspect-ratio:5/4){.main{flex-direction:row}.answers{order:-1;flex-direction:column;justify-content:center;padding:6px 4px 10px 18px}}   /* RTL row: first = right side, away from the buttons on the left */
+.ans{min-width:84px;height:68px;padding:0 14px;border-radius:18px;font-size:36px;font-weight:700;color:var(--ink);background:#fff;box-shadow:0 6px 0 rgba(23,111,190,.25);transition:transform .1s,opacity .25s}
+@media(min-width:700px){.ans{min-width:110px;height:78px;font-size:42px}}
+@media(min-aspect-ratio:5/4) and (max-height:500px){.ans{height:60px;min-width:84px;font-size:32px}}
+.ans:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(23,111,190,.25)}
+.ans:disabled{opacity:.55;cursor:default}
+.ans.good{background:var(--ok);color:#fff}
+.ans.bad{animation:shake .4s}
+@keyframes shake{25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+
+.slab{pointer-events:none}
+.slab.pop{animation:slabIn .32s cubic-bezier(.3,1.5,.5,1) both}
+@keyframes slabIn{from{transform:translateY(-26px) scale(.6,1.2);opacity:0}}
+.fnum{display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.28);pointer-events:none;direction:ltr;z-index:3}
+.plusk{font-weight:700;color:var(--sky);text-shadow:0 2px 0 #fff,0 -1px 0 #fff,1px 0 0 #fff,-1px 0 0 #fff;direction:ltr;pointer-events:none;z-index:3;animation:txtIn .3s both}
+.exer{display:flex;align-items:center;justify-content:center;gap:.28em;direction:ltr;font-weight:700;background:rgba(255,255,255,.94);border-radius:14px;box-shadow:0 5px 0 rgba(23,111,190,.2);z-index:7;will-change:transform;pointer-events:none;white-space:nowrap}
+.exer .k{color:var(--sky)}
+.exer .q{color:#9aa3ad}
+.exer .a{color:var(--ok);animation:mpop .45s}
+@keyframes mpop{40%{transform:scale(1.4)}}
+.hero{z-index:5;pointer-events:none;will-change:transform}
+.water{left:0;right:0;bottom:0;z-index:6;pointer-events:none;will-change:transform}
+.wbody{position:absolute;left:0;right:0;top:10px;bottom:-400px;background:linear-gradient(180deg,rgba(85,172,217,.86),rgba(43,134,189,.9) 40%,rgba(27,100,151,.94))}
+.wtop{position:absolute;left:-60px;top:0;animation:wv 2.6s linear infinite}
+@keyframes wv{to{transform:translateX(60px)}}
+.wchest{background:none;padding:0;line-height:0;z-index:4;filter:drop-shadow(0 6px 0 rgba(23,80,130,.18))}
+.wchest.idle .chest{animation:chestCall 1.6s ease-in-out infinite}
+@keyframes chestCall{0%,60%,100%{transform:rotate(0)}70%{transform:rotate(-5deg) scale(1.04)}80%{transform:rotate(5deg) scale(1.04)}90%{transform:rotate(-3deg)}}
+.idle{animation:idleHop 4.5s ease-in-out infinite}
+.winhop{animation:winHop .55s cubic-bezier(.3,0,.5,1) infinite alternate}
+@keyframes winHop{from{transform:translateY(0) scale(1.04,.96)}to{transform:translateY(-18px)}}
+.hero .in.show{animation:heroIn .6s both}
+@keyframes heroIn{from{transform:translateY(-120px)}60%{transform:translateY(0) scale(1.06,.92)}to{transform:none}}
+.hand{position:absolute;left:0;top:0;z-index:60;pointer-events:none;opacity:0;filter:drop-shadow(0 4px 4px rgba(23,80,130,.3))}
+.quake{animation:quake .5s}
+@keyframes quake{20%,60%{transform:translate(-6px,2px)}40%,80%{transform:translate(6px,-2px)}100%{transform:none}}
+.pt{position:fixed;pointer-events:none;z-index:999;will-change:transform,opacity}
+.coinp{position:fixed;left:0;top:0;pointer-events:none;z-index:1001;will-change:transform,opacity;line-height:0}
+
+/* end screen (same as the bridge game) */
+.center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:20px;z-index:80}
+.endscreen{background:rgba(255,255,255,.55);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+.stars{display:flex;gap:14px;align-items:flex-end}
+.star{width:min(26vw,120px);aspect-ratio:100/96;animation:starIn .55s cubic-bezier(.3,1.6,.5,1) both}
+.star:nth-child(2){width:min(32vw,150px)}
+@keyframes starIn{from{transform:scale(0) rotate(-40deg);opacity:0}}
+.rise{animation:rise .5s ease-out both}
+@keyframes rise{from{transform:translateY(24px);opacity:0}}
+.endbtns{position:absolute;left:0;right:0;bottom:max(22px,5dvh);display:flex;justify-content:center;gap:clamp(56px,22vw,220px)}
+.endbtn{width:112px;height:64px;display:flex;align-items:center;justify-content:center;clip-path:polygon(16px 0,calc(100% - 16px) 0,100% 50%,calc(100% - 16px) 100%,16px 100%,0 50%);transition:transform .12s}
+.endbtn:active{transform:scale(.93)}
+.endbtn.next{background:linear-gradient(180deg,#2f8f62 0 50%,#237a52 50%)}
+.endbtn.again{background:linear-gradient(180deg,#2f5f9e 0 50%,#244f88 50%)}
+.endmsg{font-size:30px;font-weight:700;background:rgba(255,255,255,.88);padding:6px 22px;border-radius:20px}
+@media(prefers-reduced-motion:reduce){.cloud,.wtop,.wchest.idle .chest,.idle{animation:none}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const {useState,useEffect,useRef,useMemo} = React;
+
+/* ---------- the game's numbers (spec §9) — change them here, not in the logic ---------- */
+const CFG={
+  TOP:15,                         // the treasure floor
+  START_FLOOR:[1,6],              // the first floor, random in this range
+  STEP_WEIGHTS:{1:.2,2:.5,3:.3},  // how many floors to climb
+  SLIDE:3,                        // floors down on a mistake / when the water touches
+  START_T:60,                     // seconds the water takes to reach the player, at the start
+  WATER_FACTOR:1.5,               // first correct answer: T = answer time × this (once)
+  MIN_ANSWER_S:2,
+  SLOWDOWN:.7,                    // every water touch: T = T / this (+30%)
+  START_GAP:1.5,                  // water this many floors under the player at the start and after a slide
+  MIN_WATER_SPEED:.02,            // floors per second, always some pressure
+  VERBAL_CLIMBS:2,                // how many climbs get the spoken / written instruction
+  CLIMB_SPEED:2.5, SLIDE_SPEED:5, // floors per second
+};
+
+/* ---------- helpers ---------- */
+const SPOKEN=['אֶפֶס','אַחַת','שְׁתַּיִם','שָׁלוֹשׁ','אַרְבַּע','חָמֵשׁ','שֵׁשׁ','שֶׁבַע','שְׁמוֹנֶה','תֵּשַׁע','עֶשֶׂר','אַחַת עֶשְׂרֵה','שְׁתֵּים עֶשְׂרֵה','שְׁלוֹשׁ עֶשְׂרֵה','אַרְבַּע עֶשְׂרֵה','חֲמֵשׁ עֶשְׂרֵה','שֵׁשׁ עֶשְׂרֵה','שְׁבַע עֶשְׂרֵה','שְׁמוֹנֶה עֶשְׂרֵה'];
+const toSpeech=t=>t.replace(/[⁦-⁩]/g,'').replace(/\d+/g,m=>SPOKEN[+m]??m);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const rand=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+function pickK(){let r=Math.random(),acc=0;for(const [k,w] of Object.entries(CFG.STEP_WEIGHTS)){acc+=w;if(r<acc)return +k}return 2}
+/* a question from floor N: climb k, three consecutive answers, the right one first / middle / last */
+function makeQ(N){
+  const k=Math.min(pickK(),CFG.TOP-N), ans=N+k, s=Math.max(1,ans-rand(0,2));
+  return {N,k,ans,opts:[s,s+1,s+2],id:Math.random()};
+}
+const instruction=q=>`אתה בקומה ⁦${q.N}⁩. טפס ${q.k===1?'קומה אחת':'⁦'+q.k+'⁩ קומות'}. לאן תגיע?`;   // LTR isolates keep the numbers in place
+
+/* ---------- sound: everything made in code (Web Audio), no files ---------- */
+let heVoice=null, actx=null, soundOn=true, voiceOn=false, noiseBuf=null;
+const hasTTS=typeof window!=='undefined'&&'speechSynthesis' in window;
+function loadVoice(){try{const hv=speechSynthesis.getVoices().filter(v=>/^(he|iw)/i.test(v.lang));heVoice=hv.find(v=>/hila|carmit|female|woman/i.test(v.name))||hv.find(v=>!/avri|asaf|male/i.test(v.name))||hv[0]||null}catch(e){}}
+if(hasTTS){loadVoice();try{speechSynthesis.onvoiceschanged=loadVoice}catch(e){}}
+function audio(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume()}catch(e){}}
+function tone(f,d=.15,type='triangle',vol=.12,slideTo){
+  if(!actx||!soundOn)return;
+  try{const t=actx.currentTime,o=actx.createOscillator(),g=actx.createGain();o.type=type;o.frequency.setValueAtTime(f,t);
+    if(slideTo)o.frequency.exponentialRampToValueAtTime(slideTo,t+d);
+    g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+d);
+    o.connect(g).connect(actx.destination);o.start(t);o.stop(t+d)}catch(e){}
+}
+function noise(d,{type='bandpass',f=800,f2,q=1,vol=.25}={}){
+  if(!actx||!soundOn)return;
+  try{
+    if(!noiseBuf){noiseBuf=actx.createBuffer(1,actx.sampleRate,actx.sampleRate);const ch=noiseBuf.getChannelData(0);for(let i=0;i<ch.length;i++)ch[i]=Math.random()*2-1}
+    const t=actx.currentTime,s=actx.createBufferSource(),fl=actx.createBiquadFilter(),g=actx.createGain();
+    s.buffer=noiseBuf;fl.type=type;fl.Q.value=q;fl.frequency.setValueAtTime(f,t);if(f2)fl.frequency.exponentialRampToValueAtTime(f2,t+d);
+    g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+d);
+    s.connect(fl).connect(g).connect(actx.destination);s.start(t);s.stop(t+d)}catch(e){}
+}
+const NOTES=[262,294,330,349,392,440,494,523,587,659,698,784,880,988,1047,1175];
+const sfx={
+  tap(){tone(520,.06,'sine',.08)},
+  build(f){noise(.07,{f:900,q:3,vol:.3});tone(190,.08,'triangle',.12)},           // a floor knocks into place
+  hop(f){tone(NOTES[Math.min(NOTES.length-1,f)],.16,'triangle',.11)},             // each floor one note higher: counting up
+  slide(){tone(700,.6,'sine',.09,180);noise(.5,{type:'highpass',f:3000,f2:900,vol:.12})},
+  splash(){noise(.7,{type:'lowpass',f:3200,f2:300,vol:.35});setTimeout(()=>noise(.35,{f:1800,f2:600,q:.8,vol:.18}),120)},
+  thud(){noise(.14,{type:'lowpass',f:500,vol:.5});tone(110,.18,'sine',.2,60)},
+  coin(){tone(988,.08,'square',.05);setTimeout(()=>tone(1319,.25,'square',.05),80)},
+  jackpot(){tone(330,.12,'square',.05);setTimeout(()=>tone(660,.1,'square',.05),70);
+    for(let i=0;i<7;i++)setTimeout(()=>{const f=1600+Math.random()*900;tone(f,.09,'triangle',.08);setTimeout(()=>tone(f*1.5,.12,'sine',.06),45)},140+i*70+Math.random()*50)},
+};
+const log=(ev,data)=>console.log('[kidodo]',ev,data||'');
+const KP=window.KidodoPractice||{inCourse:false,answer(){},complete:()=>Promise.resolve(),next(){location.reload()},exit(){history.back()}};
+
+/* ---------- particles (same as the bridge game) ---------- */
+function burst(x0,y0,colors,n=22,spread=1){
+  for(let i=0;i<n;i++){
+    const p=document.createElement('div');p.className='pt';const s=5+Math.random()*9;
+    p.style.cssText=`left:${x0}px;top:${y0}px;width:${s}px;height:${s}px;background:${colors[i%colors.length]};`+(i%3===0?'border-radius:50%;':i%3===1?'clip-path:polygon(50% 0,100% 100%,0 100%);':'border-radius:2px;');
+    document.body.appendChild(p);
+    const ang=-Math.PI/2+(Math.random()-.5)*2.4*spread, dist=50+Math.random()*110, dx=Math.cos(ang)*dist, dy=Math.sin(ang)*dist;
+    const a=p.animate([{transform:'translate(0,0)',opacity:1},{transform:`translate(${dx*.7}px,${dy*.7}px) rotate(${Math.random()*360}deg)`,opacity:1,offset:.55},
+      {transform:`translate(${dx}px,${dy+90}px) rotate(${Math.random()*720}deg) scale(.4)`,opacity:0}],{duration:700+Math.random()*500,easing:'cubic-bezier(.15,.7,.4,1)'});
+    a.onfinish=()=>p.remove();
+  }
+}
+let liveCoins=0;
+function coinBurst(el,n=26){
+  if(!el)return; const r=el.getBoundingClientRect(); if(!r.width)return;
+  const x0=r.left+r.width/2, y0=r.top+r.height*.38, H=window.innerHeight;
+  const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  n=Math.min(n,Math.max(0,140-liveCoins)); if(reduce)n=Math.min(n,8);
+  for(let i=0;i<n;i++){
+    const c=document.createElement('div');c.className='coinp';const s=22+Math.random()*16;c.style.width=c.style.height=s+'px';
+    c.innerHTML=COIN_SVG.replace('width="30" height="30"','width="100%" height="100%"');
+    document.body.appendChild(c);liveCoins++;
+    const vx=(Math.random()-.5)*Math.min(900,window.innerWidth*1.6), vy=-(520+Math.random()*520), g=1500;
+    const T=Math.max(1.1,(-vy+Math.sqrt(vy*vy+2*g*(H-y0+60)))/g), spin=2+Math.floor(Math.random()*4), frames=[];
+    for(let k=0;k<=12;k++){const t=T*k/12, x=x0+vx*t-s/2, y=y0+vy*t+.5*g*t*t-s/2;
+      frames.push({transform:`translate(${x}px,${y}px) scaleX(${Math.cos(k/12*spin*Math.PI*2).toFixed(2)})`,opacity:k===0?0:1})}
+    const a=c.animate(frames,{duration:T*1000,delay:i*18,easing:'linear',fill:'both'});
+    a.onfinish=()=>{c.remove();liveCoins--};
+  }
+}
+
+/* ---------- art: the kidodo Soft Low-Poly library (art/lowpoly.js, inlined by the build) ---------- */
+LP.useTheme('day');
+const A_OBJ=.3, A_W=.3, SA=Math.sin(A_W), CA=Math.cos(A_W);
+function lpMarkup(obj,a){const cam=LP.camera({a});return LP.draw(obj,cam)+LP.face(obj,cam)}
+function lpBox(objs,a,pad=.04,padB=pad){const cam=LP.camera({a});let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  objs.forEach(o=>{const b=LP.bounds(LP.facets(o,cam));x0=Math.min(x0,b.x);y0=Math.min(y0,b.y);x1=Math.max(x1,b.x+b.w);y1=Math.max(y1,b.y+b.h)});
+  const p=Math.max(x1-x0,y1-y0)*pad, pb=Math.max(x1-x0,y1-y0)*padB;return [x0-p,y0-p,x1-x0+2*p,y1-y0+p+pb].map(v=>+v.toFixed(1))}
+/* a live object, drawn with a fixed pool of polygons (the performance rule from the bridge game) */
+const SVGNS='http://www.w3.org/2000/svg';
+function LPLive({build,a=A_OBJ,vb,fps=20,run=true,until,dep,className,style,width,height,innerRef}){
+  const ref=useRef(null), b=useRef(build); b.current=build;
+  useEffect(()=>{const el=ref.current;if(!el)return;const t0=performance.now();
+    const g=document.createElementNS(SVGNS,'g'), fg=document.createElementNS(SVGNS,'g'), pool=[];el.replaceChildren(g,fg);
+    const draw=now=>{const o=b.current((now-t0)/1000);if(!o)return;const cam=LP.camera({a}),list=LP.facets(o,cam);
+      for(let i=0;i<list.length;i++){let p=pool[i];if(!p){p=document.createElementNS(SVGNS,'polygon');p.setAttribute('stroke-width','.7');p.setAttribute('stroke-linejoin','round');g.appendChild(p);pool.push(p)}
+        const q=list[i].pts,f=list[i].fill;p.setAttribute('points',q[0][0].toFixed(1)+','+q[0][1].toFixed(1)+' '+q[1][0].toFixed(1)+','+q[1][1].toFixed(1)+' '+q[2][0].toFixed(1)+','+q[2][1].toFixed(1));
+        if(p._f!==f){p.setAttribute('fill',f);p.setAttribute('stroke',f);p._f=f}if(p._h){p.removeAttribute('display');p._h=0}}
+      for(let i=list.length;i<pool.length;i++)if(!pool[i]._h){pool[i].setAttribute('display','none');pool[i]._h=1}
+      const fh=LP.face(o,cam);if(fh!==fg._h){fg.innerHTML=fh;fg._h=fh}};
+    draw(t0); if(!run)return;
+    let raf,last=t0;const loop=now=>{if(now-last>=1000/fps-2){last=now;draw(now)}
+      if(until!=null&&(now-t0)/1000>until){draw(t0+until*1000);return}raf=requestAnimationFrame(loop)};
+    raf=requestAnimationFrame(loop);return()=>cancelAnimationFrame(raf)},[run,a,fps,dep]);
+  return <svg ref={el=>{ref.current=el;if(innerRef)innerRef.current=el}} className={className} viewBox={vb.join(' ')} width={width} height={height}
+    preserveAspectRatio="xMidYMax meet" style={{display:'block',overflow:'visible',...style}}/>;
+}
+
+const COIN_OBJ=LP.make.coin({size:40,rot:.45}), COIN_VB=lpBox([COIN_OBJ],A_OBJ,.03);
+const COIN_SVG=`<svg width="30" height="30" viewBox="${COIN_VB.join(' ')}" style="display:block;overflow:visible">${lpMarkup(COIN_OBJ,A_OBJ)}</svg>`;
+
+/* the hero: the library's head-body character in the kid outfit */
+const heroObj=(pose,t,rot,expression)=>LP.make.buddy({outfit:'kid',size:100,pose,t,rot,expression});
+const HERO_VB=lpBox(['stand','jump','scared','cheer'].flatMap(p=>[0,.17,.33,.5].map(t=>heroObj(p,t,0))),A_OBJ,.02,0);
+const IDLE_ACTS=[{pose:'wave',expr:'happy',ms:2200},{expr:'joy',ms:1600},{expr:'surprised',ms:1400},{pose:'wave',expr:'joy',ms:2000}];
+function Hero({s,pose:busyPose}){
+  const [act,setAct]=useState(null);
+  useEffect(()=>{if(busyPose){setAct(null);return}let tm;
+    const next=()=>{tm=setTimeout(()=>{const a=IDLE_ACTS[Math.floor(Math.random()*IDLE_ACTS.length)];setAct(a);tm=setTimeout(()=>{setAct(null);next()},a.ms)},3000+Math.random()*4000)};
+    next();return()=>clearTimeout(tm)},[busyPose]);
+  const pose=busyPose||(act&&act.pose)||'stand', expr=busyPose?undefined:(act?act.expr:'happy');
+  return <LPLive vb={HERO_VB} width={s*HERO_VB[2]/HERO_VB[3]} height={s} dep={pose+'|'+expr} run={pose!=='stand'} fps={20} build={t=>heroObj(pose,pose==='jump'?t*CFG.CLIMB_SPEED:t,0,expr)}/>;
+}
+
+/* treasure chest (library chest) */
+const chestObj=phi=>LP.make.chest({size:100,rot:0,open:phi});
+const CHEST_VB=lpBox([chestObj(0)],A_OBJ,.03);
+const lidAt=t=>{const k=Math.min(1,t/.45);return 2*(1-Math.pow(1-k,3))+Math.sin(k*Math.PI)*.3};
+const Chest=({open,s=62,innerRef})=>(<LPLive innerRef={innerRef} className="chest" vb={CHEST_VB} width={s} height={s*CHEST_VB[3]/CHEST_VB[2]}
+  dep={open?'o':'c'} run={!!open} until={.5} fps={30} build={t=>chestObj(open?lidAt(t):0)}/>);
+
+/* the narrator: the library alien's head, as in the bridge game */
+const alienObj=t=>{const o=LP.make.alien({size:100,rot:-.45,t});o.meshes=o.meshes.filter((m,i)=>i===1||(i>=2&&(i-2)%5<2));return o};
+const ALIEN_VB=lpBox([0,.7,1.4,2.1].map(alienObj),A_OBJ,.03);
+const Alien=({s=64,talking})=>(<LPLive className={'alienlp'+(talking?' talking':'')} vb={ALIEN_VB} width={s*ALIEN_VB[2]/ALIEN_VB[3]} height={s} run={!!talking} fps={12} dep={talking?1:0}
+  build={t=>alienObj(t*1.8)}/>);
+
+const LowPolyBG=React.memo(function LowPolyBG(){
+  const html=useMemo(()=>LP.scenes.meadow(),[]);
+  return <svg className="bg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" dangerouslySetInnerHTML={{__html:html}}/>;
+});
+
+/* a floor: a small floating island from the library (ground, float). The biome changes on the way up: meadow → rocks → ice */
+const biomeOf=f=>LP.biome(f<=5?'meadow':f<=10?'rocky':'ice');
+function Slab({w,fh,gt,seed,f}){
+  const pal=biomeOf(f), faceH=fh*.95;
+  const html=useMemo(()=>LP.draw(LP.make.ground({w,h:faceH/CA,depth:gt/SA,seed,edgeL:true,edgeR:true,float:true,top:pal.top,lip:pal.lip,side:pal.side}),LP.camera({a:A_W,ox:12,oy:6+gt})),[w,fh,gt,seed,f]);
+  return <svg width={w+24} height={fh+gt+24} viewBox={`0 0 ${w+24} ${fh+gt+24}`} style={{display:'block',overflow:'visible'}} dangerouslySetInnerHTML={{__html:html}}/>;
+}
+
+/* the water's faceted top edge: a row of low-poly waves (slides sideways in CSS) */
+function WaterTop({W}){
+  const n=Math.ceil((W+120)/30)+1;let p='';
+  for(let i=0;i<n;i++){const x=i*30;p+=`<polygon points="${x},12 ${x+15},${i%2?2:4} ${x+30},12" fill="${i%2?'#a3d8ef':'#7cc3e6'}"/><polygon points="${x+15},${i%2?2:4} ${x+30},12 ${x+15},12" fill="#55acd9"/>`}
+  return <svg className="wtop" width={W+120} height="14" style={{display:'block'}} dangerouslySetInnerHTML={{__html:`<rect y="11" width="${W+120}" height="4" fill="#55acd9"/>`+p}}/>;
+}
+
+function starCount(m){return m<=1?3:m<=4?2:1}
+const StarIcon=({on})=>(<svg width="100%" height="100%" viewBox="0 0 100 96">
+  <polygon points="50,2 63,34 98,36 71,58 80,94 50,74 20,94 29,58 2,36 37,34" fill={on?'#FFC531':'#D9DEE6'}/>
+  <polygon points="50,2 63,34 98,36 71,58 50,52" fill={on?'#FFD95A':'#E6EAF0'}/><polygon points="50,52 71,58 80,94 50,74" fill={on?'#E9A913':'#C5CCD6'}/>
+  <polygon points="50,52 29,58 20,94 50,74" fill={on?'#F2B21B':'#CDD3DC'}/></svg>);
+const SpeakerIcon=({on})=>(<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+  <path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/>{on?<><path d="M16 9a4 4 0 0 1 0 6"/><path d="M18.5 6.5a7.5 7.5 0 0 1 0 11"/></>:<><path d="M16 9l5 6"/><path d="M21 9l-5 6"/></>}</svg>);
+const VoiceIcon=({on})=>(<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+  <path d="M4 5h16v10H10l-4 4v-4H4z"/>{on?<><path d="M8 9h8"/><path d="M8 12h5"/></>:<path d="M3 3l18 18"/>}</svg>);
+const HandIcon=()=>(<svg width="44" height="62" viewBox="0 0 44 62" style={{display:'block'}}>
+  <polygon points="10,4 14,0 18,4 18,28 10,28" fill="#FFDDB8"/><polygon points="14,0 18,4 18,28 14,28" fill="#F6C99A"/>
+  <polygon points="18,16 25,15 26,28 18,28" fill="#F6C99A"/><polygon points="26,18 32,18 33,30 26,30" fill="#EBB585"/>
+  <polygon points="4,26 34,26 36,46 8,48" fill="#FFDDB8"/><polygon points="20,26 34,26 36,46 22,47" fill="#F6C99A"/>
+  <polygon points="0,30 6,27 9,38 3,39" fill="#FFDDB8"/>
+  <polygon points="7,47 36,45 37,60 8,62" fill="#3D6FE0"/><polygon points="22,46 36,45 37,60 23,61" fill="#2D57C2"/></svg>);
+function TapHand({x,y}){
+  const ref=useRef(null);
+  useEffect(()=>{const a=ref.current.animate([{transform:`translate(${x-14}px,${y+18}px)`,opacity:1},{transform:`translate(${x-14}px,${y}px) scale(.92)`,opacity:1,offset:.45},
+    {transform:`translate(${x-14}px,${y+18}px)`,opacity:1}],{duration:1000,iterations:Infinity,easing:'ease-in-out'});return()=>a.cancel()},[x,y]);
+  return <div ref={ref} className="hand"><HandIcon/></div>;
+}
+
+/* ---------- app ---------- */
+function App(){
+  const [q,setQ]=useState(null);                   // the current question {N,k,ans,opts}
+  const [cur,setCur]=useState(1);                  // the floor the player stands on
+  const [built,setBuilt]=useState(1);              // the highest floor reached (all floors up to it are built)
+  const [phase,setPhaseS]=useState('ask');         // ask | climb | slide | win
+  const [popF,setPopF]=useState(0);                // the floor that was just built (pop-in)
+  const [chosen,setChosen]=useState(null);         // {v, ok} the button pressed
+  const [caption,setCaption]=useState(''),[capN,setCapN]=useState(0),[talking,setTalking]=useState(false);
+  const [sound,setSound]=useState(true),[voice,setVoice]=useState(false);
+  const [heroVis,setHeroVis]=useState(false),[heroNear,setHeroNear]=useState(false);
+  const [quake,setQuake]=useState(false);
+  const [endStage,setEndStageS]=useState(null), endStageRef=useRef(null);   // chest → coins → done
+  const setEndStage=v=>{endStageRef.current=v;setEndStageS(v)};
+  const [lidOpen,setLidOpen]=useState(false),[leaving,setLeaving]=useState(false),[hand,setHand]=useState(false);
+  const [size,setSize]=useState({w:360,h:480});
+  const boardRef=useRef(null), heroRef=useRef(null), waterRef=useRef(null), exerRef=useRef(null), chestRef=useRef(null);
+  // the live state the animation loop reads (no React render per frame)
+  const G=useRef({phase:'ask',lv:1,hop:0,water:-.5,T:CFG.START_T,speed:.02,calibrated:false,askT0:0,climbs:0,anim:null,builtF:1,stats:null});
+  const setPhase=p=>{G.current.phase=p;setPhaseS(p)};
+
+  useEffect(()=>{const el=boardRef.current;if(!el)return;const m=()=>setSize({w:el.clientWidth,h:el.clientHeight});m();
+    if(typeof ResizeObserver==='undefined'){window.addEventListener('resize',m);return()=>window.removeEventListener('resize',m)}
+    const ro=new ResizeObserver(m);ro.observe(el);return()=>ro.disconnect()},[]);
+
+  /* geometry: the whole tower fits on the screen, floor 1 to the treasure, with room for the exercise above it */
+  const W=size.w, H=size.h, TOP=CFG.TOP, LBOT=-.7, EXU=1.35, CHU=1.75;
+  const fh=Math.max(12,(H-8)/(TOP-LBOT+CHU+EXU));
+  const gt=Math.max(5,Math.round(fh*.3));
+  const fw=Math.round(Math.max(118,Math.min(230,fh*5.4,W-130)));
+  const sx=Math.round((W-fw)/2);
+  const Y=lv=>H-(lv-LBOT)*fh;                       // screen y of a floor's top (where the feet stand)
+  const hs=Math.max(38,Math.round(fh*1.9)), hw=hs*HERO_VB[2]/HERO_VB[3], heroX=sx+fw*.3-hw/2;
+  const exH=Math.round(Math.max(34,fh*1.15)), exFont=Math.max(18,Math.min(34,exH*.62));
+  const cs=Math.round(Math.min(fw*.42,fh*CHU*1.15));
+  const geo=useRef({});geo.current={Y,fh,gt,exH,H,heroX,sx,fw,hs};
+
+  /* ---------- the loop: water, hero climb / slide, the exercise follows ---------- */
+  useEffect(()=>{let raf,last=performance.now();
+    const loop=now=>{const dt=Math.min(.1,(now-last)/1000);last=now;const g=G.current,gm=geo.current;
+      if(g.phase==='ask'||g.phase==='climb')g.water+=g.speed*dt;      // the water rises while waiting and while climbing, stops in a slide
+      const a=g.anim;
+      if(a&&a.kind==='climb'){const el=(now-a.t0)/1000*CFG.CLIMB_SPEED, i=Math.floor(el);
+        if(i>a.step&&a.step<a.to-a.from){a.step=i;if(a.from+i<=a.to)a.onStep(a.from+i)}
+        if(el>=a.to-a.from){g.lv=a.to;g.hop=0;g.anim=null;a.done()}
+        else{const f=el-i;g.lv=a.from+i+f;g.hop=Math.sin(f*Math.PI)*.55}}
+      else if(a&&a.kind==='slide'){const el=(now-a.t0)/1000*CFG.SLIDE_SPEED;
+        if(el>=a.from-a.to){g.lv=a.to;g.anim=null;a.done()}else g.lv=a.from-el;g.hop=0}
+      // the water touches the player
+      if((g.phase==='ask'||g.phase==='climb')&&g.water>=g.lv-.02&&g.onHit)g.onHit();
+      if(heroRef.current)heroRef.current.style.transform=`translateY(${(gm.Y(g.lv+g.hop)-gm.hs).toFixed(1)}px)`;
+      if(waterRef.current)waterRef.current.style.transform=`translateY(${(gm.Y(g.water)-gm.H-10).toFixed(1)}px)`;
+      if(exerRef.current){const m=Math.max(g.lv,g.builtF);   // 3 floors above the higher of the player and the highest floor reached; stops at the top
+        exerRef.current.style.transform=`translateY(${Math.max(4,gm.Y(m+3)-gm.exH/2).toFixed(1)}px)`}
+      const near=g.phase==='ask'&&g.lv-g.water<.9; if(near!==g.near){g.near=near;setHeroNear(near)}
+      raf=requestAnimationFrame(loop)};
+    raf=requestAnimationFrame(loop);return()=>cancelAnimationFrame(raf)},[]);
+
+  /* ---------- talk ---------- */
+  const finRef=useRef(null);
+  function say(text,{show=true}={}){
+    if(finRef.current)finRef.current();
+    if(show){setCaption(text);setCapN(n=>n+1)}
+    if(!(soundOn&&voiceOn&&hasTTS&&heVoice)){setTalking(false);return}
+    let done=false;const fin=()=>{if(done)return;done=true;if(finRef.current===fin){finRef.current=null;setTalking(false)}};finRef.current=fin;setTalking(true);
+    try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(toSpeech(text));u.voice=heVoice;u.lang=heVoice.lang;u.rate=.95;u.onend=fin;u.onerror=fin;speechSynthesis.speak(u);setTimeout(fin,8000)}catch(e){fin()}
+  }
+  const hush=()=>{if(hasTTS)try{speechSynthesis.cancel()}catch(e){};if(finRef.current)finRef.current()};
+
+  /* ---------- the game ---------- */
+  function ask(question){
+    const g=G.current;
+    setQ(question);setChosen(null);setPhase('ask');g.askT0=performance.now();
+    // the water closes the new distance in T seconds
+    g.speed=Math.max(CFG.MIN_WATER_SPEED,(g.lv-g.water)/g.T);
+    const verbal=g.climbs<CFG.VERBAL_CLIMBS;
+    if(verbal)say(instruction(question));else{setCaption('');if(voiceOn)say(instruction(question),{show:false})}
+  }
+  function start(){
+    audio();hush();
+    const g=G.current, N=rand(...CFG.START_FLOOR);
+    Object.assign(g,{lv:N,hop:0,water:N-CFG.START_GAP,T:CFG.START_T,calibrated:false,climbs:0,anim:null,builtF:N,
+      stats:{answers:0,correct:0,wrong:0,waterHits:0,t0:Date.now()}});
+    setCur(N);setBuilt(N);setPopF(0);setEndStage(null);setLidOpen(false);setHand(false);setLeaving(false);
+    setHeroVis(false);setTimeout(()=>{setHeroVis(true);sfx.thud()},350);
+    log('game_start',{floor:N});
+    ask(makeQ(N));
+  }
+  function choose(v){
+    const g=G.current;if(g.phase!=='ask'||!q)return;
+    audio();sfx.tap();
+    const ok=v===q.ans, ms=Math.round(performance.now()-g.askT0);
+    setChosen({v,ok});g.stats.answers++;
+    KP.answer(ok);log('ANSWER',{floor:q.N,step:q.k,chosen:v,correct:ok,ms});
+    if(ok){
+      g.stats.correct++;
+      if(!g.calibrated){g.calibrated=true;g.T=Math.max(CFG.MIN_ANSWER_S,ms/1000)*CFG.WATER_FACTOR;log('water_T',{T:+g.T.toFixed(1)})}
+      climb(q);
+    }else{g.stats.wrong++;slide(q,'wrong')}
+  }
+  function climb(question){
+    const g=G.current;setPhase('climb');hush();
+    if(g.climbs<CFG.VERBAL_CLIMBS)setCaption('');
+    g.anim={kind:'climb',from:question.N,to:question.ans,t0:performance.now(),step:-1,
+      onStep:f=>{ if(f>question.N){ if(f>g.builtF){g.builtF=f;setBuilt(f);setPopF(f);sfx.build(f)} sfx.hop(f) } },   // a floor is built just before the hop onto it
+      done:()=>{g.climbs++;setCur(question.ans);
+        if(question.ans>=CFG.TOP){win();return}
+        setTimeout(()=>{if(G.current.phase==='climb')ask(makeQ(question.ans))},250)}};
+  }
+  /* a slide: after a wrong answer or when the water touches. Floors stay built. */
+  function slide(question,why){
+    const g=G.current, from=g.lv, to=Math.max(1,Math.floor(from+.001)-CFG.SLIDE);
+    g.anim=null;setPhase('slide');hush();
+    if(why==='water'){
+      g.T=g.T/CFG.SLOWDOWN;g.stats.waterHits++;log('WATER_HIT',{floor:Math.floor(from),T:+g.T.toFixed(1)});
+      setQuake(true);setTimeout(()=>setQuake(false),550);sfx.splash();
+      const hr=heroRef.current&&heroRef.current.getBoundingClientRect();if(hr)burst(hr.left+hr.width/2,hr.top+hr.height*.8,['#a3d8ef','#fff','#55acd9'],22,1.1);
+    }
+    if(to<from-.01)sfx.slide();
+    const fell=to<Math.floor(from+.001);
+    const done=()=>{setCur(to);
+      g.water=why==='water'?to-CFG.START_GAP:Math.min(g.water,to-CFG.START_GAP);   // never too close after a slide
+      setTimeout(()=>ask(fell||!question?makeQ(to):question),why==='wrong'?350:450)};   // not fallen (already on floor 1) → the same question again
+    if(to<from-.01)g.anim={kind:'slide',from,to,t0:performance.now(),done};
+    else{g.lv=to;setTimeout(done,500)}
+  }
+  G.current.onHit=()=>slide(G.current.phase==='ask'?qRef.current:null,'water');   // slide() leaves 'ask'/'climb' at once, so this fires once
+  const qRef=useRef(null);qRef.current=q;
+
+  function win(){
+    const g=G.current;setPhase('win');hush();g.water=Math.min(g.water,CFG.TOP-4);
+    setCaption('הגעת לאוצר!');setCapN(n=>n+1);if(voiceOn)say('הגעת לאוצר!',{show:false});
+    [523,659,784,1047,1319].forEach((f,j)=>setTimeout(()=>tone(f,.25),j*120));
+    setEndStage('chest');
+    const learnedChest=(()=>{try{return localStorage.getItem('kidodo-chest-learned-'+((KP.ctx&&KP.ctx.childId)||'anon'))}catch(e){return null}})();
+    setTimeout(()=>{if(endStageRef.current==='chest'&&!learnedChest)setHand(true)},1400);
+    log('GAME_OVER',{won:true,answers:g.stats.answers,correct:g.stats.correct,waterHits:g.stats.waterHits,finalT:+g.T.toFixed(1)});
+  }
+  function tapChest(){
+    if(endStageRef.current!=='chest')return;
+    try{localStorage.setItem('kidodo-chest-learned-'+((KP.ctx&&KP.ctx.childId)||'anon'),'1')}catch(e){}
+    audio();setHand(false);setEndStage('coins');setLidOpen(true);sfx.jackpot();
+    const t0=Date.now(), el=chestRef.current;
+    const iv=setInterval(()=>{coinBurst(el,9);if(Math.random()<.5)sfx.coin();if(Date.now()-t0>3000)clearInterval(iv)},200);
+    setTimeout(()=>{clearInterval(iv);setEndStage('done')},3200);
+  }
+  const mistakes=()=>{const s=G.current.stats;return s?s.wrong+s.waterHits:0};
+  useEffect(()=>{if(endStage!=='done')return;const n=starCount(mistakes());for(let i=0;i<3;i++)setTimeout(()=>i<n?tone(784+i*196,.3,'sine',.12):tone(260,.15,'triangle',.05),150+i*350)},[endStage]);
+  async function goNext(){
+    if(leaving)return;setLeaving(true);hush();const s=G.current.stats;
+    await KP.complete({answers:s.answers,correct:s.correct,wrong:s.wrong,waterHits:s.waterHits,stars:starCount(mistakes()),finalT:+G.current.T.toFixed(1)});
+    KP.next();
+  }
+  function toggleSound(){const v=!sound;setSound(v);soundOn=v;if(!v)hush()}
+  function toggleVoice(){const v=!voice;setVoice(v);voiceOn=v;audio();if(!v)hush();else if(G.current.phase==='ask'&&qRef.current)say(instruction(qRef.current),{show:G.current.climbs<CFG.VERBAL_CLIMBS})}
+
+  // keyboard: type the number (one or two digits)
+  const keyBuf=useRef({s:'',t:0});
+  useEffect(()=>{const onKey=e=>{if(!/^[0-9]$/.test(e.key))return;const qq=qRef.current;if(!qq||G.current.phase!=='ask')return;
+      const b=keyBuf.current;b.s=(performance.now()-b.t<1200?b.s:'')+e.key;b.t=performance.now();
+      const hit=qq.opts.find(o=>String(o)===b.s), longer=qq.opts.some(o=>String(o).length>b.s.length&&String(o).startsWith(b.s));
+      if(hit!=null&&!longer){b.s='';choose(hit)}else if(!longer&&hit==null)b.s=''};
+    window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)});
+
+  useEffect(()=>{if(KP.claimCorner)KP.claimCorner()},[]);
+  useEffect(()=>{start();return hush},[]);
+
+  /* ---------- render ---------- */
+  const floors=[];for(let f=1;f<=TOP;f++)if(f<=built||f===TOP)floors.push(f);
+  const heroPose=phase==='climb'?'jump':phase==='slide'?'scared':phase==='win'?(endStage==='coins'||endStage==='done'?'cheer':null):heroNear?'scared':null;
+  const showPlus=phase==='ask'&&q;
+  const exerShow=q&&(phase==='ask'||phase==='climb');
+  return(<>
+    <LowPolyBG/>
+    <div className="dim"/>
+    <div className={'app'+(quake?' quake':'')} onPointerDownCapture={()=>audio()}>
+      <div className="side">
+        {KP.embedded?<span style={{width:44,height:44}} aria-hidden="true"/>:<button className="iconbtn" title="יציאה" aria-label="יציאה" onClick={()=>{hush();KP.exit()}}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>}
+        <button className="iconbtn" title="צלילים" aria-label="צלילים" onClick={toggleSound}><SpeakerIcon on={sound}/></button>
+        <button className="iconbtn" title="הקראה" aria-label="הקראה" aria-pressed={voice} onClick={toggleVoice}><VoiceIcon on={voice}/></button>
+      </div>
+      <div className="top">
+        <div className={'talk'+(caption?'':' hide')}>
+          <div style={{flex:'none'}}><Alien s={64} talking={talking}/></div>
+          <div className="bubble" aria-live="polite"><div className="txt" key={capN}>{caption||'…'}</div></div>
+        </div>
+      </div>
+      <div className="main">
+        <div className="board" ref={boardRef}>
+          {/* the tower: only the floors already reached are built; the treasure floor waits at the top */}
+          {floors.map(f=><div key={f} className={'slab'+(f===popF?' pop':'')} style={{left:sx-12,top:Y(f)-gt/2-6-gt*.0,zIndex:1}}>
+            <Slab w={fw} fh={fh} gt={gt} seed={f*13+5} f={f}/></div>)}
+          {/* the number of the current floor only (counting in the head), and +k right beside it */}
+          {(phase==='ask'||phase==='climb')&&<div className="fnum" style={{left:sx,top:Y(cur)+gt*.5,width:fw,height:fh*.55,fontSize:Math.max(15,fh*.62)}}>{cur}</div>}
+          {showPlus&&<div className="plusk" key={q.id} style={{left:sx+fw+1,top:Y(cur)-fh*.42,fontSize:Math.max(18,fh*.85)}}>+{q.k}</div>}
+          <button ref={chestRef} className={'wchest'+(endStage==='chest'?' idle':'')} aria-label="לפתוח את תיבת האוצר"
+            style={{left:sx+fw*.68-cs/2,top:Y(TOP)+gt*.2-cs*CHEST_VB[3]/CHEST_VB[2]}} onClick={tapChest}><Chest open={lidOpen} s={cs}/></button>
+          <div ref={exerRef} className="exer" style={{left:sx,top:0,width:fw,height:exH,fontSize:exFont,opacity:exerShow?1:0,transition:'opacity .25s'}}>
+            {q&&<><span>{q.N}</span><span className="k">+</span><span className="k">{q.k}</span><span>=</span>
+              {phase==='climb'?<span className="a" key="a">{q.ans}</span>:<span className="q">?</span>}</>}
+          </div>
+          <div ref={heroRef} className="hero" style={{left:heroX,top:0,width:hw,height:hs}}>
+            <div className={'in'+(heroVis?' show':'')} style={{opacity:heroVis?1:0}} key={heroVis?'v':'h'}>
+              <div className={endStage==='coins'||endStage==='done'?'winhop':''}><Hero s={hs} pose={heroPose}/></div></div></div>
+          <div ref={waterRef} className="water" style={{top:H,height:H+20}}><WaterTop W={W}/><div className="wbody"/></div>
+          {hand&&<TapHand x={sx+fw*.68} y={Y(TOP)-cs*.35}/>}
+        </div>
+        <div className="answers" role="group" aria-label="תשובות" style={phase==='win'?{visibility:'hidden'}:null}>
+          {(q?q.opts:[1,2,3]).map(v=><button key={(q&&q.id)+'-'+v} className={'ans'+(chosen&&chosen.v===v?(chosen.ok?' good':' bad'):'')}
+            disabled={phase!=='ask'} onClick={()=>choose(v)}>{v}</button>)}
+        </div>
+      </div>
+      {endStage==='done'&&(()=>{const n=starCount(mistakes());return(
+        <div className="center endscreen" style={{justifyContent:'flex-start',paddingTop:'max(70px,13dvh)'}}>
+          <div className="stars" dir="ltr">{[0,1,2].map(i=><div key={i} className="star" style={{animationDelay:.15+i*.35+'s'}}><StarIcon on={i<n}/></div>)}</div>
+          <div className="endbtns rise" style={{animationDelay:'1.2s'}}>
+            <button className="endbtn again" onClick={start} aria-label="שוב" title="שוב">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v5h5"/></svg></button>
+            <button className="endbtn next" onClick={goNext} disabled={leaving} aria-label="המשך" title="המשך">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12H4M10 6l-6 6 6 6"/></svg></button>
+          </div>
+        </div>)})()}
+    </div></>);
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
