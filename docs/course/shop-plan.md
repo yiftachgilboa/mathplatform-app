@@ -8,6 +8,8 @@
 - בכניסה הראשונה הילד מגיע ישר לחנות, עם 100 מטבעות.
 - אין שינוי בדמות בלי קופסה.
 - קופסאות נגללות, כל אחת בצבע אחר, המחיר בגדול מתחת.
+- הקרוסלה מעגלית ואינסופית.
+- הקופסה היא תיבת האוצר בעטיפת מתנה (`giftChest`). אחרי קנייה היא מחכה כמו במשחקים, בלי כפתור. 3 שניות בלי לחיצה ← יד.
 - קונים ← לוחצים ← נפתח ← יוצא פריט אקראי בצבע הקופסה.
 - וי: הדמות לובשת (מחליף את הקודם). איקס: הפריט נעלם.
 - אין חרטה ואין מלאי.
@@ -40,14 +42,14 @@
 | API | `app/api/shop/route.ts` (start / buy / decide) |
 | תשלום על שלב | `lib/course/record.ts` (`completeStage`, שליטה) |
 | תשלום באפליקציה | `app/api/sdk/event/route.ts` |
-| חנות | `components/course/Shop.tsx`, `ShopArt.tsx` |
+| חנות | `components/course/Shop.tsx`, `GiftChest.tsx`, `ShopArt.tsx` |
 | כרטיס דמות ומטבעות עפים | `components/course/HeroCard.tsx` |
-| דמות בעמוד | `components/course/Hero.tsx` (טוען `public/art/lowpoly.js`) |
+| דמות בעמוד | `components/course/Hero.tsx`, `LowPoly.tsx` (טוען `public/art/lowpoly.js`) |
 | דמות במשחק | `LP.hero(LOOK, …)` + `KidodoPractice.look()` / `onLook()` |
 
 - הפריט מוגרל בשרת ונשמר. רענון לא מגריל מחדש.
 - כל תשלום נרשם עם מפתח ייחודי. אין תשלום כפול.
-- עוד לא רצה המיגרציה? הקורס עובד כרגיל, בלי חנות.
+- המיגרציה רצה. אם החנות לא נטענת, הקורס עובד כרגיל בלעדיה.
 - קופסת מתנה מקוד: `giftBox(childId, 'שם-היעד')`.
 
 ## אבטחה

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>בדיקה — תיבת מתנה</title>
+<style>
+  body { margin: 0; padding: 12px; font-family: system-ui, "Segoe UI", Arial, sans-serif; color: #33373b; background: #e6f6f6; }
+  h1 { font-size: 20px; margin: 4px 0; } p { margin: 0 0 10px; font-size: 14px; color: #6b7378; }
+  .g { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  figure { margin: 0; background: #fff; border-radius: 14px; padding: 60px 14px 10px; }
+  svg { width: 100%; overflow: visible; display: block; }
+</style>
+</head>
+<body>
+<h1>בדיקה — תיבת מתנה (ממתין לאישור)</h1>
+<p>תיבת האוצר בעטיפת מתנה: <code>LP.make.giftChest({ color, open })</code>. אותם גוף, מכסה וציר כמו התיבה במשחקים.</p>
+<div class="g" id="g"></div>
+<script src="../lowpoly.js"></script>
+<script>
+LP.useTheme('day');
+const cam = LP.camera({ a: .3 }), C = ['#ef5c55', '#f58b2e', '#f2c431', '#4fae55', '#2aa8a0', '#4776c0', '#8a5fc4', '#ee77ab'];
+const fig = o => { const b = LP.bounds(LP.facets(LP.make.giftChest({ size: 100 }), cam)); return `<figure><svg viewBox="${b.x} ${b.y} ${b.w} ${b.h}">${LP.draw(o, cam)}</svg></figure>`; };
+g.innerHTML = C.map(color => fig(LP.make.giftChest({ size: 100, color }))).join('')
+  + [.25, .7, 1.3, 2].map(open => fig(LP.make.giftChest({ size: 100, color: C[6], open }))).join('')
+  + fig(LP.make.giftChest({ size: 100, color: '#f2c431', ribbon: LP.dye('#ef5c55') })) + fig(LP.make.giftChest({ size: 100, color: '#f2c431', ribbon: LP.dye('#ef5c55'), open: 2 })) + fig(LP.make.chest({ size: 100 })) + fig(LP.make.chest({ size: 100, open: 2 }));
+</script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-// ציורי החנות בקוד (SVG שטוח): מטבע, קופסת הפתעה ואייקון לכל פריט. זמני — עד שנבחר עיצוב לחנות.
+// ציורי החנות בקוד (SVG שטוח): מטבע, אייקון לכל פריט ואייקון החנות. זמני — עד שנבחר עיצוב לחנות.
 
 export function CoinIcon({ size = 24 }: { size?: number }) {
   return (
@@ -6,25 +6,6 @@ export function CoinIcon({ size = 24 }: { size?: number }) {
       <circle cx="12" cy="12" r="11" fill="#c98f17" /><circle cx="12" cy="12" r="9.2" fill="#f1c43e" />
       <path d="M12 2.8a9.2 9.2 0 0 1 9.2 9.2L12 12z" fill="#ffe07a" /><path d="M12 21.2A9.2 9.2 0 0 1 2.8 12L12 12z" fill="#dba528" />
       <path d="M12 6.4l1.7 3.5 3.8.5-2.8 2.7.7 3.8-3.4-1.8-3.4 1.8.7-3.8-2.8-2.7 3.8-.5z" fill="#fff3c0" />
-    </svg>
-  )
-}
-
-/** קופסת הפתעה בצבע color. open = המכסה עף. gift = קופסת מתנה (כל הצבעים) */
-export function BoxArt({ color, open, gift }: { color: string; open?: boolean; gift?: boolean }) {
-  const ribbon = gift ? '#ef5c55' : '#ffffff'
-  return (
-    <svg className="s-box-art" viewBox="0 0 120 120" data-open={open || undefined} aria-hidden>
-      <ellipse cx="60" cy="112" rx="46" ry="6" fill="#163e6b" opacity=".14" />
-      <path d="M16 50h88v56a6 6 0 0 1-6 6H22a6 6 0 0 1-6-6z" fill={color} />
-      <path d="M16 50h44v62H22a6 6 0 0 1-6-6z" fill="#000" opacity=".1" /><path d="M16 50h88v9H16z" fill="#000" opacity=".14" />
-      <rect x="50" y="50" width="20" height="62" fill={ribbon} opacity=".9" />
-      <text x="60" y="98" textAnchor="middle" fontSize="38" fontWeight="700" fill={gift ? '#fff' : color} style={{ fontFamily: 'inherit' }}>?</text>
-      <g className="s-lid">
-        <path d="M52 22c-14-14-30-6-24 4 4 6 16 6 24 6zM68 22c14-14 30-6 24 4-4 6-16 6-24 6z" fill={ribbon} stroke="#000" strokeOpacity=".12" strokeWidth="2" />
-        <rect x="10" y="30" width="100" height="23" rx="6" fill={color} /><rect x="10" y="30" width="50" height="23" rx="6" fill="#000" opacity=".07" />
-        <rect x="50" y="30" width="20" height="23" fill={ribbon} opacity=".95" />
-      </g>
     </svg>
   )
 }

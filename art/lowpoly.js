@@ -539,6 +539,24 @@
     mesh.center = [0, 0, r];
     return mesh;
   }
+  // a whole material from one color: dark → base → light, so a color item is just one hex value
+  const toHsl = h => {
+    const [r, g, b] = hex2rgb(h).map(v => v / 255), M = Math.max(r, g, b), m = Math.min(r, g, b), d = M - m, l = (M + m) / 2;
+    return [d ? (M === r ? ((g - b) / d + 6) % 6 : M === g ? (b - r) / d + 2 : (r - g) / d + 4) * 60 : 0, d ? d / (1 - Math.abs(2 * l - 1)) : 0, l];
+  };
+  const fromHsl = (h, s, l) => '#' + [0, 8, 4].map(n => {
+    const k = (n + h / 30 + 12) % 12, v = l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+    return Math.round(v * 255).toString(16).padStart(2, '0');
+  }).join('');
+  const dyes = {};
+  function dye(c) {
+    if (dyes[c]) return dyes[c];
+    const [h, s, l] = toHsl(c);
+    return dyes[c] = material([fromHsl(h - 4, s, l * .58), fromHsl(h, s, l * .88), c, fromHsl(h + 4, s, l + (1 - l) * .42)], .04);
+  }
+  // the same color, darker (k < 1)
+  function shade(c, k) { const [h, sa, l] = toHsl(c); return fromHsl(h, sa, l * k); }
+
   Object.assign(make, {
     // treasure chest. o.open = lid angle in radians (0 closed, ~2 wide open)
     chest(o) {
@@ -556,6 +574,26 @@
         heap.move(0, 0, h * .9); meshes.push(heap);
       } else {
         const lock = box(w * .12, d * .08, h * .22, mat.gold, seed * 41 + 7, .1).move(0, -d * .52, h * .72); lock.bias = S * 2; meshes.push(lock);
+      }
+      return place(meshes, o, S * .45, { ordered: 'depth' });
+    },
+    // gift chest: the treasure chest in gift wrap. o.color (hex) or o.mat = the paper, o.ribbon = the ribbon's material,
+    // o.open like the chest (same body, same lid, same hinge, so every chest animation works on it)
+    giftChest(o) {
+      const S = o.size || 120, seed = o.seed || 1, w = S, d = S * .62, h = S * .5, lh = S * .26, phi = o.open || 0;
+      const m = o.mat || dye(o.color || '#ef5c55'), rb = o.ribbon || mat.white, inner = o.inner || dye(shade(o.color || '#ef5c55', .62));
+      const body = box(w, d, h, m, seed * 41, .08), meshes = [body];
+      const strip = frontBack(box(w * .15, d * 1.04, h * 1.02, rb, seed * 41 + 1, .04)); strip.bias = S; meshes.push(strip);
+      const onLid = (mesh, bias) => { const q = hingeX(mesh, d * .51, h, phi); q.bias = bias; meshes.push(q); };
+      onLid(lidPrism(w * 1.06, d * 1.06, lh, 4, m, seed * 41 + 3, inner).move(0, 0, h), 0);
+      onLid(noEnds(lidPrism(w * .15, d * 1.1, lh * 1.05, 4, rb, seed * 41 + 4)).move(0, 0, h), S * 2);
+      // the bow: two loops, two short tails and a knot, on the top of the lid (it swings with the lid)
+      const top = h + lh, part = (x, z, rx, rz, tilt, k) => onLid(icosphere(0, rb, seed * 41 + 10 + k).scale(S * rx, S * .075, S * rz).rotY(tilt)
+        .move(S * x, -d * .04, top + S * z), (phi > .9 ? -S * 4 : S * 3) + k); // the open lid hides the bow
+      part(-.15, .1, .15, .085, .5, 0); part(.15, .1, .15, .085, -.5, 1); part(0, .04, .062, .062, 0, 2);
+      if (phi > .3) { // white tissue paper inside
+        const heap = icosphere(1, mat.white, seed * 41 + 6).jitter(.14, rng(seed)).scale(w * .36, d * .34, h * .3).floor(-.1 * h).move(0, 0, h * .9);
+        meshes.push(heap);
       }
       return place(meshes, o, S * .45, { ordered: 'depth' });
     },
@@ -1703,21 +1741,6 @@
   }
 
   // ---------- the child's own hero ----------
-  // a whole material from one color: dark → base → light, so a color item is just one hex value
-  const toHsl = h => {
-    const [r, g, b] = hex2rgb(h).map(v => v / 255), M = Math.max(r, g, b), m = Math.min(r, g, b), d = M - m, l = (M + m) / 2;
-    return [d ? (M === r ? ((g - b) / d + 6) % 6 : M === g ? (b - r) / d + 2 : (r - g) / d + 4) * 60 : 0, d ? d / (1 - Math.abs(2 * l - 1)) : 0, l];
-  };
-  const fromHsl = (h, s, l) => '#' + [0, 8, 4].map(n => {
-    const k = (n + h / 30 + 12) % 12, v = l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1));
-    return Math.round(v * 255).toString(16).padStart(2, '0');
-  }).join('');
-  const dyes = {};
-  function dye(c) {
-    if (dyes[c]) return dyes[c];
-    const [h, s, l] = toHsl(c);
-    return dyes[c] = material([fromHsl(h - 4, s, l * .58), fromHsl(h, s, l * .88), c, fromHsl(h + 4, s, l + (1 - l) * .42)], .04);
-  }
   // look = { shirt|pants|shoes|hair: {color}, glasses|hat: {kind, color} } — every slot optional; an empty look is the
   // default hero. Every game and page draws the child's character through this one function.
   function hero(look, o) {
