@@ -3,7 +3,7 @@ import { useCallback, useLayoutEffect, useState } from 'react'
 import Shop from '@/components/course/Shop'
 import { HeroCard, HeroStrip, useHeroPose } from '@/components/course/HeroCard'
 import { GIFT_BOX, SHOP, boxPrice, practiceReward, rollItem, type ShopState } from '@/lib/shop/config'
-import { shareLook, type ShopReply } from '@/lib/shop/client'
+import { afterDecide, shareLook, type ShopReply } from '@/lib/shop/client'
 
 /**
  * זמני — עמוד בדיקה של קונספט החנות: בלי כניסה ובלי שמירה (הכול בזיכרון הדף).
@@ -25,11 +25,9 @@ export default function ShopTestPage() {
       if (!gift && shop.coins < boxPrice) result = 'poor'
       else next = { ...shop, pending: rollItem(a.box, shop.look), coins: shop.coins - (gift ? 0 : boxPrice), gifts: shop.gifts - (gift ? 1 : 0) }
     }
-    if (a.action === 'decide' && shop.pending) {
-      const { slot, color, kind } = shop.pending
-      next = { ...shop, pending: null, look: a.take ? { ...shop.look, [slot]: kind ? { color, kind } : { color } } : shop.look }
-    }
+    if (a.action === 'decide') next = afterDecide(shop, a.take === true)
     setShop(next)
+    await new Promise(r => setTimeout(r, 400))   // מדמה את זמן השרת
     return { result, shop: next }
   }, [shop])
 
@@ -41,7 +39,7 @@ export default function ShopTestPage() {
         <span className="hello hi">עמוד בדיקה — חנות</span>
       </header>
       <div className="c-wrap">
-        <div className="c-side"><HeroCard shop={shop} name="נועה" pose={pose} onShop={() => setOpen(true)} /></div>
+        <div className="c-side"><HeroCard shop={shop} pose={pose} onShop={() => setOpen(true)} /></div>
         <main className="c-main">
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
             <button type="button" className="press c-light" style={btn} onClick={() => { setShop(s => ({ ...s, coins: s.coins + practiceReward })); setHappy(n => n + 1) }}>סיימתי תרגול (+{practiceReward})</button>

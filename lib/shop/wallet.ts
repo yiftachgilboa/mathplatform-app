@@ -81,17 +81,21 @@ export async function startShop(childId: string) {
 
 export type BuyResult = 'ok' | 'pending' | 'poor' | 'nogift' | 'error'
 
-export async function buyBox(childId: string, boxId: string): Promise<BuyResult> {
-  const state = await loadShop(childId)
+/** קונה קופסה. state = מצב הילד שכבר נטען (המצב החדש מחושב ממנו, בלי לטעון שוב) */
+export async function buyBox(childId: string, boxId: string, state: ShopState | null): Promise<{ result: BuyResult; shop: ShopState | null }> {
+  if (state?.pending) return { result: 'pending', shop: state }
   const item = state && rollItem(boxId, state.look)
-  if (!item) return 'error'
-  const { data, error } = await adminClient().rpc('shop_buy', { p_child: childId, p_price: boxPrice, p_item: item, p_gift: boxId === GIFT_BOX })
-  if (error) { console.error('[shop] buy', error.message); return 'error' }
-  return data as BuyResult
+  if (!item) return { result: 'error', shop: state }
+  const gift = boxId === GIFT_BOX
+  const { data, error } = await adminClient().rpc('shop_buy', { p_child: childId, p_price: boxPrice, p_item: item, p_gift: gift })
+  if (error) { console.error('[shop] buy', error.message); return { result: 'error', shop: state } }
+  if (data !== 'ok') return { result: data as BuyResult, shop: await loadShop(childId) }
+  return { result: 'ok', shop: { ...state, pending: item, coins: state.coins - (gift ? 0 : boxPrice), gifts: state.gifts - (gift ? 1 : 0) } }
 }
 
-export async function decide(childId: string, take: boolean) {
-  const { error } = await adminClient().rpc('shop_decide', { p_child: childId, p_take: take })
-  if (error) console.error('[shop] decide', error.message)
-  return !error
+/** וי / איקס. מחזיר את המראה אחרי ההחלטה, או null בשגיאה */
+export async function decide(childId: string, take: boolean): Promise<Look | null> {
+  const { data, error } = await adminClient().rpc('shop_decide', { p_child: childId, p_take: take })
+  if (error) { console.error('[shop] decide', error.message); return null }
+  return data as Look
 }

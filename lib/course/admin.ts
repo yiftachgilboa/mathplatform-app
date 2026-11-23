@@ -55,17 +55,19 @@ export async function enrollments(parentId: string): Promise<Enrollment[]> {
  * מחזיר את הקורס או null.
  */
 export async function authorizeChild(childId: string, courseId: string) {
-  const user = await currentUser()
   const course = getCourse(courseId)
-  if (!user || !course || !childId) return null
-  const { data } = await adminClient()
-    .from('course_enrollments')
-    .select('child_id')
-    .eq('parent_id', user.id)
-    .eq('child_id', childId)
-    .eq('course_id', courseId)
-    .maybeSingle()
-  return data ? { user, course } : null
+  if (!course || !childId) return null
+  // שתי הבדיקות במקביל (חוסך נסיעה לשרת); ההורה חייב להיות זה שרשם את הילד
+  const [user, { data }] = await Promise.all([
+    currentUser(),
+    adminClient()
+      .from('course_enrollments')
+      .select('parent_id')
+      .eq('child_id', childId)
+      .eq('course_id', courseId)
+      .maybeSingle(),
+  ])
+  return user && data?.parent_id === user.id ? { user, course } : null
 }
 
 /** תשובות משחק התרגול לשיעור, החדשה ראשונה */

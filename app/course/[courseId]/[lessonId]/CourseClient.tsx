@@ -15,7 +15,7 @@ import Shop from '@/components/course/Shop'
 import Hero from '@/components/course/Hero'
 import { HeroCard, HeroStrip, flyCoins, useHeroPose } from '@/components/course/HeroCard'
 import type { ShopState } from '@/lib/shop/config'
-import { shareLook, shopAction, tone } from '@/lib/shop/client'
+import { afterDecide, shareLook, shopAction, tone } from '@/lib/shop/client'
 import { practiceUrl, prefetch, PRACTICE_ASSETS, warmSpeech } from '@/lib/course/practice'
 
 type Props = {
@@ -78,8 +78,10 @@ export default function CourseClient({ course, childId, childName, avatar, initi
   }, [])
 
   const onShop = useCallback(async (a: Record<string, unknown>) => {
+    if (a.action === 'decide') setShop(s => s && afterDecide(s, a.take === true))   // הדמות משתנה מיד
     const r = await shopAction(childId, course.courseId, a)
     if (r?.shop) { coinsRef.current = r.shop.coins; setShop(r.shop) }
+    else if (r?.look) setShop(s => s && { ...s, look: r.look!, pending: null })
     return r
   }, [childId, course.courseId])
 
@@ -260,7 +262,7 @@ export default function CourseClient({ course, childId, childName, avatar, initi
         strip={shop && <HeroStrip shop={shop} pose={heroPose} onShop={openShop} />} />
       <div className="c-wrap">
         <div className="c-side">
-        {shop && <HeroCard shop={shop} name={childName} pose={heroPose} onShop={openShop} />}
+        {shop && <HeroCard shop={shop} pose={heroPose} onShop={openShop} />}
         <LessonMenu lessons={course.lessons} states={lessonStates} selected={lessonIdx} label={ui.lessonsNav}
           meters={meters} achieved={course.lessons.map((l, i) => state.mastered.includes(l.id) || meters[i] >= goal)}
           goal={goal} meterLabel={ui.meter} doneLabel={ui.lessonDone}

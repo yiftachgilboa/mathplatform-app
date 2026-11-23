@@ -61,10 +61,14 @@ export function ItemArt({ slot, kind, color }: { slot: string; kind?: string; co
   return <svg viewBox="0 0 120 120" aria-hidden style={{ width: '100%', height: '100%', display: 'block' }}>{body}{shade}</svg>
 }
 
-export function BagIcon({ size = 24 }: { size?: number }) {
+/** חנות: גגון מפוספס, חלון ודלת */
+export function StoreIcon({ size = 28 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M4 11h16v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM3 7h18v4H3zM12 7v14M12 7c-5 0-6-5-3-5s3 5 3 5c0 0 0-5 3-5s2 5-3 5z" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M4.5 12v8h15v-8" fill="#fff" />
+      <path d="M4 3.5h16l1.5 5.5H2.5z" fill="currentColor" fillOpacity=".25" />
+      <path d="M2.5 9a2.4 2.4 0 0 0 4.75 0 2.4 2.4 0 0 0 4.75 0 2.4 2.4 0 0 0 4.75 0 2.4 2.4 0 0 0 4.75 0z" fill="currentColor" fillOpacity=".55" />
+      <path d="M13.5 20v-5h3.5v5M7 15h3.5v2.5H7z" />
     </svg>
   )
 }
