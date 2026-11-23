@@ -3,7 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { BOXES, GIFT_BOX, SHOP_UI, boxColor, boxPrice, fullPrice, itemName, type PendingItem, type ShopState } from '@/lib/shop/config'
 import { tone, type ShopReply } from '@/lib/shop/client'
 import { fill } from '@/lib/course/content'
-import Hero, { type HeroPose } from './Hero'
+import Hero, { useIdleAct, type HeroPose } from './Hero'
 import { GiftChest, GiftChestStill, TapHand, chestBurst } from './GiftChest'
 import { CoinIcon, ItemArt } from './ShopArt'
 
@@ -29,6 +29,7 @@ export default function Shop({ shop, onAction, onClose }: {
   const [tapped, setTapped] = useState(false)                                // לחצו לפתוח לפני שהפריט הגיע
   const [error, setError] = useState(false)
   const [pose, setPose] = useState<HeroPose>('wave')
+  const act = useIdleAct(pose === 'stand')
   const [hand, setHand] = useState(false)
   const chest = useRef<HTMLButtonElement>(null)
   const queue = useRef<Promise<unknown>>(Promise.resolve())
@@ -118,37 +119,33 @@ export default function Shop({ shop, onAction, onClose }: {
         <button type="button" className="press s-close" onClick={onClose} aria-label={ui.close} title={ui.close}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6L6 18" /></svg>
         </button>
-        <h2>{ui.title}</h2>
         <CoinPill coins={shop.coins} />
       </div>
 
       <div className="s-body">
-        <div className="s-mirror"><Hero look={shop.look} pose={pose} label={ui.myHero} className="s-hero" /></div>
+        <div className="s-mirror"><Hero look={shop.look} pose={act?.pose ?? pose} expression={act?.expression} label={ui.myHero} className="s-hero" /></div>
 
         <div className="s-stage">
           {phase === 'browse' ? (
             <Carousel list={list} start={box} coins={shop.coins} onBuy={buy} />
           ) : (
             <div className="s-reveal">
-              <div className="s-item" data-on={(phase === 'item' && !!item) || undefined}>
-                {phase === 'item' && item && (<>
-                  <strong>{itemName(item.slot)}</strong>
-                  <div className="s-choice">
-                    <button type="button" className="press s-yes" onClick={() => choose(true)} aria-label={ui.take} title={ui.take}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
-                    </button>
-                    <div className="s-item-art" style={{ '--c': item.color } as React.CSSProperties}><ItemArt slot={item.slot} kind={item.kind} color={item.color} /></div>
-                    <button type="button" className="press s-no" onClick={() => choose(false)} aria-label={ui.leave} title={ui.leave}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.6" strokeLinecap="round" aria-hidden><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" /></svg>
-                    </button>
-                  </div>
-                </>)}
-              </div>
               <button ref={chest} type="button" className="s-open" data-phase={phase} data-tapped={tapped || undefined} onClick={open}
                 disabled={phase !== 'closed'} aria-label={ui.open} autoFocus>
                 <GiftChest color={color} gift={gift} open={phase !== 'closed'} />
                 {hand && <TapHand />}
               </button>
+              {phase === 'item' && item && (
+                  <div className="s-choice">
+                    <button type="button" className="press s-yes" onClick={() => choose(true)} aria-label={ui.take} title={ui.take}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+                    </button>
+                    <div className="s-item-art" role="img" aria-label={itemName(item.slot)} style={{ '--c': item.color } as React.CSSProperties}><ItemArt slot={item.slot} kind={item.kind} color={item.color} /></div>
+                    <button type="button" className="press s-no" onClick={() => choose(false)} aria-label={ui.leave} title={ui.leave}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.6" strokeLinecap="round" aria-hidden><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" /></svg>
+                    </button>
+                  </div>
+              )}
             </div>
           )}
           {error && <p role="alert" className="s-error">{ui.error}</p>}
@@ -164,7 +161,8 @@ export function CoinPill({ coins, id }: { coins: number; id?: string }) {
 
 type BoxCard = { id: string; label: string; color: string; price: number; gift: boolean }
 
-const SIDE = 5   // כמה קופסאות מציירים מכל צד של המרכז
+const STEP = .86 // המרחק בין קופסאות, ביחס לרוחב הקופסה הגדולה
+const SIDE = 3   // כמה קופסאות מציירים מכל צד של המרכז (רואים אחת מכל צד; השאר שקופות, לתנועה)
 
 /**
  * קרוסלה מעגלית ואינסופית: חצים, גרירה, גלגלת או מקשי חצים. התיבה במרכז גדולה; לחיצה עליה קונה, לחיצה על אחרת מביאה אותה למרכז.
@@ -179,7 +177,7 @@ function Carousel({ list, start, coins, onBuy }: { list: BoxCard[]; start: strin
   const drag = useRef<{ x: number; pos: number; moved: boolean; trail: { x: number; t: number }[] } | null>(null)
   const wheelAt = useRef(0)
   const blockClick = useRef(false)
-  const step = () => (track.current?.children[0] as HTMLElement | undefined)?.offsetWidth || 1
+  const step = () => ((track.current?.children[0] as HTMLElement | undefined)?.offsetWidth ?? 0) * STEP || 1
 
   const place = useCallback((p: number, smooth: boolean) => {
     const t = track.current
@@ -253,8 +251,8 @@ function Carousel({ list, start, coins, onBuy }: { list: BoxCard[]; start: strin
           {Array.from({ length: SIDE * 2 + 1 }, (_, k) => pos - SIDE + k).map(i => {
             const b = at(i), sel = i === pos, missing = b.gift ? 0 : b.price - coins
             return (
-              <button key={i} type="button" className="s-box" data-sel={sel || undefined} data-poor={missing > 0 || undefined} tabIndex={sel ? 0 : -1}
-                style={{ left: `calc(var(--step) * ${i})` }}
+              <button key={i} type="button" className="s-box" data-sel={sel || undefined} data-near={Math.abs(i - pos) === 1 || undefined} data-poor={missing > 0 || undefined} tabIndex={sel ? 0 : -1}
+                style={{ left: `calc(var(--bw) * ${STEP * i})` }}
                 aria-label={`${b.label}, ${b.gift ? ui.gift : `${b.price} ${ui.coins}`}`}
                 onClick={() => {
                   if (blockClick.current) return

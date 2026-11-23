@@ -194,52 +194,55 @@
 .s-shop{position:fixed;inset:0;z-index:55;display:flex;flex-direction:column;background:linear-gradient(#BFE8EC,#EAF7F4 70%);animation:fadeIn .25s;overflow:hidden}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .s-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;flex:none}
-.s-top h2{margin:0;font-size:clamp(24px,4vw,34px);font-weight:700}
 .s-top .s-coins{font-size:24px;min-height:48px}
 .s-close{width:48px;height:48px;border-radius:50%;border:0;padding:0;background:#fff;color:var(--navy);display:flex;align-items:center;justify-content:center;flex:none}
 .s-body{flex:1;min-height:0;display:flex;flex-direction:column}
 .s-mirror{flex:0 1 36%;min-height:120px;display:flex;align-items:flex-end;justify-content:center;padding-top:8px}
 .s-hero{height:100%;width:100%;max-width:300px}
-.s-stage{flex:1 1 64%;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding-bottom:16px;position:relative}
+.s-stage{flex:1 1 64%;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding-bottom:16px;position:relative;container-type:inline-size}
 .s-error{margin:0;font-weight:700;color:#9B3D00}
 
-.s-carousel{--step:176px;position:relative;width:100%;display:flex;align-items:center}
-.s-row{position:relative;flex:1;min-width:0;height:calc(var(--step) * 1.45);overflow:hidden;touch-action:pan-y;cursor:grab}
+/* שלוש קופסאות: גדולה באמצע ואחת קטנה מכל צד, בלי חיתוך */
+.s-carousel{--bw:min(43cqw,32vh,260px);position:relative;width:100%}
+.s-row{position:relative;height:calc(var(--bw) * .75 + 96px);touch-action:pan-y;cursor:grab}
 .s-track{position:absolute;left:50%;top:0;height:100%;width:0;transition:transform .2s cubic-bezier(.2,.8,.3,1);will-change:transform}
-.s-box{position:absolute;bottom:8px;width:var(--step);margin-left:calc(var(--step) / -2);padding:0;border:0;background:none;
+.s-box{position:absolute;bottom:4px;width:var(--bw);margin-left:calc(var(--bw) / -2);padding:0;border:0;background:none;
   display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;
-  transform:scale(.72);opacity:.8;transition:transform .16s,opacity .16s}
-.s-box[data-sel]{transform:none;opacity:1}
-.s-box[data-sel]:hover .s-chest{animation:hop .6s cubic-bezier(.3,.7,.4,1)}
+  transform:scale(.3);transform-origin:50% 65%;opacity:0;pointer-events:none;transition:transform .16s,opacity .16s}
+.s-box[data-near]{transform:scale(.56);opacity:.9;pointer-events:auto}
+.s-box[data-sel]{transform:none;opacity:1;pointer-events:auto}
+.s-box[data-sel] .s-chest{animation:hopIdle 2.6s cubic-bezier(.3,.7,.4,1) 2s infinite}
+@media (hover:hover){.s-box:hover .s-chest{animation:hop .6s cubic-bezier(.3,.7,.4,1)}}
+@keyframes hopIdle{0%{transform:none}4%{transform:scale(1.07,.9)}11%{transform:translateY(-26px) scale(.96,1.05)}18%{transform:scale(1.04,.96)}23%,100%{transform:none}}
 .s-box[data-sel]:active{transform:scale(.96)}
 .s-box:focus-visible,.s-open:focus-visible{outline:3px solid var(--primary);outline-offset:4px;border-radius:24px}
-.s-chest{width:88%;height:auto;display:block;overflow:visible;filter:drop-shadow(0 7px 0 rgba(23,80,130,.14))}
+.s-chest{width:88%;height:auto;display:block;overflow:visible;transform-origin:50% 100%;filter:drop-shadow(0 7px 0 rgba(23,80,130,.14))}
 .s-price{display:inline-flex;align-items:center;gap:8px;font-size:40px;font-weight:700;line-height:1.1;color:#9B6A00}
 .s-price s{font-size:20px;font-weight:500;color:var(--muted)}
 .s-box[data-poor] .s-price{color:var(--muted)}
 .s-missing{font-size:18px;font-weight:600;color:var(--ink-soft)}
-.s-arrow{position:absolute;top:calc(50% - 50px);z-index:2;width:52px;height:52px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(22,62,107,.14)}
-.s-arrow:first-child{left:10px}
-.s-arrow:last-child{right:10px}
+.s-arrow{display:none}
 
 /* התיבה שנקנתה: מחכה כמו תיבת האוצר במשחקים (chestCall) */
-.s-reveal{display:flex;flex-direction:column;align-items:center;gap:8px;width:100%}
-.s-item{position:relative;z-index:1;height:min(165px,25vh);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:12px}
-.s-item strong{font-size:28px;font-weight:700;line-height:1.1}
-.s-open{position:relative;border:0;background:none;padding:0;cursor:pointer;width:min(170px,25vh);-webkit-tap-highlight-color:transparent}
+.s-reveal{--w:min(170px,30vh);position:relative;display:flex;justify-content:center;width:100%;padding-top:calc(var(--w) * .42)}
+.s-open{position:relative;border:0;background:none;padding:0;cursor:pointer;width:var(--w);-webkit-tap-highlight-color:transparent}
 .s-open:disabled{cursor:default;color:inherit}
-.s-open .s-chest{width:100%;transform-origin:50% 100%}
+.s-open .s-chest{width:100%}
 .s-open[data-phase=closed] .s-chest{animation:chestCall 1.6s ease-in-out infinite}
 .s-open[data-phase=closed][data-tapped] .s-chest{animation-duration:.5s}
 .s-open[data-phase=closed]:active .s-chest{transform:scale(.94)}
 @keyframes chestCall{0%,60%,100%{transform:rotate(0)}70%{transform:rotate(-5deg) scale(1.04)}80%{transform:rotate(5deg) scale(1.04)}90%{transform:rotate(-3deg)}}
 .s-hand{position:absolute;left:calc(50% - 16px);top:52%;pointer-events:none;filter:drop-shadow(0 4px 4px rgba(23,80,130,.3));line-height:0}
-.s-choice{display:flex;align-items:center;gap:20px}
-.s-choice button{width:72px;height:72px;flex:none;border-radius:50%;border:0;padding:17px;color:#fff;display:flex;animation:pop .25s .15s both}
+/* ההפתעה: על המכסה הפתוח, ומשני צדיו וי ואיקס */
+.s-choice{position:absolute;left:50%;bottom:calc(var(--w) * .9);transform:translate(-50%,50%);display:flex;align-items:center;gap:calc(var(--w) * .24 + 14px)}
+.s-choice button{width:64px;height:64px;flex:none;border-radius:50%;border:0;padding:15px;color:#fff;display:flex;animation:pop .25s .15s both,callBtn 5.4s ease-in-out .9s infinite}
+.s-choice .s-no{animation-delay:.15s,3.6s}
 .s-choice svg{width:100%;height:100%}
-.s-item-art{width:min(116px,18vh);height:min(116px,18vh);flex:none;border-radius:50%;background:#fff;padding:18px;box-shadow:0 0 0 8px color-mix(in srgb,var(--c) 30%,transparent),0 12px 30px rgba(22,62,107,.16);
-  animation:outOfChest .45s cubic-bezier(.2,.9,.3,1.25)}
-@keyframes outOfChest{from{transform:translateY(130px) scale(.15)}}
+/* מושך את העין: הירוק גדל וקטן, 2 שניות הפסקה, האדום, 2 שניות הפסקה, וחוזר */
+@keyframes callBtn{0%,13%,100%{transform:none}3.5%,10%{transform:scale(1.28)}6.5%{transform:scale(1.04)}}
+.s-item-art{width:calc(var(--w) * .56);height:calc(var(--w) * .56);flex:none;border-radius:50%;background:#fff;padding:calc(var(--w) * .08);
+  box-shadow:0 0 0 calc(var(--w) * .025) color-mix(in srgb,var(--c) 35%,#fff);animation:outOfChest .45s cubic-bezier(.2,.9,.3,1.25)}
+@keyframes outOfChest{from{transform:translateY(calc(var(--w) * .5)) scale(.15)}}
 .s-yes{background:#2FA36B}
 .s-no{background:#D9534F}
 
@@ -263,21 +266,20 @@
   .s-mirror{flex:0 0 34%;align-items:center;padding:0}
   .s-hero{height:min(62vh,420px);max-width:420px}
   .s-stage{flex:1;min-width:0;padding-bottom:40px}
-  .s-carousel{--step:240px}
-  .s-open{width:min(230px,36vh)}
-  .s-item{height:min(215px,32vh);gap:14px}
-  .s-reveal{gap:14px}
-  .s-choice{gap:28px}
-  .s-choice button{width:84px;height:84px;padding:20px}
-  .s-item-art{width:min(170px,22vh);height:min(170px,22vh);padding:28px}
+  .s-carousel{--bw:min(30cqw,40vh,270px)}
+  .s-reveal{--w:min(300px,40vh)}
+  .s-choice button{width:88px;height:88px;padding:21px}
+  .s-arrow{position:absolute;top:calc(50% - 56px);z-index:2;width:52px;height:52px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(22,62,107,.14)}
+  .s-arrow:first-child{left:max(4px,calc(50% - var(--bw) * 1.22 - 52px))}
+  .s-arrow:last-child{right:max(4px,calc(50% - var(--bw) * 1.22 - 52px))}
   .s-price{font-size:52px}
 }
 @media (max-height:520px) and (max-width:950px){
   .s-body{flex-direction:row}.s-mirror{flex:0 0 32%}.s-stage{padding-bottom:4px}
-  .s-top{padding:4px 12px}.s-carousel{--step:140px}.s-price{font-size:30px}.s-item{height:auto;min-height:100px}.s-reveal{gap:6px}.s-choice button{width:60px;height:60px;padding:14px}.s-item strong{font-size:20px}.s-open{width:min(130px,32vh)}.s-item-art{width:84px;height:84px;padding:14px}
+  .s-top{padding:4px 12px}.s-carousel{--bw:min(30cqw,40vh)}.s-row{height:calc(var(--bw) * .75 + 60px)}.s-price{font-size:30px}.s-reveal{--w:min(150px,42vh)}.s-choice button{width:60px;height:60px;padding:14px}
   .s-hero{height:66vh}
 }
 @media (prefers-reduced-motion:reduce){
-  .s-num,.s-shop,.s-open .s-chest,.s-item-art,.s-choice button,.s-box[data-sel]:hover .s-chest{animation:none!important}
+  .s-num,.s-shop,.s-open .s-chest,.s-item-art,.s-choice button,.s-box .s-chest{animation:none!important}
   .s-box,.s-track{transition:none}
 }
