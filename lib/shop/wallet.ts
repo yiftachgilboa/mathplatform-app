@@ -81,11 +81,19 @@ export async function startShop(childId: string) {
 
 export type BuyResult = 'ok' | 'pending' | 'poor' | 'nogift' | 'error'
 
-/** קונה קופסה. state = מצב הילד שכבר נטען (המצב החדש מחושב ממנו, בלי לטעון שוב) */
+/**
+ * קונה קופסה. אם כבר יש קופסה משולמת שלא נפתחה (הילד יצא באמצע) — היא מתחלפת בקופסה שנבחרה, בלי תשלום נוסף.
+ * state = מצב הילד שכבר נטען (המצב החדש מחושב ממנו, בלי לטעון שוב)
+ */
 export async function buyBox(childId: string, boxId: string, state: ShopState | null): Promise<{ result: BuyResult; shop: ShopState | null }> {
-  if (state?.pending) return { result: 'pending', shop: state }
   const item = state && rollItem(boxId, state.look)
   if (!item) return { result: 'error', shop: state }
+  if (state.pending) {
+    const { error } = await adminClient().from('child_shop').update({ pending: item, updated_at: new Date().toISOString() })
+      .eq('child_id', childId).not('pending', 'is', null)
+    if (error) { console.error('[shop] swap', error.message); return { result: 'error', shop: state } }
+    return { result: 'ok', shop: { ...state, pending: item } }
+  }
   const gift = boxId === GIFT_BOX
   const { data, error } = await adminClient().rpc('shop_buy', { p_child: childId, p_price: boxPrice, p_item: item, p_gift: gift })
   if (error) { console.error('[shop] buy', error.message); return { result: 'error', shop: state } }

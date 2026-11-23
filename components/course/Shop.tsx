@@ -13,7 +13,7 @@ type Action = { action: 'buy'; box: string } | { action: 'decide'; take: boolean
 /**
  * החנות (גרסת בדיקת קונספט): שורת קופסאות הפתעה שגוללים, מחיר מתחת לכל אחת.
  * קונים ← התיבה מחכה (כמו במשחקים; אחרי 3 שניות יד מראה ללחוץ) ← נפתחת ← יוצא פריט בצבע הקופסה ← וי (הדמות לובשת) או איקס (הפריט נעלם).
- * הפריט מוגרל ונשמר בשרת (shop.pending), כך שרענון לא מגריל מחדש.
+ * הפריט מוגרל ונשמר בשרת (shop.pending), כך שהילד לא בוחר פריט.
  * המסך לא מחכה לשרת: הקופסה מופיעה מיד והפריט מגיע ברקע; וי/איקס משפיעים מיד. הבקשות נשלחות זו אחרי זו.
  */
 export default function Shop({ shop, onAction, onClose }: {
@@ -23,9 +23,9 @@ export default function Shop({ shop, onAction, onClose }: {
   onClose: () => void
 }) {
   const ui = SHOP_UI
-  const [phase, setPhase] = useState<Phase>(shop.pending ? 'closed' : 'browse')
-  const [box, setBox] = useState<string | null>(shop.pending?.box ?? null)   // הקופסה שנקנתה (ואחריה חוזרים אליה)
-  const [item, setItem] = useState<PendingItem | null>(shop.pending)
+  const [phase, setPhase] = useState<Phase>('browse')   // תמיד נכנסים לקרוסלה
+  const [box, setBox] = useState<string | null>(null)   // הקופסה שנקנתה (ואחריה חוזרים אליה)
+  const [item, setItem] = useState<PendingItem | null>(null)
   const [tapped, setTapped] = useState(false)                                // לחצו לפתוח לפני שהפריט הגיע
   const [error, setError] = useState(false)
   const [pose, setPose] = useState<HeroPose>('wave')
@@ -44,15 +44,11 @@ export default function Shop({ shop, onAction, onClose }: {
     return () => { alive.current = false; list.forEach(clearTimeout) }
   }, [later])
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
-
+  // קופסה שנקנתה ולא נפתחה (הילד יצא באמצע): הבחירה הבאה כבר שולמה, בכל צבע
+  const prepaid = !!shop.pending
   const list = [
     ...(shop.gifts > 0 ? [{ id: GIFT_BOX, label: ui.giftName, color: boxColor(GIFT_BOX), price: 0, gift: true }] : []),
-    ...BOXES.map(b => ({ id: b.id, label: fill(ui.boxName, { name: b.name }), color: b.color, price: boxPrice, gift: false })),
+    ...BOXES.map(b => ({ id: b.id, label: fill(ui.boxName, { name: b.name }), color: b.color, price: prepaid ? 0 : boxPrice, gift: false })),
   ]
 
   // בקשה אחת בכל פעם, לפי הסדר (קנייה לא תעקוף החלטה שעוד בדרך). onAction נקרא דרך ref כדי לקבל תמיד את הגרסה העדכנית
@@ -63,6 +59,19 @@ export default function Shop({ shop, onAction, onClose }: {
     queue.current = p.catch(() => {})
     return p.catch(() => null)
   }
+
+  // יציאה אחרי שההפתעה נראתה = ויתור (אחרת אפשר היה לצאת ולהגריל שוב). לפני הפתיחה — הקופסה נשארת משולמת
+  const close = () => {
+    if (phase === 'item' || phase === 'opening') send({ action: 'decide', take: false })
+    onClose()
+  }
+  const closeRef = useRef(close)
+  useEffect(() => { closeRef.current = close })
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeRef.current() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   async function buy(id: string) {
     if (phase !== 'browse') return
@@ -116,7 +125,7 @@ export default function Shop({ shop, onAction, onClose }: {
   return (
     <div className="s-shop" role="dialog" aria-modal="true" aria-label={ui.title}>
       <div className="s-top">
-        <button type="button" className="press s-close" onClick={onClose} aria-label={ui.close} title={ui.close}>
+        <button type="button" className="press s-close" onClick={close} aria-label={ui.close} title={ui.close}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6L6 18" /></svg>
         </button>
         <CoinPill coins={shop.coins} />
@@ -130,6 +139,7 @@ export default function Shop({ shop, onAction, onClose }: {
             <Carousel list={list} start={box} coins={shop.coins} onBuy={buy} />
           ) : (
             <div className="s-reveal">
+             <div className="s-grow">
               <button ref={chest} type="button" className="s-open" data-phase={phase} data-tapped={tapped || undefined} onClick={open}
                 disabled={phase !== 'closed'} aria-label={ui.open} autoFocus>
                 <GiftChest color={color} gift={gift} open={phase !== 'closed'} />
@@ -146,6 +156,7 @@ export default function Shop({ shop, onAction, onClose }: {
                     </button>
                   </div>
               )}
+             </div>
             </div>
           )}
           {error && <p role="alert" className="s-error">{ui.error}</p>}

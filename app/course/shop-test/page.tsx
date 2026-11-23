@@ -22,7 +22,8 @@ export default function ShopTestPage() {
     let result = 'ok', next = shop
     if (a.action === 'buy' && a.box) {
       const gift = a.box === GIFT_BOX
-      if (!gift && shop.coins < boxPrice) result = 'poor'
+      if (shop.pending) next = { ...shop, pending: rollItem(a.box, shop.look) }
+      else if (!gift && shop.coins < boxPrice) result = 'poor'
       else next = { ...shop, pending: rollItem(a.box, shop.look), coins: shop.coins - (gift ? 0 : boxPrice), gifts: shop.gifts - (gift ? 1 : 0) }
     }
     if (a.action === 'decide') next = afterDecide(shop, a.take === true)

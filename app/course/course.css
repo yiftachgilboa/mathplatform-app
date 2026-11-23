@@ -200,10 +200,11 @@
 .s-mirror{flex:0 1 36%;min-height:120px;display:flex;align-items:flex-end;justify-content:center;padding-top:8px}
 .s-hero{height:100%;width:100%;max-width:300px}
 .s-stage{flex:1 1 64%;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding-bottom:16px;position:relative;container-type:inline-size}
-.s-error{margin:0;font-weight:700;color:#9B3D00}
+.s-stage>*{--bw:min(43cqw,32vh,260px);--ph:44px}
+.s-error{position:absolute;bottom:8px;margin:0;font-weight:700;color:#9B3D00}
 
 /* שלוש קופסאות: גדולה באמצע ואחת קטנה מכל צד, בלי חיתוך */
-.s-carousel{--bw:min(43cqw,32vh,260px);position:relative;width:100%}
+.s-carousel{position:relative;width:100%}
 .s-row{position:relative;height:calc(var(--bw) * .75 + 96px);touch-action:pan-y;cursor:grab}
 .s-track{position:absolute;left:50%;top:0;height:100%;width:0;transition:transform .2s cubic-bezier(.2,.8,.3,1);will-change:transform}
 .s-box{position:absolute;bottom:4px;width:var(--bw);margin-left:calc(var(--bw) / -2);padding:0;border:0;background:none;
@@ -217,15 +218,18 @@
 .s-box[data-sel]:active{transform:scale(.96)}
 .s-box:focus-visible,.s-open:focus-visible{outline:3px solid var(--primary);outline-offset:4px;border-radius:24px}
 .s-chest{width:88%;height:auto;display:block;overflow:visible;transform-origin:50% 100%;filter:drop-shadow(0 7px 0 rgba(23,80,130,.14))}
-.s-price{display:inline-flex;align-items:center;gap:8px;font-size:40px;font-weight:700;line-height:1.1;color:#9B6A00}
+.s-price{display:inline-flex;align-items:center;gap:8px;height:var(--ph);font-size:40px;font-weight:700;line-height:1.1;color:#9B6A00}
 .s-price s{font-size:20px;font-weight:500;color:var(--muted)}
 .s-box[data-poor] .s-price{color:var(--muted)}
-.s-missing{font-size:18px;font-weight:600;color:var(--ink-soft)}
+.s-missing{position:absolute;top:100%;white-space:nowrap;font-size:18px;font-weight:600;color:var(--ink-soft)}
 .s-arrow{display:none}
 
 /* התיבה שנקנתה: מחכה כמו תיבת האוצר במשחקים (chestCall) */
-.s-reveal{--w:min(170px,30vh);position:relative;display:flex;justify-content:center;width:100%;padding-top:calc(var(--w) * .42)}
-.s-open{position:relative;border:0;background:none;padding:0;cursor:pointer;width:var(--w);-webkit-tap-highlight-color:transparent}
+/* אותו גובה ואותו מרכז כמו הקופסה הגדולה בקרוסלה — התיבה רק גדלה במקום */
+.s-reveal{--w:min(170px,30vh);--c:calc(12px + var(--ph) + var(--bw) * .407);position:relative;width:100%;height:calc(var(--bw) * .75 + 96px)}
+.s-grow{position:absolute;left:50%;bottom:var(--c);width:var(--w);transform:translate(-50%,50%);animation:growBox .28s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes growBox{from{transform:translate(-50%,50%) scale(.82)}}
+.s-open{position:relative;display:block;border:0;background:none;padding:0;cursor:pointer;width:100%;-webkit-tap-highlight-color:transparent}
 .s-open:disabled{cursor:default;color:inherit}
 .s-open .s-chest{width:100%}
 .s-open[data-phase=closed] .s-chest{animation:chestCall 1.6s ease-in-out infinite}
@@ -266,7 +270,7 @@
   .s-mirror{flex:0 0 34%;align-items:center;padding:0}
   .s-hero{height:min(62vh,420px);max-width:420px}
   .s-stage{flex:1;min-width:0;padding-bottom:40px}
-  .s-carousel{--bw:min(30cqw,40vh,270px)}
+  .s-stage>*{--bw:min(30cqw,40vh,270px);--ph:58px}
   .s-reveal{--w:min(300px,40vh)}
   .s-choice button{width:88px;height:88px;padding:21px}
   .s-arrow{position:absolute;top:calc(50% - 56px);z-index:2;width:52px;height:52px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(22,62,107,.14)}
@@ -276,10 +280,10 @@
 }
 @media (max-height:520px) and (max-width:950px){
   .s-body{flex-direction:row}.s-mirror{flex:0 0 32%}.s-stage{padding-bottom:4px}
-  .s-top{padding:4px 12px}.s-carousel{--bw:min(30cqw,40vh)}.s-row{height:calc(var(--bw) * .75 + 60px)}.s-price{font-size:30px}.s-reveal{--w:min(150px,42vh)}.s-choice button{width:60px;height:60px;padding:14px}
+  .s-top{padding:4px 12px}.s-stage>*{--bw:min(30cqw,40vh);--ph:34px}.s-row,.s-reveal{height:calc(var(--bw) * .75 + 60px)}.s-price{font-size:30px}.s-reveal{--w:min(150px,42vh)}.s-choice button{width:60px;height:60px;padding:14px}
   .s-hero{height:66vh}
 }
 @media (prefers-reduced-motion:reduce){
-  .s-num,.s-shop,.s-open .s-chest,.s-item-art,.s-choice button,.s-box .s-chest{animation:none!important}
+  .s-num,.s-shop,.s-grow,.s-open .s-chest,.s-item-art,.s-choice button,.s-box .s-chest{animation:none!important}
   .s-box,.s-track{transition:none}
 }
