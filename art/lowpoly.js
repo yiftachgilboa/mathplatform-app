@@ -92,6 +92,19 @@
       mountain: M(['#9a4630', '#c46a3c', '#e29356', '#f5be86'], .06), cactus: M(['#1d4f34', '#2c7446', '#46a05a', '#86cc72'], .06),
     }),
   };
+  // noir: a detective-film night — indigo sky, a pale moon, cool dark hills; warm windows and the flashlight are the light
+  // (the elevator game, 24.11.2026 — not approved yet)
+  themes.noir = {
+    sky: ['#161a34', '#2c3260', '#5b5a8c'], fog: '#3f4478', sun: '#f6f0d6', glow: '#c9c4e6', shadow: '#0b0d20',
+    mat: Object.assign({}, themes.day.mat, {
+      grass: M(['#1f3550', '#2f4d68', '#466a80', '#6d93a0'], .1), grassSide: M(['#1a2c48', '#27415e', '#385a74'], .06),
+      earth: M(['#1c1d38', '#2c2d52', '#44446e', '#66648c'], .08), stone: M(['#23264a', '#363a66', '#545a88', '#8085ac', '#b0b4d0'], .07),
+      leaf: M(['#17394a', '#235463', '#37777d', '#62a29c'], .09), leafTeal: M(['#152f52', '#22486e', '#386a8c', '#669ab0'], .09),
+      pine: M(['#152c46', '#21435e', '#365f78', '#5d8a9a'], .07), trunk: M(['#1e1a34', '#332a4c', '#4c4066'], .05),
+      cloud: M(['#3a3f70', '#4f5488', '#6d70a2', '#9492bd'], .03), snow: M(['#5a6096', '#8086b6', '#a9aed2', '#d6d9ee'], .04),
+      mountain: M(['#232750', '#353b6c', '#4c5288', '#6c72a4'], .05), water: M(['#152a58', '#234a80', '#3f74a8', '#7fb0d0'], .05),
+    }),
+  };
   // characters keep their colors in every theme (identity), so they live outside the themes
   const charMat = {
     skin: M(['#b9774f', '#dc9b70', '#f2bb92', '#ffd8b4'], .03), hair: M(['#24170f', '#3e2a1d', '#5e4130', '#7f5a42'], .05),
@@ -129,6 +142,10 @@
     birdBlue: M(['#173c78', '#2563b0', '#3f86d6', '#86c4f2'], .07), birdBelly: M(['#c06a1c', '#e8902e', '#f6b356', '#ffd690'], .05),
     monster: M(['#2f1846', '#52287a', '#7a42a8', '#a874d1'], .07), monsterBelly: M(['#5b7a12', '#86a822', '#b2cf3a', '#dcef7a'], .05),
     horn: M(['#8a7a5c', '#bfae88', '#e6d9b8', '#fbf3dc'], .04),
+    // detective and his tower (not approved yet)
+    trench: M(['#5f4a33', '#937452', '#bf9d72', '#e6cb9e'], .04), felt: M(['#1b1d26', '#31343f', '#4c505e', '#727786'], .04),
+    brick: M(['#5a2a3a', '#8c4450', '#b86a66', '#dd9a88'], .03), iron: M(['#1d2230', '#333b4c', '#525d72', '#8490a6'], .03),
+    cork: M(['#26231f', '#3a342e', '#50483f', '#6b6156'], .03), lampLight: M(['#b8923a', '#eac55a', '#fbe391', '#fff6cf'], .02),
     robe: M(['#2c1a52', '#46297e', '#6a44b0', '#9a78dc'], .05),
     buddy: M(['#9c1d24', '#d63a3a', '#f05a50', '#ff8c7e'], .05), buddyFace: M(['#e58a74', '#f8b49c', '#ffd3c0', '#ffeae0'], .03),
     alien: M(['#17603a', '#249050', '#43bb6c', '#8fe39f'], .06), alienBelly: M(['#5aa86a', '#8fd09a', '#bfe9c4', '#e6f8e8'], .04),
@@ -524,6 +541,8 @@
   const noEnds = mesh => { mesh.f = mesh.f.filter(f => { const a = mesh.v[f[0]], n = norm(cross(sub(mesh.v[f[1]], a), sub(mesh.v[f[2]], a))); return Math.abs(n[0]) < .7; }); return mesh; };
   // a band around the body: only its front and back strips (its top would show through the lid, its sides through the body)
   const frontBack = mesh => { mesh.f = mesh.f.filter(f => { const a = mesh.v[f[0]], n = norm(cross(sub(mesh.v[f[1]], a), sub(mesh.v[f[2]], a))); return Math.abs(n[1]) > .7; }); return mesh; };
+  // an open tube: drop the two caps (a band around a coat or a hat)
+  const noCaps = mesh => { mesh.f = mesh.f.filter(f => { const a = mesh.v[f[0]], n = norm(cross(sub(mesh.v[f[1]], a), sub(mesh.v[f[2]], a))); return Math.abs(n[2]) < .8; }); return mesh; };
   const hingeX = (mesh, yh, zh, phi) => mesh.map(p => {
     const dy = p[1] - yh, dz = p[2] - zh, c = Math.cos(phi), s = Math.sin(phi);
     return [p[0], yh + dy * c + dz * s, zh - dy * s + dz * c];
@@ -864,9 +883,13 @@
       const tr = Math.sin(t * 45) * .015;
       return { armL: 1.25, armR: 1.25, sideL: .55 + tr, sideR: .55 - tr, elbowL: 1.9, elbowR: 1.9, kneeL: .35, kneeR: .35, legL: .18, legR: .18, bob: -.02 };
     },
+    // a hand scratches the head (confused)
+    think: t => ({ sideR: 2.0, armR: .35, elbowR: .25, elbowSideR: 1.15 + .16 * Math.sin(t * 11), armL: .05, sideL: .25, elbowL: .25, bob: .004 * Math.sin(t * 2.2) }),
+    // the right arm points a flashlight: o.aim = the angle on the screen (0 → right, π/2 → up)
+    aim: (t, o) => ({ sideR: (o && o.aim != null ? o.aim : .6) + Math.PI / 2 - .35, armR: .12, elbowR: .12, armL: .3, sideL: .45, elbowL: 1.25, bob: .004 * Math.sin(t * 2.2) }),
     wave: t => ({ sideR: 2.1, armR: .2, elbowR: .1, elbowSideR: .75 + .4 * Math.sin(t * 8), armL: .05, elbowL: .25, bob: .004 * Math.sin(t * 2.2) }),
   };
-  const poseExpression = { stand: 'happy', walk: 'happy', jump: 'joy', cheer: 'joy', scared: 'scared', wave: 'happy' };
+  const poseExpression = { stand: 'happy', walk: 'happy', jump: 'joy', cheer: 'joy', scared: 'scared', wave: 'happy', think: 'puzzled' };
 
   // direction of a limb: down, swung forward by `fwd`, raised outward by `side` (sign = which side)
   function limbEnd(j, fwd, side, sign, L) {
@@ -985,18 +1008,21 @@
   //   none     - red player: light face oval + tuft
   //   'kid'    - skin head, hair cap, shirt and pants as color bands on the egg, sleeves, pants legs
   //   'wizard' - robe-colored egg, skin face, big white beard, pointed hat, white brows, staff
+  //   'detective' - taller; trench coat (skirt, belt, collar), fedora, thick moustache, narrowed eyes, flashlight in the right
+  //              hand (pose 'aim', o.aim). obj.tip = the flashlight's tip in the world, for the beam. (not approved yet)
   make.buddy = function (o) {
     const H = o.size || 160, seed = o.seed || 1, d = clampD(o.detail == null ? 1 : o.detail), outfit = o.outfit;
     const P = Object.assign({ legL: 0, legR: 0, kneeL: 0, kneeR: 0, armL: 0, armR: 0, elbowL: .2, elbowR: .2, sideL: .25, sideR: .25, bob: 0 },
-      (poses[o.pose || 'stand'] || poses.stand)(o.t || 0));
+      (poses[o.pose || 'stand'] || poses.stand)(o.t || 0, o));
+    const det = outfit === 'detective', coat = o.coat || mat.trench, felt = o.felt || mat.felt;
     const shoeM = o.shoe || mat.shoe, hat = o.hat && o.hat.kind ? o.hat : null;
     const skin = o.skin || mat.skin, shirt = o.shirt || mat.shirt, pants = o.pants || mat.pants, robe = o.robe || mat.robe;
-    const base = outfit === 'kid' ? skin : outfit === 'wizard' ? robe : (o.mat || mat.buddy);
-    const legM = outfit === 'kid' ? pants : base, sleeveM = outfit === 'kid' ? shirt : base, handM = outfit ? skin : base;
+    const base = outfit === 'kid' ? skin : outfit === 'wizard' ? robe : det ? skin : (o.mat || mat.buddy);
+    const legM = outfit === 'kid' ? pants : det ? felt : base, sleeveM = outfit === 'kid' ? shirt : det ? coat : base, handM = outfit ? skin : base;
     const meshes = [];
     const chain = (g, parts) => parts.forEach((m, i) => { m.group = g; m.order = i; meshes.push(m); });
     const ball = (p, r, m, sd) => icosphere(0, m, sd).scale(r).move(p[0], p[1], p[2]);
-    const rx = .37 * H, ry = rx * .9, rz = .42 * H, legL = .1 * H, zc = .16 * H + rz + P.bob * H;
+    const rx = (det ? .335 : .37) * H, ry = rx * .9, rz = (det ? .5 : .42) * H, legL = .1 * H, zc = .16 * H + rz + P.bob * H;
     // legs: two short segments + shoe; a cover hides the hip
     [[-1, 'L'], [1, 'R']].forEach(([s, k]) => {
       const hip = [s * .14 * H, 0, zc - rz * .82];
@@ -1010,7 +1036,24 @@
     if (!outfit) egg.patch = { mat: o.faceMat || mat.buddyFace, dir: [0, -1, .15], th: .66 }; // light face oval
     if (outfit === 'wizard') egg.patch = { mat: skin, dir: [0, -1, .3], th: .62 };
     if (outfit === 'kid') egg.bands = [{ z: zc - rz * .66, mat: pants }, { z: zc - rz * .24, mat: shirt }]; // clothes as bands below the face
+    if (det) egg.bands = [{ z: zc - rz * .22, mat: coat }];
     meshes.push(egg);
+    let tip = null;
+    if (det) { // the coat: a skirt that widens down, a belt with a buckle, collar wings, buttons
+      const z1 = zc - rz * .3, z0 = .13 * H + P.bob * H, rB = rx * .99, sd = seed * 37 + 200;
+      const put = (m, k) => { m.group = 'coat'; m.order = k; m.bias = rz * .3; meshes.push(m); };
+      const zb = z1 - (z1 - z0) * .3, rb = rB + (rx * 1.14 - rB) * .3;
+      put(drum(9, [[rx * 1.14, z0], [rB, z1]], coat, sd, rng(sd), null, null, { ry: .9, clean: true, offAll: .25 }), 0);
+      put(noCaps(drum(9, [[rb * 1.04, zb - .04 * H], [rb * 1.02, zb + .04 * H]], felt, sd + 1, rng(sd), null, null, { ry: .9, clean: true, offAll: .25 })), 1);
+      put(box(.1 * H, .03 * H, .1 * H, mat.gold, sd + 2, .1).move(0, -rb * .95, zb - .05 * H), 2);
+      [-1, 1].forEach((sx, i) => put(icosphere(0, felt, sd + 4 + i).scale(.024 * H).move(sx * .1 * H, -rx * 1.02, zb - .12 * H), 3));
+      put(limb([0, -ry * .97, zc - rz * .18], [0, -rb * .95, zb + .05 * H], .05 * H, .035 * H, mat.flag, sd + 8, 5), 3); // tie
+      // lapels: two wings from the chin outward, standing up at the cheeks
+      [-1, 1].forEach((sx, i) => {
+        const L = new Mesh(coat, sd + 10 + i), v = [[.06, -1.04, -.5], [.46, -.93, -.06], [1.0, -.5, .1], [1.0, -.62, -.3], [.2, -1.02, -.16]].map(q => L.add([sx * q[0] * rx, q[1] * ry * 1.02, zc + q[2] * rz]));
+        L.tri(v[0], v[4], v[3]).tri(v[4], v[1], v[3]).tri(v[1], v[2], v[3]); L.center = [0, 0, zc]; put(L, 4);
+      });
+    }
     // arms: short, from the sides at mid height; sleeve + forearm + hand
     [[-1, 'L'], [1, 'R']].forEach(([s, k]) => {
       const sh = [s * rx * .9, 0, zc - rz * .2];
@@ -1024,6 +1067,12 @@
         const top = [wr[0], wr[1] - .03 * H, Math.max(wr[2] + .5 * H, 1.1 * H)];
         parts.push(limb([wr[0], wr[1] - .03 * H, 0], top, .025 * H, .02 * H, mat.wood, seed * 37 + 40, 5));
         parts.push(icosphere(0, mat.gemBlue, seed * 37 + 41).scale(.06 * H, .06 * H, .08 * H).move(top[0], top[1], top[2] + .05 * H));
+      }
+      if (det && k === 'R') { // flashlight: dark body, brass head, a bright glass
+        const at = q => [wr[0] + hd[0] * q * H, wr[1] + hd[1] * q * H - .02 * H, wr[2] + hd[2] * q * H];
+        parts.push(limb(at(-.05), at(.17), .035 * H, .035 * H, mat.dark, seed * 37 + 44, 6));
+        parts.push(limb(at(.15), at(.26), .036 * H, .07 * H, mat.gold, seed * 37 + 45, 7, mat.lampLight));
+        tip = at(.26);
       }
       parts.push(hand);
       chain('arm' + k, parts);
@@ -1055,12 +1104,34 @@
         .map(p => [p[0], p[1] + Math.pow(p[2] / (.62 * H), 2) * .2 * H, p[2]]).move(0, ry * .05, hb);
       brim.bias = rz * 1.2; hat.bias = rz * 1.3; meshes.push(brim, hat);
     }
+    if (det) {
+      // moustache: two thick tapered wings (wiggles while he talks)
+      const tk = o.talk || 0, mz = zc + (.025 + tk * .015) * H, sd = seed * 37 + 230;
+      [-1, 1].forEach((sx, i) => {
+        const w = limb([sx * .012 * H, -ry * 1.02, mz], [sx * .2 * H, -ry * .9, mz - (.055 - .02 * tk) * H], .062 * H, .014 * H, o.hair || mat.hair, sd + i, 5);
+        w.group = 'stache'; w.order = i; w.bias = rz * .9; meshes.push(w);
+      });
+      const nose = icosphere(0, skin, sd + 3).scale(.05 * H, .05 * H, .045 * H).move(0, -ry * 1.07, mz + .075 * H); nose.group = 'stache'; nose.order = 3; nose.bias = rz * .9; meshes.push(nose);
+      // fedora: a wide brim (dips at the front), a band, a crown with a crease
+      const hb = zc + rz * .6, hatPart = (m, k) => { m.group = 'hat'; m.order = k; m.bias = rz * 1.3; meshes.push(m); };
+      const dip = p => [p[0], p[1], p[2] + Math.pow(Math.abs(p[0]) / (.46 * H), 2) * .02 * H + p[1] * .2];
+      hatPart(cylinder(12, .97, felt, sd + 5).scale(.5 * H, .46 * H, .05 * H).map(dip).move(0, ry * .04, hb), 0);
+      hatPart(noCaps(drum(9, [[.275 * H, 0], [.265 * H, .09 * H]], mat.gemRed, sd + 6, rng(sd), null, null, { ry: .92, clean: true })).move(0, ry * .08, hb + .02 * H), 1);
+      const crown = drum(9, [[.262 * H, 0], [.25 * H, .13 * H], [.18 * H, .2 * H]], felt, sd + 7, rng(sd + 8), null, null, { ry: .95, jr: .03 });
+      crown.v = crown.v.map(p => (p[2] > .15 * H ? [p[0], p[1], p[2] - Math.max(0, .06 * H - Math.abs(p[0]) * .5)] : p));
+      hatPart(crown.move(0, ry * .08, hb + .1 * H), 2);
+    }
     const obj = place(meshes, Object.assign({ rot: 0 }, o), .3 * H, { ordered: 'depth' });
+    if (det) {
+      obj.front = { group: 'armR', ref: egg, margin: rx * 2 };
+      const r = o.rot || 0, c = Math.cos(r), sn = Math.sin(r);
+      obj.tip = [tip[0] * c - tip[1] * sn + obj.x, tip[0] * sn + tip[1] * c + obj.y, tip[2] + obj.z];
+    }
     if (outfit === 'wizard') obj.front = { group: 'armR', ref: egg, margin: rx * .3 };
     const r = o.rot || 0;
-    obj.face = { c: [obj.x, obj.y, obj.z + zc], r: rx, browColor: outfit === 'wizard' ? '#f4f5f6' : outfit === 'kid' ? (o.browColor || '#3a271b') : '#4a1216', glasses: o.glasses, k: [.9, 1, rz / rx], f: [Math.sin(r), -Math.cos(r), 0], u: [Math.cos(r), Math.sin(r), 0],
-      style: 'buddy', eyeK: 1.4, noMouth: outfit === 'wizard', gaze: o.gaze, blink: o.blink, talk: o.talk,
-      expr: o.expression || poseExpression[o.pose || 'stand'] || 'happy' };
+    obj.face = { c: [obj.x, obj.y, obj.z + zc], r: rx, browColor: det ? '#241a14' : outfit === 'wizard' ? '#f4f5f6' : outfit === 'kid' ? (o.browColor || '#3a271b') : '#4a1216', glasses: o.glasses, k: [.9, 1, rz / rx], f: [Math.sin(r), -Math.cos(r), 0], u: [Math.cos(r), Math.sin(r), 0],
+      style: 'buddy', eyeK: 1.4, noMouth: outfit === 'wizard', mouthUp: det ? -.12 : undefined, gaze: o.gaze, blink: o.blink, talk: o.talk,
+      expr: o.expression || (det ? 'squint' : null) || poseExpression[o.pose || 'stand'] || 'happy' };
     return obj;
   };
 
@@ -1173,6 +1244,20 @@
         out += eyes.map(e => `<ellipse cx="${f1(e[0])}" cy="${f1(e[1])}" rx="${f1(s * .12 * kE)}" ry="${f1(s * .16 * kE)}" fill="#fff" stroke="${E}" stroke-width="${f1(s * .03)}"/><circle cx="${f1(e[0])}" cy="${f1(e[1] + s * .02)}" r="${f1(s * .045 * kE)}" fill="${E}"/>`).join('');
         out += brows('scared');
         if (!F.noMouth) out += P(`M${f1(m[0] - s * .16)},${f1(m[1])} q${f1(s * .04)},${f1(-s * .06)} ${f1(s * .08)},0 t${f1(s * .08)},0 t${f1(s * .08)},0 t${f1(s * .08)},0`, .045);
+        break;
+      case 'squint': // a detective: lids half down, one brow raised; the mouth shows only while he talks (under the moustache)
+        if (!F.noMouth && F.talk) out += `<ellipse cx="${f1(m[0])}" cy="${f1(m[1] + s * .05)}" rx="${f1(s * .1)}" ry="${f1(s * (.02 + .07 * F.talk))}" fill="${R}"/>`;
+        out += eyes.map(e => {
+          if (F.blink) return dotEye(e, 1);
+          const w = s * .15, x = e[0], y = e[1] + s * .02;
+          return `<path d="M${f1(x - w)},${f1(y - s * .02)} Q${f1(x)},${f1(y - s * .06)} ${f1(x + w)},${f1(y - s * .02)} Q${f1(x)},${f1(y + s * .19)} ${f1(x - w)},${f1(y - s * .02)} Z" fill="#fff"/>`
+            + `<circle cx="${f1(x + gz[0])}" cy="${f1(y + s * .03)}" r="${f1(s * .065)}" fill="${E}"/>` + P(`M${f1(x - w)},${f1(y - s * .02)} Q${f1(x)},${f1(y - s * .07)} ${f1(x + w)},${f1(y - s * .02)}`, .06);
+        }).join('') + eyes.map(e => (e.inner < 0 ? bigBrow(e, .02, .3, .08, .95) : bigBrow(e, -.05, .2, .02, .95))).join('');
+        break;
+      case 'puzzled': // confused: one brow up, one down, a small crooked mouth
+        out += eyes.map(e => dotEye(e, e.inner < 0 ? 1.15 : .95)).join('') + eyes.map(e => (e.inner < 0 ? bigBrow(e, .03, .46, .12) : bigBrow(e, -.03, .28, 0))).join('');
+        if (!F.noMouth) out += P(`M${f1(m[0] - s * .13)},${f1(m[1] + s * .03)} q${f1(s * .07)},${f1(-s * .1)} ${f1(s * .13)},${f1(-s * .02)} t${f1(s * .13)},${f1(-s * .02)}`);
+        out += cheeks;
         break;
       case 'sad':
         out += eyes.map(e => dotEye(e, .9)).join('') + brows('sad');
@@ -1700,8 +1785,93 @@
     },
   };
 
+  // ---------- the detective's tower (elevator game) — not approved yet ----------
+  // one floor seen from the front, like a toy house: a dark shaft on the left, a window, and an iron stairway outside on the
+  // right, going up to the next floor. x = 0 is the tower's left edge, z = 0 the floor, y = 0 where a character stands.
+  // o: w, h (floor to floor), shaft (its width), sx0 → sx1 (the stairs' bottom and top; omit sx0 for none), lit, ledge, seed
+  Object.assign(make, {
+    towerFloor(o) {
+      const w = o.w, h = o.h, sw = o.shaft, L = o.ledge || h * .34, seed = o.seed || 1, fy = L / 2, D = h * .5, meshes = [];
+      const put = (b, x, y, z) => { meshes.push(b.move(x, y, z)); return b; };
+      put(box(w - sw, D, h, o.mat || mat.brick, seed * 61, .03), sw + (w - sw) / 2, fy + D / 2, 0);
+      put(box(sw, D, h, mat.masonry, seed * 61 + 1, .02), sw / 2, fy + D / 2, 0);
+      meshes.push(decal([[sw * .12, 0], [sw * .88, 0], [sw * .88, h], [sw * .12, h]], fy, mat.windowDark, seed * 61 + 2));
+      [.3, .7].forEach((k, i) => put(box(sw * .05, 1, h, mat.iron, seed * 61 + 3 + i, .02), sw * k, fy - 1.5, 0));
+      // window, dark or lit
+      const ws = Math.min(h * .56, (w - sw) * .3), wx = o.winX != null ? o.winX : sw + (w - sw) * .22, wz = h * .5;
+      const B = (a, b, c, m, dx, dz, k, sd) => put(box(a, b, c, m, sd, .04), wx + dx, fy - k, wz - c / 2 + dz);
+      B(ws * 1.16, 2, ws * 1.2, mat.wood, 0, 0, 1, seed * 61 + 10);
+      B(ws * .94, 2, ws * .98, o.lit ? mat.lampLight : mat.windowDark, 0, 0, 2.4, seed * 61 + 11);
+      B(ws * .09, 2, ws, mat.wood, 0, 0, 3.4, seed * 61 + 12); B(ws * .96, 2, ws * .09, mat.wood, 0, 0, 3.6, seed * 61 + 13);
+      // ledge to walk on
+      put(box(w + h * .12, L, h * .09, mat.iron, seed * 61 + 20, .04), w / 2, 0, -h * .09);
+      if (o.sx0 != null) {
+        const n = 4, x0 = o.sx0, x1 = o.sx1, dx = (x1 - x0) / n;
+        meshes.push(limb([x0, L * .3, -h * .03], [x1, L * .3, h * .95], h * .035, h * .035, mat.iron, seed * 61 + 30, 4));
+        for (let i = 0; i < n; i++) put(box(Math.abs(dx) * 1.12, L * .8, h * .075, mat.iron, seed * 61 + 31 + i, .05), x0 + dx * (i + .5), 0, h * (i + 1) / n - h * .11);
+        meshes.push(limb([x0, -L * .4, -h * .03], [x1, -L * .4, h * .95], h * .035, h * .035, mat.iron, seed * 61 + 40, 4));
+      }
+      return place(meshes, Object.assign({ rot: 0 }, o, { x: 0 }), 0, { ordered: 'list' });
+    },
+    // triangular roof with a thick rim, a round window and an antenna with a bulb; stands at z = 0
+    towerRoof(o) {
+      const w = o.w, h = o.h, seed = o.seed || 1, D = h * .5, meshes = [], cx = w / 2, over = w * .07, hw = w / 2 + over;
+      const gh = h * (w / 2) / hw;
+      meshes.push(limb([cx, D * .6, h * .8], [cx, D * .6, h * 1.62], w * .014, w * .008, mat.iron, seed * 67, 4));
+      meshes.push(limb([cx - w * .08, D * .6, h * 1.3], [cx + w * .08, D * .6, h * 1.3], w * .008, w * .008, mat.iron, seed * 67 + 1, 4));
+      meshes.push(icosphere(0, mat.flag, seed * 67 + 2).scale(w * .03).move(cx, D * .6, h * 1.66));
+      meshes.push(gableWall(w, D, gh, mat.brick, seed * 67 + 3).move(cx, D / 2, 0));
+      meshes.push(decal([[cx, gh], [cx + w / 2, 0], [cx, 0]], 0, M(['#4a2233', '#743846', '#9a5658'], .02), seed * 67 + 4));
+      const ds = h * .2; [[1.25, mat.wood, 1], [1, mat.lampLight, 2]].forEach(([k, m, b], i) => { const d = disc(ds * k, 2, 8, m, seed * 67 + 5 + i, .02).move(cx, -b, h * .34 - ds * k); meshes.push(d); });
+      roofSlabs(w, D, h, over, h * .16, mat.roofBlue, seed * 67 + 8, h).forEach(m => meshes.push(m.move(cx, D / 2, 0)));
+      return place(meshes, Object.assign({ rot: 0 }, o), 0, { ordered: 'list' });
+    },
+    // the elevator cabin, in two layers: part 'back' (lit inside) goes behind the rider, 'front' (posts, gate) over the rider
+    lift(o) {
+      const w = o.w, h = o.h, seed = o.seed || 1, meshes = [], g = mat.gold, t = w * .09;
+      const put = (b, x, y, z) => meshes.push(b.move(x, y, z));
+      if (o.part === 'front') {
+        [-1, 1].forEach((sx, i) => put(box(t, t, h * .9, g, seed * 71 + i, .05), sx * (w / 2 - t / 2), -t, 0));
+        [.12, .3].forEach((k, i) => put(box(w * .86, t * .5, t * .55, g, seed * 71 + 4 + i, .05), 0, -t * 1.2, h * k));
+        put(box(w * 1.06, t * 1.6, t * 1.1, g, seed * 71 + 2, .06), 0, -t, h * .86);
+        put(box(w * 1.06, t * 1.6, t * .9, g, seed * 71 + 8, .06), 0, -t, -t * .5);
+      } else {
+        put(box(w * .94, t, h * .9, mat.wood, seed * 71 + 10, .02), 0, t, 0);
+        put(box(w * .8, 1, h * .78, mat.lampLight, seed * 71 + 11, .03), 0, t * .4, h * .04);
+      }
+      return place(meshes, Object.assign({ rot: 0 }, o, { w: undefined }), 0, { ordered: 'list' });
+    },
+    // the evidence board: a wooden frame around dark cork
+    board(o) {
+      const w = o.w, h = o.h, seed = o.seed || 1, f = o.frame || Math.min(w, h) * .05, meshes = [];
+      const put = (b, x, y, z) => meshes.push(b.move(x, y, z));
+      put(box(w, 8, h, mat.wood, seed * 73, .02), 0, 4, 0);
+      put(box(w - 2 * f, 4, h - 2 * f, mat.cork, seed * 73 + 1, .04), 0, -2, f);
+      return place(meshes, Object.assign({ rot: 0 }, o), 0, { ordered: 'list' });
+    },
+  });
+
   // ---------- backdrops (whole scenes) ----------
   const scenes = {
+    // noir backdrop (the elevator game, not approved yet): LP.useTheme('noir') first. A night city in two rows with a big faceted
+    // moon, long clouds and lit windows. Markup for viewBox 0 0 1200 800 (slice); the ground is the game's.
+    noir(o) {
+      o = o || {}; const T = theme, W = 1200, id = o.id || 'noir';
+      let svg = `<defs><linearGradient id="${id}sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${T.sky[0]}"/><stop offset=".55" stop-color="${T.sky[1]}"/><stop offset="1" stop-color="${T.sky[2]}"/></linearGradient>
+        <radialGradient id="${id}glow"><stop offset="0" stop-color="${T.glow}" stop-opacity=".55"/><stop offset=".5" stop-color="${T.glow}" stop-opacity=".16"/><stop offset="1" stop-color="${T.glow}" stop-opacity="0"/></radialGradient></defs>
+        <rect width="${W}" height="800" fill="url(#${id}sky)"/><circle cx="600" cy="190" r="260" fill="url(#${id}glow)"/>`;
+      svg += draw({ meshes: [icosphere(1, M(['#b7ae96', '#dcd3b4', '#f2ead0', '#fffbea'], .05), 5).scale(86)] }, camera({ a: .2, ox: 600, oy: 190 }));
+      const rand = rng(77); for (let i = 0; i < 26; i++) { const x = rand() * W, y = rand() * 330, r = 1.2 + rand() * 1.8; svg += `<polygon points="${x.toFixed(1)},${(y - r * 1.6).toFixed(1)} ${(x + r).toFixed(1)},${y.toFixed(1)} ${x.toFixed(1)},${(y + r * 1.6).toFixed(1)} ${(x - r).toFixed(1)},${y.toFixed(1)}" fill="#fff" opacity="${(.35 + rand() * .4).toFixed(2)}"/>`; }
+      [[180, 150, 130, 170, 'long'], [780, 250, 150, 210, 'long'], [1080, 110, 110, 190, 'long']].forEach(([x, y, sz, dur, kind], i) => {
+        svg += `<g class="cloud" style="animation-duration:${dur}s;animation-delay:${-(x / 1400 * dur).toFixed(1)}s" opacity=".8">${draw(make.cloud({ size: sz, seed: i + 3, detail: 1, kind }), camera({ a: .16, ox: 0, oy: y }))}</g>`;
+      });
+      const at = (list, oy, fog) => list.forEach(([mk, x, opt]) => { svg += draw(make[mk](Object.assign({ fog }, opt)), camera({ a: .1, ox: x, oy })); });
+      at([['tallTower', 70, { size: 420, seed: 2, style: 'setback', mat: 'violet' }], ['tallTower', 250, { size: 330, seed: 3, style: 'tiers', mat: 'towerBlue' }], ['tallTower', 420, { size: 440, seed: 4, style: 'twist', mat: 'teal' }],
+        ['tallTower', 660, { size: 360, seed: 6, style: 'setback', mat: 'towerBlue' }], ['tallTower', 830, { size: 440, seed: 5, style: 'tiers', mat: 'violet' }], ['tallTower', 1010, { size: 340, seed: 8, style: 'twist', mat: 'teal' }], ['tallTower', 1150, { size: 420, seed: 9, style: 'setback', mat: 'towerBlue' }]], 720, .55);
+      at([['officeTower', 160, { size: 270, seed: 2, mat: 'towerBlue', windows: 'windowLight', top: 'antenna' }], ['officeTower', 545, { size: 240, seed: 3, mat: 'teal', windows: 'windowLight', top: 'antenna' }],
+        ['officeTower', 925, { size: 260, seed: 4, mat: 'violet', windows: 'windowLight', top: 'helipad' }]], 800, .3);
+      return svg;
+    },
     // meadow backdrop (approved in the bridge game, 21.11.2026): sky and sun glow from the theme, a far snowy ridge in fog,
     // two rows of green hills whose shapes run down to the bottom, drifting clouds of three kinds, a few low-detail trees. Markup for viewBox 0 0 1200 800 (use preserveAspectRatio
     // "xMidYMid slice"). Clouds come in <g class="cloud"> with a duration and delay: animate .cloud in the page to drift them.

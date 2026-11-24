@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>בדיקה — הבלש והמגדל</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, "Segoe UI", Arial, sans-serif; color: #33373b; background: #f3f7f8; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 0 16px 32px; }
+  h1 { font-size: 20px; margin: 16px 0 4px; }
+  p { margin: 0 0 10px; color: #6b7378; font-size: 14px; }
+  .scene { width: 100%; height: auto; display: block; border-radius: 16px; }
+  .row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
+  .row svg { width: 100%; height: 190px; background: linear-gradient(#cdebef, #eef8f8); border-radius: 12px; display: block; }
+  .row b { display: block; text-align: center; font-size: 13px; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>בדיקה (לא מאושר) — הבלש, המגדל, המעלית, לוח הראיות ועיר לילה</h1>
+  <p>הבלש הוא לבוש חדש על בסיס הראש־גוף: מעיל טרנץ׳ עם חגורה, מגבעת, שפם, עיניים מצומצמות ופנס. הילד קיבל תנוחת ״מגרד בראש״ והבעת ״מבולבל״.</p>
+  <svg id="scene" class="scene" viewBox="0 0 1000 620" role="img" aria-label="עיר לילה עם מגדל ובלש"></svg>
+  <div class="row" id="row"></div>
+</div>
+<script src="../lowpoly.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+LP.useTheme('noir');
+function tower(x0, y0) {
+  const w = 220, h = 44, sh = 52, xL = 150, xR = 205, A = .16, CA = Math.cos(A); let s = '';
+  for (let f = 0; f < 11; f++) s += LP.draw(LP.make.towerFloor({ w, h: h / CA, shaft: sh, sx0: f < 10 ? (f % 2 ? xR : xL) : null, sx1: f % 2 ? xL : xR, lit: f === 7, winX: 92, seed: f + 1 }), LP.camera({ a: A, ox: x0, oy: y0 - f * h }));
+  s += LP.draw(LP.make.towerRoof({ w, h: 60, seed: 3 }), LP.camera({ a: A, ox: x0, oy: y0 - 11 * h }));
+  ['back', 'front'].forEach(part => { s += LP.draw(LP.make.lift({ w: 46, h: 42, part }), LP.camera({ a: A, ox: x0 + sh / 2, oy: y0 - 7 * h })); });
+  return s;
+}
+function scene(t) {
+  const k = 1000 / 1200, cam = LP.camera({ a: .25, ox: 190, oy: 585 }), det = LP.make.buddy({ outfit: 'detective', size: 190, rot: .3, pose: 'aim', aim: .75, t, talk: Math.max(0, Math.sin(t * 9)) });
+  const kid = LP.hero({}, { size: 120, x: 170, pose: 'think', t, rot: .2 });
+  const tip = LP.project(det.tip, cam);
+  return `<g transform="scale(${k})">${LP.scenes.noir()}</g>` + LP.draw(LP.make.ground({ w: 1040, h: 60, depth: 60, seed: 2, top: LP.mat.stone, lip: LP.mat.stone, side: LP.mat.earth }), LP.camera({ a: .3, ox: -20, oy: 600 })) + tower(620, 580)
+    + LP.draw(LP.make.board({ w: 250, h: 130 }), LP.camera({ a: .1, ox: 300, oy: 230 })) + LP.draw(kid, cam) + LP.face(kid, cam) + LP.draw(det, cam) + LP.face(det, cam)
+    + `<polygon points="${tip[0]},${tip[1]} 700,250 760,300" fill="#ffe9a0" opacity=".35"/>`;
+}
+function card(obj) {
+  const cam = LP.camera({ a: .3 }), list = LP.facets(obj, cam), b = LP.bounds(list), p = Math.max(b.w, b.h) * .08;
+  return `<svg viewBox="${(b.x - p).toFixed(0)} ${(b.y - p).toFixed(0)} ${(b.w + 2 * p).toFixed(0)} ${(b.h + 2 * p).toFixed(0)}">${LP.polys(list)}${LP.face(obj, cam)}</svg>`;
+}
+const D = o => LP.make.buddy(Object.assign({ outfit: 'detective', size: 200 }, o));
+$('row').innerHTML = [[D({ pose: 'stand' }), 'מקדימה'], [D({ pose: 'aim', aim: .5, rot: .35 }), 'מאיר'], [D({ pose: 'aim', aim: 1.3, rot: .2, talk: 1 }), 'מאיר למעלה ומדבר'], [D({ pose: 'cheer', expression: 'joy' }), 'שמח'],
+  [LP.hero({}, { size: 200, pose: 'think', t: .1 }), 'מבולבל'], [D({ rot: 1.2 }), 'מהצד'], [LP.make.lift({ w: 100, h: 92, part: 'front' }), 'מעלית'], [LP.make.towerRoof({ w: 220, h: 60 }), 'גג']].map(([o, he]) => `<div>${card(o)}<b>${he}</b></div>`).join('');
+const t0 = performance.now(); let last = -1e9; const still = location.hash === '#still';
+(function frame(now) { if (now - last > 60) { last = now; $('scene').innerHTML = scene((now - t0) / 1000); } if (!still) requestAnimationFrame(frame); })(performance.now());
+</script>
+</body>
+</html>
