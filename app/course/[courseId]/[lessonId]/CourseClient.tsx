@@ -260,7 +260,7 @@ export default function CourseClient({ course, childId, childName, avatar, initi
       setState(prev => prev.mastered.includes(lesson.id) ? prev : { ...prev, mastered: [...prev.mastered, lesson.id] })
       setTimeout(() => onMastered(lesson.id), 900)
     }
-    return { passed: !!out.passed }
+    return { passed: !!out.passed, coins: out.coins as number | undefined }
   }
 
   function closeCelebration() {

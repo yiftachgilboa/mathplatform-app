@@ -283,23 +283,29 @@ const COIN_OBJ=LP.make.coin({size:40,rot:.45}), COIN_VB=lpBox([COIN_OBJ],A_OBJ,.
 const COIN_SVG=`<svg width="30" height="30" viewBox="${COIN_VB.join(' ')}" style="display:block;overflow:visible">${lpMarkup(COIN_OBJ,A_OBJ)}</svg>`;
 /* the child's own hero: the detective's helper, and the one who rides the elevator */
 let LOOK=(window.KidodoPractice&&window.KidodoPractice.look&&window.KidodoPractice.look())||{};
-const heroObj=(pose,t,rot,expression,talk)=>LP.hero(LOOK,{size:100,pose,t,rot,expression,talk});
 function useLook(){const [v,setV]=useState(0);useEffect(()=>{const K=window.KidodoPractice;if(K&&K.onLook)K.onLook(l=>{LOOK=l;setV(n=>n+1)})},[]);return v}
 const HERO_VB=lpBox(['stand','walk','think','cheer'].flatMap(p=>[0,.17,.33,.5].map(t=>LP.hero({},{pose:p,t,rot:0}))),A_OBJ,.02,0);
 const HERO_AR=HERO_VB[2]/HERO_VB[3];
-const Hero=({s,pose,rot=0,expr,talking})=>{const lookV=useLook();
-  return <LPLive vb={HERO_VB} width={s*HERO_AR} height={s} dep={pose+'|'+rot+'|'+(expr||'')+'|'+lookV+'|'+!!talking} run={pose!=='stand'||!!talking} fps={18}
-    build={t=>heroObj(pose,t,rot,expr,talking?Math.abs(Math.sin(t*9)):0)}/>};
+/* a living character: eyes, brows, blinks, faces and small acts all come from the art library (LP.mind / LP.perform) */
+function Actor({vb,w,h,make,input,acts,turn,rest,talkBody}){
+  const ref=useRef(null), live=useRef({}); live.current={make,input};
+  useEffect(()=>LP.perform(ref.current,{a:A_OBJ,fps:18,talkBody,mind:LP.mind({acts,turn,rest}),make:p=>live.current.make(p),input:()=>live.current.input(ref.current)}),[]);
+  return <svg ref={ref} viewBox={vb.join(' ')} width={w} height={h} preserveAspectRatio="xMidYMax meet" style={{display:'block',overflow:'visible'}}/>;
+}
+const Hero=({s,input})=>{const lookV=useLook();
+  return <Actor vb={HERO_VB} w={s*HERO_AR} h={s} make={({pose,t,rot,expression,gaze,blink,talk,brows})=>LP.hero(LOOK,{size:100,pose,t,rot,expression,gaze,blink,talk,brows})} input={el=>({...input(el),redraw:lookV})}/>};
 
 /* the detective (new outfit on the head-body character): the flashlight arm turns to the target */
-const detObj=(aim,t,talk,rot,expr)=>LP.make.buddy({outfit:'detective',size:100,pose:'aim',aim,t,talk,rot,expression:expr});
-const DET_VB=lpBox([0,.5,1,1.5,2.1].map(a=>detObj(a,0,0,.2)),A_OBJ,.02,0), DET_AR=DET_VB[2]/DET_VB[3], DET_ROT=.2;
+const DET_ROT=.2;
+const detObj=(aim,o)=>LP.make.buddy({outfit:'detective',size:100,pose:'aim',aim,rot:DET_ROT,...o});
+const DET_VB=lpBox([0,.5,1,1.5,2.1].map(a=>detObj(a)),A_OBJ,.02,0), DET_AR=DET_VB[2]/DET_VB[3];
 const SHOULDER=(()=>{const q=LP.project([33*Math.cos(DET_ROT),33*Math.sin(DET_ROT)*.9,56],LP.camera({a:A_OBJ}));return [(q[0]-DET_VB[0])/DET_VB[3],(q[1]-DET_VB[1])/DET_VB[3]]})();   // in units of the drawing's height
-const tipOf=aim=>{const q=LP.project(detObj(aim,0,0,DET_ROT).tip,LP.camera({a:A_OBJ}));return [(q[0]-DET_VB[0])/DET_VB[3],(q[1]-DET_VB[1])/DET_VB[3]]};
-function Detective({s,aim,talking,happy}){
-  const cur=useRef(aim), target=useRef(aim); target.current=aim;
-  return <LPLive vb={DET_VB} width={s*DET_AR} height={s} dep={aim.toFixed(2)+'|'+!!talking+'|'+!!happy} run={true} until={talking?undefined:.7} fps={18}
-    build={t=>{cur.current+=(target.current-cur.current)*.28;return detObj(cur.current,t,talking?Math.abs(Math.sin(t*10)):0,DET_ROT,happy?'joy':undefined)}}/>;
+const tipOf=aim=>{const q=LP.project(detObj(aim).tip,LP.camera({a:A_OBJ}));return [(q[0]-DET_VB[0])/DET_VB[3],(q[1]-DET_VB[1])/DET_VB[3]]};
+function Detective({s,aim,resting,input}){
+  const cur=useRef(aim), want=useRef(aim); want.current=aim; const rest=useRef(resting); rest.current=resting;
+  return <Actor vb={DET_VB} w={s*DET_AR} h={s} acts={[]} turn={.07} rest="aim" talkBody
+    make={({aimNow,t,rot,expression,gaze,blink,talk,brows})=>detObj(aimNow,{t,rot,expression,gaze,blink,talk,brows})}
+    input={el=>{const sway=rest.current?.07*Math.sin(performance.now()/900):0;cur.current+=(want.current+sway-cur.current)*.28;return {...input(el),rot:DET_ROT,pose:'aim',aimNow:cur.current,redraw:Math.round(cur.current*60)}}}/>;
 }
 
 /* treasure chest (library chest) */
@@ -318,8 +324,8 @@ const FRIENDS=[
 const TREASURE=FR('chest','תיבת האוצר','תיבת אוצר מסתתרת',()=>LP.make.chest({size:100,rot:0}));
 const Friend=({f,h,w})=>{if(w&&h*f.ar>w)h=w/f.ar;return <svg viewBox={f.vb.join(' ')} width={h*f.ar} height={h} style={{display:'block',overflow:'visible'}} dangerouslySetInnerHTML={{__html:f.html}}/>};
 
-const NoirBG=React.memo(function NoirBG(){
-  const html=useMemo(()=>LP.scenes.noir({sky:['#020307','#05060d','#0b0d18']}),[]);
+const NoirBG=React.memo(function NoirBG({x0,x1}){      // x0–x1: the game's tower; no building of the city stands behind it
+  const html=useMemo(()=>LP.scenes.noir({sky:['#020307','#05060d','#0b0d18'],clear:[x0,x1]}),[x0,x1]);
   return <svg className="bg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" style={{position:'absolute'}} dangerouslySetInnerHTML={{__html:html}}/>;
 });
 const PAD=30;
@@ -386,6 +392,7 @@ function App(){
   const [good,setGood]=useState(null), [chosen,setChosen]=useState(null);
   const [stamp,setStamp]=useState(false), [friend,setFriend]=useState(null), [found,setFound]=useState(0);
   const [pose,setPose]=useState('stand'), [rot,setRot]=useState(0), [expr,setExpr]=useState('happy'), [inLift,setInLift]=useState(false), [hop,setHop]=useState(false), [heroOn,setHeroOn]=useState(true);
+  const [mood,setMood]=useState('calm');      // the detective's brows: unhappy on a mistake, happy when it is right
   const [sound,setSound]=useState(true), [mus,setMus]=useState(true);
   const [endStage,setEndStageS]=useState(null), endRef=useRef(null), setEndStage=v=>{endRef.current=v;setEndStageS(v)};
   const [lidOpen,setLidOpen]=useState(false), [hand,setHand]=useState(null), [leaving,setLeaving]=useState(false);
@@ -438,6 +445,35 @@ function App(){
   },[target,size,ci,stage==='pick']);
   const aim=beam?beam.aim:.35;
 
+  /* ---------- where the two characters look (the eyes and the body follow) ---------- */
+  const actsRef=useRef(null), detRef=useRef(null), beamT=useRef(0);
+  useEffect(()=>{beamT.current=performance.now()},[beam]);
+  const mid=(el,fy=.5)=>{const r=el&&el.getBoundingClientRect();return r&&r.width?[r.left+r.width/2,r.top+r.height*fy]:null};
+  const beamPt=()=>{const s=sceneRef.current&&beam&&sceneRef.current.getBoundingClientRect();return s?[s.left+beam.x,s.top+beam.y]:null};
+  const waiting=stage==='pick'||stage==='answer';
+  const look=(el,p)=>p?LP.lookAt(el,p[0],p[1]):[0,0];     // [0,0] = at the child who plays
+  function heroInput(el){
+    const now=performance.now(), c=now%4600, lit=now-beamT.current<1700;
+    let l;
+    if(pose==='walk'||pose==='cheer'||inLift)l=[0,0];
+    else if(stage==='end')l=look(el,mid(chestRef.current));
+    else if(lit&&beam)l=look(el,beamPt());                                  // the flashlight has just moved: look there
+    else if(talk==='det')l=look(el,beam&&c>3300?beamPt():mid(detRef.current,.4));
+    else if(talk==='kid')l=[0,0];
+    else if(waiting)l=c<2300?look(el,mid(actsRef.current)):c<3300?[0,0]:look(el,beamPt()||mid(numRefs.big.current));   // where to press, at the child, at the exercise
+    return {look:l,talking:talk==='kid'&&pose==='stand',pose,expression:expr,rot,idle:waiting&&!talk,mood:mood==='happy'?'happy':'calm'};
+  }
+  function detInput(el){
+    const now=performance.now(), c=(now+1900)%4400, lit=now-beamT.current<1500, hero=()=>look(el,mid(heroRef.current,.4));
+    let l;
+    if(stage==='end')l=c<2600?look(el,mid(chestRef.current)):[0,0];
+    else if(lit&&beam)l=look(el,beamPt());
+    else if(talk==='det')l=c<2500?[0,0]:hero();
+    else if(talk==='kid'||stage==='ride'||stage==='climb'||stage==='solved')l=hero();
+    else if(waiting)l=c<1700?look(el,mid(actsRef.current)):c<3200?[0,0]:hero();
+    return {look:l,talking:talk==='det',expression:stage==='solved'||stage==='end'?'joy':undefined,mood};
+  }
+
   /* ---------- talk ---------- */
   const fin=useRef(null);
   function say(who,text,{show=true,voice=true}={}){
@@ -460,12 +496,12 @@ function App(){
   const ask=st=>{setStage(st);return new Promise(res=>{wait.current=res})};
   const answered=v=>{const r=wait.current;wait.current=null;if(r)r(v)};
   const narr=useRef(null);      // the running explanation of a riddle; a press stops it
-  function wrong(key,hint){narr.current=null;setPose('stand');setExpr('happy');stats.current.wrong++;stats.current.caseWrong++;sfx.buzz();setShake(s=>({k:key,n:s.n+1}));say('det',hint)}
+  function wrong(key,hint){narr.current=null;setPose('stand');setExpr('sad');setMood('unhappy');setTimeout(()=>setExpr(e=>e==='sad'?'happy':e),1800);stats.current.wrong++;stats.current.caseWrong++;sfx.buzz();setShake(s=>({k:key,n:s.n+1}));say('det',hint)}
 
   function resetCase(){
     setLit(null);setTarget(null);setCur(null);setShown([]);setSteps(0);setReveal(false);setGood(null);setChosen(null);setStamp(false);setFriend(null);setHop(false);setInLift(false);setHint(false);setWho(false);
     stats.current.caseWrong=0;liftLv.current=0;at.current={a:{k:'street'},b:{k:'street'},p:1,dy:0};
-    setPose('stand');setExpr('happy');setRot(.2);setHeroOn(true);place();
+    setPose('stand');setExpr('happy');setMood('calm');setRot(.2);setHeroOn(true);place();
   }
   /* the child's hero rides straight to a floor, and walks out of the cabin */
   async function ride(f,ck){
@@ -519,7 +555,7 @@ function App(){
     line=say('det','ורק אז נתחיל לטפס אחד אחד את שאר הקומות, לפי המספר הנותר.');
     await nap(1500);setTarget(null);setStage('climb');
     await climb(big,big+small,ck);
-    setGood(big+small);setPose('cheer');sfx.tada();
+    setGood(big+small);setPose('cheer');setMood('happy');sfx.tada();
     await line;ck();await nap(900);
   }
   async function play(list,tk,withIntro){
@@ -549,7 +585,7 @@ function App(){
         await say('det',i<2?'איזה מספר גדול יותר? לחצו עליו.':'מתחילים מהמספר הגדול יותר.');
       })();
       // 1. the big number
-      await picked;ck();narr.current=null;hush();setPose('stand');setExpr('happy');
+      await picked;ck();narr.current=null;hush();setPose('stand');setExpr('joy');setMood('happy');
       sfx.lamp();setLit('big');setTarget({k:'num',which:'big'});
       // 2. the elevator goes straight to it
       setStage('ride');
@@ -559,7 +595,7 @@ function App(){
       await ride(c.big,ck);
       // 3. the rest of the floors: first think where we get to, and then climb and see
       for(let tries=0;;tries++){
-        setExpr('happy');setChosen(null);setSteps(0);
+        setExpr('happy');setMood('calm');setChosen(null);setSteps(0);
         sfx.lamp();setLit('small');setTarget({k:'num',which:'small'});
         const rest=c.small===1?'קומה אחת':`${c.small} קומות, אחת אחת`;
         say('det',tries?`ננסה שוב: אנחנו בקומה ${c.big}, ומטפסים עוד ${floorsWord(c.small)}. לאיזו קומה נגיע?`
@@ -573,7 +609,7 @@ function App(){
         if(v===c.ans)break;
         // the wrong floor: nobody is here. Back down the stairs, and think again
         const up=v-c.big;
-        setPose('stand');setExpr('sad');sfx.buzz();setShake(s=>({k:'res',n:s.n+1}));setReveal(true);setTarget({k:'floor',f:v});
+        setPose('stand');setExpr('sad');setMood('unhappy');sfx.buzz();setShake(s=>({k:'res',n:s.n+1}));setReveal(true);setTarget({k:'floor',f:v});
         await say('det',up===0?`${c.friend===TREASURE?'התיבה לא פה':'אין פה אף אחד'}. נשארנו בקומה ${c.big}, וצריך לטפס עוד ${floorsWord(c.small)}.`
           :`${c.friend===TREASURE?'התיבה לא פה':'אין פה אף אחד'}. טיפסנו ${up<c.small?'רק ':''}${floorsWord(up)}, וצריך לטפס ${up>c.small?'רק ':''}${c.small===1?'אחת':c.small}.`);ck();
         setTarget(null);
@@ -581,7 +617,7 @@ function App(){
         await nap(350);
       }
       // 4. solved
-      setStage('solved');setReveal(true);setGood(c.ans);setTarget({k:'floor',f:c.ans});sfx.lamp();setPose('cheer');setExpr('joy');setHop(true);sfx.tada();setFriend(c.friend);
+      setStage('solved');setReveal(true);setGood(c.ans);setTarget({k:'floor',f:c.ans});sfx.lamp();setPose('cheer');setExpr('joy');setMood('happy');setHop(true);sfx.tada();setFriend(c.friend);
       await nap(250);setFound(i+1);
       const fr=friendRef.current&&friendRef.current.getBoundingClientRect();if(fr)burst(fr.left+fr.width/2,fr.top+fr.height/2,['#FFD65A','#fff','#2EB6EA','#EF5C55'],20);
       const line=say('kid',`מצאנו את ${c.friend.name}! ${c.a} ועוד ${c.b} הם ${c.ans}.`);
@@ -596,7 +632,7 @@ function App(){
     chestFrom.current=friendRef.current&&friendRef.current.getBoundingClientRect();setFriend(null);setEndStage('chest');
     [523,659,784,1047,1319].forEach((f,j)=>tone(f,.25,'triangle',.12,undefined,j*.12));
     log('GAME_OVER',{won:true,wrong:stats.current.wrong,answers:stats.current.answers});
-    say('det','כל החידות נפתרו, ומצאנו את תיבת האוצר! לוחצים עליה ופותחים.');
+    say('det','כל החידות נפתרו, ומצאנו את תיבת האוצר!');
     await nap(1100+3000);      // the chest comes down, and 3 seconds later a hand reminds
     if(endRef.current==='chest')setHand(true);
   }
@@ -663,13 +699,14 @@ function App(){
     <button ref={numRefs[which]} key={which} className={'n'+(stage==='pick'?' ask':'')+(lit===which?' lit':lit?' dim':'')+(shake.k===which?' shake':'')} style={{width:Math.max(38,ef*1.1),height:paperH-6}}
       tabIndex={-1} aria-hidden="true" onClick={()=>pick(v)}><span key={shake.k===which?shake.n:0} className={shake.k===which?'shake':''}>{v}</span></button>)};
   const speakerX=bub.who==='det'?detX+dw*.42:at.current.b.k==='street'?heroStreetX:tx+TW*.5;
+  const bgS=Math.max(W/1200,H/800), bgX=(W-1200*bgS)/2;
   const mk=n=>Array.from({length:n});
   const chW=Math.max(40,Math.min(230,Math.max(dh*.86,leftW*.66))), chH=chW*CHEST_VB[3]/CHEST_VB[2], chX=Math.max(detX+dw*.66,heroStreetX-chW/2);   // the treasure, big, next to the detective
   return(
     <div className="app" ref={appRef} onPointerDownCapture={()=>audio()}>
       <div className="scene" ref={sceneRef}>
         <div className="gray" style={{inset:0,filter:grayFilter}}>
-          <NoirBG/>
+          <NoirBG x0={Math.floor((tx-over-nw*.4-bgX)/bgS/10)*10} x1={Math.ceil((tx+TW+over+8-bgX)/bgS/10)*10}/>
           <Street w={W} h={stH}/>
         </div>
         <div className="blinds"/>
@@ -699,9 +736,9 @@ function App(){
             {cases.map((c,i)=><div key={i} className={'pol'+(i<found?' in':i===ci&&!demo&&who?' now sil':'')+(polShow?' show':'')} style={{width:polS,height:polS*1.08,fontSize:polS*.5}}>{i<found||i===ci&&!demo&&who?<Friend f={c.friend} h={polS*.86} w={polS*.86}/>:'?'}</div>)}</div>
         </div>
         {/* the detective and the child's hero */}
-        <div style={{left:detX,top:detY,zIndex:5,pointerEvents:'none'}}><Detective s={dh} aim={aim} talking={talk==='det'} happy={stage==='solved'||stage==='end'}/></div>
+        <div ref={detRef} style={{left:detX,top:detY,zIndex:5,pointerEvents:'none'}}><Detective s={dh} aim={aim} resting={!beam} input={detInput}/></div>
         <div ref={heroRef} className="herox" style={{width:hs*HERO_AR,height:hs,zIndex:inLift?4:6,transformOrigin:'50% 100%',opacity:heroOn&&built>=1?1:0,transition:'opacity .25s'}}>
-          <div className={hop?'hop':''} style={{transformOrigin:'50% 100%'}}><Hero s={hs} pose={pose} rot={rot} expr={expr} talking={talk==='kid'&&pose==='stand'}/></div>
+          <div className={hop?'hop':''} style={{transformOrigin:'50% 100%'}}><Hero s={hs} input={heroInput}/></div>
           {pose==='think'&&[[-6,-12,0],[38,-26,.4],[78,-10,.8]].map(([l,t,d],i)=><span key={i} className="qm" style={{left:l+'%',top:t+'%',fontSize:hs*(i===1?.34:.24),animationDelay:d+'s'}}>?</span>)}
         </div>
         {beam&&<svg className="beam"><defs><linearGradient id="bm" gradientUnits="userSpaceOnUse" x1={beam.tx} y1={beam.ty} x2={beam.x} y2={beam.y}><stop offset="0" stopColor="#FFF3C4" stopOpacity=".75"/><stop offset="1" stopColor="#FFE08A" stopOpacity=".22"/></linearGradient></defs>
@@ -727,7 +764,7 @@ function App(){
           <span className="tail" style={{left:`clamp(24px,${(speakerX-(W-Math.min(W-24,820))/2).toFixed(0)}px,calc(100% - 24px))`}}/>
           <span className={'who'+(bub.who==='kid'?' kid':'')}>{bub.who==='kid'?'העוזר':'הבלש'}</span>
           <span className="txt" key={bub.n} aria-live="polite">{bub.text||'…'}</span></div>
-        <div className="acts" role="group" aria-label="מה עושים עכשיו">
+        <div className="acts" ref={actsRef} role="group" aria-label="מה עושים עכשיו">
           {stage==='pick'&&[C.a,C.b].map((v,i)=><button key={i} className={'big'+(shake.k==='small'&&v===C.small?' shake':'')} onClick={()=>pick(v)}>{v}</button>)}
           {demo&&stage!=='intro'&&<button className="skipb" style={stage==='climb'?{order:2}:null} onClick={skipIntro}>דילוג על ההסבר</button>}
           {stage==='climb'&&<div className="pips" role="img" aria-label={`${steps} מתוך ${C.small}`}>{mk(Math.max(C.small,steps)).map((_,i)=><i key={i} className={'pip'+(i<steps?' f':'')+(i>=C.small?' over':'')}/>)}</div>}
@@ -737,6 +774,7 @@ function App(){
       {endStage==='done'&&(()=>{const n=starCount(mistakes());return(
         <div className="center endscreen" style={{justifyContent:'flex-start',paddingTop:'max(70px,13dvh)'}}>
           <div className="stars" dir="ltr">{[0,1,2].map(i=><div key={i} className="star" style={{animationDelay:.15+i*.35+'s'}}><StarIcon on={i<n}/></div>)}</div>
+          <div className="rise" style={{marginTop:14,animationDelay:'1s'}}><div ref={KP.coinBadge}/></div>
           <div className="endbtns rise" style={{animationDelay:'1.2s'}}>
             <button className="endbtn again" onClick={start} aria-label="שוב" title="שוב">
               <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v5h5"/></svg></button>

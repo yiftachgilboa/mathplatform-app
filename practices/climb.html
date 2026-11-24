@@ -522,6 +522,7 @@ function App(){
       {endStage==='done'&&(()=>{const n=starCount(mistakes());return(
         <div className="center endscreen" style={{justifyContent:'flex-start',paddingTop:'max(70px,13dvh)'}}>
           <div className="stars" dir="ltr">{[0,1,2].map(i=><div key={i} className="star" style={{animationDelay:.15+i*.35+'s'}}><StarIcon on={i<n}/></div>)}</div>
+          <div className="rise" style={{marginTop:14,animationDelay:'1s'}}><div ref={KP.coinBadge}/></div>
           <div className="endbtns rise" style={{animationDelay:'1.2s'}}>
             <button className="endbtn again" onClick={start} aria-label="שוב" title="שוב">
               <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v5h5"/></svg></button>

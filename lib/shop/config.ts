@@ -21,6 +21,8 @@ export const fullPrice = shop.boxPricePractices * shop.rewards.practice.first
 export const boxPrice = shop.testMode ? 0 : fullPrice
 /** מטבעות לסיום תרגול (מוצג גם בתוך המשחקים) */
 export const practiceReward = shop.rewards.practice.first
+/** מטבעות לשלב, לפי מספרו (2 התנסות, 3 תרגול, 4 העשרה) */
+export const stageRewards = { 2: shop.rewards.interactive.first, 3: shop.rewards.practice.first, 4: shop.rewards.enrichment.first }
 
 export const itemName = (slot: string) => shop.items.find(i => i.slot === slot)?.name ?? ''
 export const boxColor = (id: string) => shop.boxes.find(b => b.id === id)?.color ?? '#f1c43e'

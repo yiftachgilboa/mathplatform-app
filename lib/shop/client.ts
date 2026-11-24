@@ -1,9 +1,9 @@
 // לקוח בלבד — המראה והתגמול זמינים למשחקים (iframe מאותו מקור) דרך localStorage.
 // kidodo-practice.js קורא אותם לפני הציור הראשון, ומקבל אירוע storage כשהם משתנים באמצע משחק.
-import { practiceReward, type Look, type ShopState } from './config'
+import { practiceReward, stageRewards, type Look, type ShopState } from './config'
 
 export function shareLook(childId: string, look: Look) {
-  try { localStorage.setItem(`kidodo-shop:${childId}`, JSON.stringify({ look, reward: practiceReward })) } catch { /* בלי אחסון — הדמות הרגילה */ }
+  try { localStorage.setItem(`kidodo-shop:${childId}`, JSON.stringify({ look, reward: practiceReward, rewards: stageRewards })) } catch { /* בלי אחסון — הדמות הרגילה */ }
 }
 
 /** look — רק בתשובה ל-decide */

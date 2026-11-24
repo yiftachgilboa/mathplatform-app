@@ -618,17 +618,18 @@ function App(){
   function tapChest(){
     try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume()}catch(e){}
     hush();
-    const first=taps===0; setTaps(t=>t+1); log('chest_tap',taps+1);
+    const first=taps===0; finish(); setTaps(t=>t+1); log('chest_tap',taps+1);
     setLidOpen(false);setTimeout(()=>setLidOpen(true),70);   // chest remounts closed, then the lid pops open
     setTimeout(()=>{coinSound();coinBurst(bigChestRef.current,first?34:22)},200);
   }
 
   async function goNext(){
     if(leaving)return; setLeaving(true); hush();
-    const rs=R.current.rounds;
-    await KP.complete({rounds:rs.length,firstTry:rs.filter(r=>!r.wrong.length).length});
+    await finish();
     KP.next();
   }
+  const doneReq=useRef(null);      // reported once, when the chest is opened (or on ״המשך״)
+  function finish(){const rs=R.current.rounds;if(!doneReq.current)doneReq.current=KP.complete({rounds:rs.length,firstTry:rs.filter(r=>!r.wrong.length).length});return doneReq.current}
 
   function pick(n){
     const {phase,busy,rounds,ri,removed}=R.current; const r=rounds[ri];
@@ -683,6 +684,7 @@ function App(){
           <Chest key={'big'+taps} count={4} open={lidOpen} bump={taps>0} s={300}/>
         </button>
       </div>
+      {taps>0&&<div ref={KP.coinBadge}/>}
       <div className="note fall" style={{animationDelay:'.3s'}}>{taps===0?'לחצו על התיבה':'אפשר ללחוץ שוב!'}</div>
       <div className="fall" style={{animationDelay:'.6s'}}>
         <button className="cta" onClick={goNext} disabled={leaving}>המשך</button>

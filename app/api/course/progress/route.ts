@@ -14,7 +14,7 @@ export async function GET(req: Request) {
   return NextResponse.json({ ...state, shop })
 }
 
-/** POST { childId, courseId, lessonId, stage, stars? } → סימון שלב כהושלם (סרטון / התנסות / משחק) + מטבעות */
+/** POST { childId, courseId, lessonId, stage, stars? } → סימון שלב כהושלם (סרטון / התנסות / משחק) + מטבעות. coins = כמה נוספו */
 export async function POST(req: Request) {
   const b = await req.json().catch(() => ({}))
   const auth = await authorizeChild(String(b.childId ?? ''), String(b.courseId ?? ''))
@@ -23,8 +23,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
   const stars = Number(b.stars)
-  await completeStage({ childId: b.childId, course: auth.course, lessonId: b.lessonId }, stage, b.stars != null && Number.isFinite(stars) ? { stars } : {})
-  return NextResponse.json({ ok: true, shop: await loadShop(b.childId) })
+  const coins = await completeStage({ childId: b.childId, course: auth.course, lessonId: b.lessonId }, stage, b.stars != null && Number.isFinite(stars) ? { stars } : {})
+  return NextResponse.json({ ok: true, coins, shop: await loadShop(b.childId) })
 }
 
 /**

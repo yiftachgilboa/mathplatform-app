@@ -14,10 +14,22 @@
       this.course = courseId && lessonId && stage ? { courseId: courseId, lessonId: lessonId, stage: stage } : null;
     },
 
+    // בקורס: כמה מטבעות הרווחנו, מעל מסך הסיום של המשחק (null = להסיר)
+    coins: function(n) {
+      let el = document.getElementById('kidodo-coins');
+      if (typeof n !== 'number') { if (el) el.remove(); return; }
+      if (!el) { el = document.createElement('div'); el.id = 'kidodo-coins'; document.body.appendChild(el); }
+      el.dir = 'ltr';
+      el.setAttribute('aria-label', n + ' מטבעות');
+      el.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:9999;pointer-events:none;display:flex;align-items:center;gap:8px;font:700 28px Rubik,system-ui,sans-serif;color:#9B6A00;background:rgba(255,255,255,.95);border-radius:24px;padding:5px 18px 5px 7px;box-shadow:0 4px 12px rgba(0,0,0,.2)';
+      el.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24"><polygon points="12,1 17.5,2.5 21.5,6.5 23,12 21.5,17.5 17.5,21.5 12,23 6.5,21.5 2.5,17.5 1,12 2.5,6.5 6.5,2.5" fill="#cf981b"/><polygon points="12,3.6 18,6 20.4,12 18,18 12,20.4 6,18 3.6,12 6,6" fill="#f1c43e"/><polygon points="12,3.6 18,6 20.4,12 12,12" fill="#fff0a0"/></svg><span>+' + n + '</span>';
+    },
+
     emit: function(event, data) {
       console.log('[MathPlatformSDK]', event, data);
 
       if (event === 'GAME_STARTED') {
+        this.coins(null);
         this.gameId = data.gameId;
         this.init();
       }
@@ -66,7 +78,8 @@
           course: this.course,
           timestamp: new Date().toISOString()
         })
-      }).catch(err => console.error('[MathPlatformSDK] Error:', err))
+      }).then(r => (event === 'GAME_OVER' && this.tell && r.ok ? r.json().then(j => this.coins(j.coins)).catch(() => {}) : null))
+        .catch(err => console.error('[MathPlatformSDK] Error:', err))
         .then(() => { if (event === 'GAME_OVER' && this.tell) this.tell('complete') });
       if (event === 'GAME_OVER') this.over = true;
     }

@@ -1131,7 +1131,7 @@ function App(){
     const stars=starCount(stats.current);
     overlay=(<div className="center endscreen" key="end" style={{justifyContent:'flex-start',paddingTop:'max(70px,13dvh)'}}>
       <div className="stars" dir="ltr">{[0,1,2].map(i=><div key={i} className={'star'+(i<stars?' on':'')} style={{animationDelay:.15+i*.35+'s'}}><StarIcon on={i<stars}/></div>)}</div>
-      <div className="endcoins rise" dir="ltr" style={{animationDelay:'1.1s'}}><Coin s={34}/>{coins}</div>
+      <div className="rise" style={{animationDelay:'1.1s'}}><div ref={KP.coinBadge}/></div>
       {/* the buttons: low on the screen and to the sides, away from the chest, so a tap meant for the chest never hits them */}
       <div className="endbtns rise" style={{animationDelay:'1.3s'}}>
         <button className="endbtn again" onClick={restart} aria-label="להתחיל מחדש" title="להתחיל מחדש">

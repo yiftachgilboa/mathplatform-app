@@ -11,7 +11,9 @@
  *   KidodoPractice.claimCorner()     — inside the course: the top-left slot is free for the course's enlarge/shrink button
  *   KidodoPractice.look()            — what the child's hero wears (for LP.hero); {} = the default hero
  *   KidodoPractice.onLook(fn)        — fn(look) when it changes while the game is open
- *   KidodoPractice.reward()          — coins for finishing a practice (shown in the game)
+ *   KidodoPractice.reward()          — coins for finishing this stage (shown in the game)
+ *   KidodoPractice.coinBadge(el)     — EVERY end screen shows it: fills the element with the coins really earned (call complete()
+ *                                      first). In React: <div ref={KP.coinBadge}/>
  *   KidodoPractice.onResume(fn)      — fn() when the child is back after a pause and no sentence was cut (say the instruction again)
  * Opened alone (no params), nothing is saved, and next/exit go to /course.
  *
@@ -240,9 +242,11 @@
     if (!inCourse) return Promise.resolve(null)
     var payload = JSON.stringify(Object.assign({}, ctx, { stage: STAGE }, body || {}))
     var req = fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, keepalive: true })
-      .then(function (r) { return r.ok }).catch(function () { return false })
+      .then(function (r) { return r.ok ? r.json().catch(function () { return true }) : false }).catch(function () { return false })
     // never leave the child waiting on a slow network
-    return Promise.race([req, new Promise(function (res) { setTimeout(function () { res(false) }, 2500) })])
+    var safe = Promise.race([req, new Promise(function (res) { setTimeout(function () { res(false) }, 2500) })])
+    safe.full = req
+    return safe
   }
 
   function courseUrl(stage) {
@@ -257,6 +261,37 @@
     try { return (ctx.childId && JSON.parse(localStorage.getItem(shopKey))) || {} } catch (e) { return {} }
   }
 
+  function reward() {
+    var s = shop(), r = Number((s.rewards && s.rewards[STAGE]) || (STAGE === 2 ? 5 : s.reward))
+    return r > 0 ? r : 10
+  }
+
+  /* the coins earned, on every end screen: a coin and +N, counting up. 0 = today's coins were already taken */
+  var earned = null
+  var COIN = '<svg width="38" height="38" viewBox="0 0 24 24" style="display:block"><polygon points="12,1 17.5,2.5 21.5,6.5 23,12 21.5,17.5 17.5,21.5 12,23 6.5,21.5 2.5,17.5 1,12 2.5,6.5 6.5,2.5" fill="#cf981b"/><polygon points="12,3.6 18,6 20.4,12 18,18 12,20.4 6,18 3.6,12 6,6" fill="#f1c43e"/><polygon points="12,3.6 18,6 20.4,12 12,12" fill="#fff0a0"/><polygon points="3.6,12 12,12 12,20.4 6,18" fill="#e0ae2c"/></svg>'
+  function coinBadge(el) {
+    if (!el || el.kidodoCoins) return
+    el.kidodoCoins = true
+    el.dir = 'ltr'
+    el.setAttribute('role', 'status')
+    el.style.cssText += ';display:inline-flex;flex-direction:column;align-items:center;gap:6px;visibility:hidden'
+    var wait = new Promise(function (res) { setTimeout(res, 3000) }).then(reward)
+    Promise.race([earned || Promise.resolve(reward()), wait]).then(function (n) {
+      el.style.visibility = ''
+      el.innerHTML = '<span style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:34px;line-height:1;color:#9B6A00;background:rgba(255,255,255,.94);border-radius:26px;padding:6px 20px 6px 8px;box-shadow:0 4px 0 rgba(0,0,0,.16)">' + COIN + '<b style="font-weight:700;min-width:1.6em;text-align:left">+0</b></span>' +
+        (n > 0 ? '' : '<span dir="rtl" style="font-size:16px;font-weight:500;color:#33373b;background:rgba(255,255,255,.9);border-radius:12px;padding:3px 12px">את המטבעות האלה כבר קיבלנו</span>')
+      el.setAttribute('aria-label', n + ' מטבעות')
+      var b = el.querySelector('b'), t0 = null
+      if (n > 0) requestAnimationFrame(function f(now) {
+        if (t0 == null) t0 = now
+        var k = Math.min(1, (now - t0) / 700)
+        b.textContent = '+' + Math.round(n * k)
+        if (k < 1) requestAnimationFrame(f)
+      })
+      setTimeout(function () { b.textContent = '+' + n }, 900)
+    })
+  }
+
   window.KidodoPractice = {
     inCourse: inCourse,
     embedded: embedded,
@@ -264,6 +299,7 @@
     answer: function (correct) { post('/api/course/answer', { correct: !!correct }) },
     complete: function (extra) {
       var r = post('/api/course/progress', extra)
+      earned = (r.full || r).then(function (j) { return j && typeof j.coins === 'number' ? j.coins : reward() })
       if (embedded) r.then(function () { tell('complete') })
       return r
     },
@@ -272,7 +308,8 @@
     // the game leaves its top-left button slot free: the course puts its enlarge / shrink button there (instead of a ✕)
     look: function () { return shop().look || {} },
     onLook: function (fn) { window.addEventListener('storage', function (e) { if (e.key === shopKey) fn(shop().look || {}) }) },
-    reward: function () { var r = Number(shop().reward); return r > 0 ? r : 10 },
+    reward: reward,
+    coinBadge: coinBadge,
     onResume: function (fn) { window.KidodoPause.onResume(fn) },
     claimCorner: function () { this.corner = true; if (embedded) tell('corner') },
   }

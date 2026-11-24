@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   const { event, childId, gameId, data, timestamp } = body
 
   // משחק מתוך אתר הקורס → רישום גם בטבלאות הקורס (תשובות, השלמת שלב, שליטה)
-  let inCourse = false
+  let inCourse: number | false = false
   if (body.course && childId && (event === 'ANSWER' || event === 'GAME_OVER')) {
     try { inCourse = await recordCourseEvent(event, childId, body.course, data) }
     catch (e) { console.error('[SDK] course event error:', e) }
@@ -47,9 +47,9 @@ export async function POST(req: NextRequest) {
     }
 
     // מטבעות: סכום קבוע לפי content/shop/shop.json (הכוכבים הם רק ציון). משחק מתוך הקורס כבר שולם בסימון השלב.
-    if (!inCourse) await payCoins(childId, gameId, data)
+    if (inCourse === false) await payCoins(childId, gameId, data)
 
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true, coins: inCourse === false ? undefined : inCourse })
   }
 
   if (event === 'ANSWER' && data?.correct === false) {
@@ -92,12 +92,12 @@ async function payCoins(childId: string, gameId: string, data: { stars?: number;
   if (coins > 0) await supabase.from('children').update({ coins: (child.coins ?? 0) + coins }).eq('id', childId)
 }
 
-/** true = האירוע שייך לקורס ונרשם בו */
+/** false = האירוע לא שייך לקורס. אחרת: נרשם בו, והמספר = כמה מטבעות נוספו */
 async function recordCourseEvent(
   event: string, childId: string,
   c: { courseId?: string; lessonId?: string; stage?: number },
   data: { correct?: boolean; stars?: number } | undefined,
-): Promise<boolean> {
+): Promise<number | false> {
   const stage = Number(c.stage)
   if (stage !== 3 && stage !== 4) return false
   const auth = await authorizeChild(childId, String(c.courseId ?? ''))
@@ -109,7 +109,7 @@ async function recordCourseEvent(
   if (event === 'GAME_OVER') {
     const stars = Number(data?.stars ?? 0)
     // תרגול: ✓ עם כוכב אחד לפחות · העשרה: ✓ בכל ציון
-    if (stage === 4 || stars >= 1) await completeStage(ctx, stage, { stars })
+    if (stage === 4 || stars >= 1) return completeStage(ctx, stage, { stars })
   }
-  return true
+  return 0
 }

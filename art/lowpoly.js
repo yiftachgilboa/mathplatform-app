@@ -1130,7 +1130,7 @@
     if (outfit === 'wizard') obj.front = { group: 'armR', ref: egg, margin: rx * .3 };
     const r = o.rot || 0;
     obj.face = { c: [obj.x, obj.y, obj.z + zc], r: rx, browColor: det ? '#241a14' : outfit === 'wizard' ? '#f4f5f6' : outfit === 'kid' ? (o.browColor || '#3a271b') : '#4a1216', glasses: o.glasses, k: [.9, 1, rz / rx], f: [Math.sin(r), -Math.cos(r), 0], u: [Math.cos(r), Math.sin(r), 0],
-      style: 'buddy', eyeK: 1.4, noMouth: outfit === 'wizard', mouthUp: det ? -.12 : undefined, gaze: o.gaze, blink: o.blink, talk: o.talk,
+      style: 'buddy', eyeK: 1.4, noMouth: outfit === 'wizard', mouthUp: det ? -.12 : undefined, brows: o.brows, gaze: o.gaze, blink: o.blink, talk: o.talk,
       expr: o.expression || (det ? 'squint' : null) || poseExpression[o.pose || 'stand'] || 'happy' };
     return obj;
   };
@@ -1168,6 +1168,9 @@
     const kE = F.eyeK || 1, BC = F.browColor || E;
     const bigBrow = (e, innerUp, lift, arch, k, color) => {
       k = (k || 1) * kE;
+      // optional life: F.brows = [tilt, lift] for both, or [[tilt, lift], [tilt, lift]] one by one (added to the expression)
+      const bo = F.brows ? (Array.isArray(F.brows[0]) ? F.brows[e.inner < 0 ? 1 : 0] : F.brows) : null;
+      if (bo) { innerUp += bo[0]; lift += bo[1]; }
       const w = s * .21 * k, t0 = s * .07 * k, t1 = s * .15 * k, o0 = e[0] - e.inner * w, i0 = e[0] + e.inner * w * .85;
       const yo = e[1] - s * (lift - innerUp) * kE, yi = e[1] - s * (lift + innerUp) * kE, cx = (o0 + i0) / 2, cy = (yo + yi) / 2 - s * arch * kE;
       const d = `M${f1(o0)},${f1(yo)} Q${f1(cx)},${f1(cy)} ${f1(i0)},${f1(yi)} L${f1(i0)},${f1(yi + t1)} Q${f1(cx)},${f1(cy + (t0 + t1) * .5)} ${f1(o0)},${f1(yo + t0)} Z`;
@@ -1865,7 +1868,11 @@
       [[180, 150, 130, 170, 'long'], [780, 250, 150, 210, 'long'], [1080, 110, 110, 190, 'long']].forEach(([x, y, sz, dur, kind], i) => {
         svg += `<g class="cloud" style="animation-duration:${dur}s;animation-delay:${-(x / 1400 * dur).toFixed(1)}s" opacity="${o.sky ? .3 : .8}">${draw(make.cloud({ size: sz, seed: i + 3, detail: 1, kind }), camera({ a: .16, ox: 0, oy: y }))}</g>`;
       });
-      const at = (list, oy, fog) => list.forEach(([mk, x, opt]) => { svg += draw(make[mk](Object.assign({ fog }, opt)), camera({ a: .1, ox: x, oy })); });
+      // o.clear = [x0, x1]: no building of the city may stand there (behind the game's own tower)
+      const at = (list, oy, fog) => list.forEach(([mk, x, opt]) => {
+        const cam = camera({ a: .1, ox: x, oy }), l = facets(make[mk](Object.assign({ fog }, opt)), cam), b = bounds(l);
+        if (!o.clear || b.x + b.w < o.clear[0] || b.x > o.clear[1]) svg += polys(l);
+      });
       at([['tallTower', 70, { size: 420, seed: 2, style: 'setback', mat: 'violet' }], ['tallTower', 250, { size: 330, seed: 3, style: 'tiers', mat: 'towerBlue' }], ['tallTower', 420, { size: 440, seed: 4, style: 'twist', mat: 'teal' }],
         ['tallTower', 660, { size: 360, seed: 6, style: 'setback', mat: 'towerBlue' }], ['tallTower', 830, { size: 440, seed: 5, style: 'tiers', mat: 'violet' }], ['tallTower', 1010, { size: 340, seed: 8, style: 'twist', mat: 'teal' }], ['tallTower', 1150, { size: 420, seed: 9, style: 'setback', mat: 'towerBlue' }]], 720, .55);
       at([['officeTower', 160, { size: 270, seed: 2, mat: 'towerBlue', windows: 'windowLight', top: 'antenna' }], ['officeTower', 545, { size: 240, seed: 3, mat: 'teal', windows: 'windowLight', top: 'antenna' }],
@@ -1930,7 +1937,92 @@
       glasses: L.glasses, hat: L.hat && L.hat.kind ? { kind: L.hat.kind, mat: dye(L.hat.color || '#ef5c55') } : undefined }, o));
   }
 
-  const LP = { hero, dye, flat, scenes, biomes, biome, rng, camera, poses, face, project, facets, polys, draw, bounds, hull, castShadow, outline, material, mat, themes, useTheme, make, Mesh, icosphere, cone, cylinder, limb, ring, stitch, fan, hex2rgb, rgb2hex };
+  // ---------- living characters (the elevator game, 24.11.2026): for every character in every game ----------
+  // a character is never frozen, also while nothing happens: it looks where something happens, blinks, its brows play, it
+  // makes faces and small acts while waiting. One mind per character:
+  //   const m = LP.mind({ acts: [...] });  each frame: m(now in ms, input) → { pose, t, rot, expression, gaze, blink, talk, brows }
+  // input: look [x, y] in -1..1 (or null: glances around), talking, pose + expression the game wants now (pose 'stand' = free),
+  //   mood 'calm' | 'happy' | 'unhappy' (brows), idle: true = waiting for the child, acts are allowed, rot: the resting turn.
+  const ACTS = [{ pose: 'wave', expression: 'happy', ms: 1900 }, { expression: 'joy', ms: 1500 }, { expression: 'surprised', ms: 1200 },
+    { pose: 'think', expression: 'puzzled', ms: 2000 }, { pose: 'wave', expression: 'joy', ms: 1800 }, { pose: 'jump', expression: 'joy', ms: 1000 }];
+  const BROW_ACTS = [[[0, .09], [0, .09]], [[.02, .13], [-.02, -.04]], [[-.02, -.04], [.02, .13]], [[-.06, -.05], [-.06, -.05]], [[.06, .05], [.06, .05]], [[0, .14], [0, .14]]];
+  const MOODS = { calm: [0, 0], happy: [.02, .1], unhappy: [-.05, -.03] };
+  function mind(o) {
+    o = o || {};
+    const acts = o.acts || ACTS, turn = o.turn == null ? .3 : o.turn, R = (a, b) => a + Math.random() * (b - a);
+    const g = [0, 0], b = [[0, 0], [0, 0]];
+    let t0 = null, poseNow = '', poseT = 0, act = null, actEnd = 0, nextAct = 0, lastAct = -1, blinkAt = 0, blink2 = false, glance = [0, 0], nextGlance = 0, brow = null, browEnd = 0, nextBrow = 0, rot = null;
+    return function (now, inp) {
+      inp = inp || {};
+      if (t0 == null) { t0 = now; blinkAt = now + R(800, 2500); nextAct = now + R(2500, 5000); nextBrow = now + R(700, 1800); nextGlance = now + R(800, 2000); }
+      const free = !inp.pose || inp.pose === 'stand' || inp.pose === o.rest;
+      // acts, only while waiting; never the same one twice in a row
+      if (act && (now > actEnd || !inp.idle || !free)) { act = null; nextAct = now + R(2600, 5200); }
+      if (!act && inp.idle && free && !inp.talking && acts.length && now > nextAct) {
+        let i = Math.floor(Math.random() * acts.length); if (i === lastAct) i = (i + 1) % acts.length;
+        lastAct = i; act = acts[i]; actEnd = now + act.ms;
+      }
+      if (!inp.idle) nextAct = Math.max(nextAct, now + 1200);
+      const pose = !free ? inp.pose : (act && act.pose) || o.rest || 'stand';
+      if (pose !== poseNow) { poseNow = pose; poseT = now; }
+      // eyes: at what happens, or small glances around
+      if (now > nextGlance) { nextGlance = now + R(900, 2800); glance = Math.random() < .45 ? [0, 0] : [R(-.8, .8), R(-.5, .5)]; }
+      const want = inp.look || glance, far = Math.abs(want[0] - g[0]) + Math.abs(want[1] - g[1]);
+      if (far > 1 && now > blinkAt - 900 && now < blinkAt) blinkAt = now; // a big jump of the eyes often comes with a blink
+      for (let i = 0; i < 2; i++) g[i] += (want[i] - g[i]) * .3;
+      if (now > blinkAt + 130) { blink2 = !blink2 && Math.random() < .2; blinkAt = now + (blink2 ? 180 : R(1800, 4600)); }
+      // brows: they play while nothing is said, bounce with the words, and carry the mood
+      if (brow && now > browEnd) { brow = null; nextBrow = now + R(900, 2600); }
+      if (!brow && now > nextBrow) { brow = BROW_ACTS[Math.floor(Math.random() * BROW_ACTS.length)]; browEnd = now + R(450, 1100); }
+      const md = MOODS[inp.mood] || MOODS.calm, sp = inp.talking ? .05 * Math.sin(now / 170) : 0, k = inp.mood && inp.mood !== 'calm' ? .4 : 1;
+      for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) b[i][j] += ((brow ? brow[i][j] * k : 0) + md[j] + (j ? sp : 0) - b[i][j]) * .35;
+      const base = inp.rot || 0, wr = base + g[0] * turn;
+      rot = rot == null || inp.snap ? wr : rot + (wr - rot) * .35;
+      return { pose, t: (now - poseT) / 1000, rot, expression: (act && act.expression) || inp.expression, gaze: [g[0], g[1]], blink: now >= blinkAt && now <= blinkAt + 130,
+        talk: inp.talking ? .15 + .85 * Math.abs(Math.sin(now / 95) * Math.cos(now / 410)) : 0, brows: [b[0].slice(), b[1].slice()] };
+    };
+  }
+  // draws a living character into an <svg> and keeps it alive (a fixed pool of polygons; a resting body is not redrawn, only its
+  // face). o: make(p) → object, mind, input() → the mind's input (+ anything make needs; a number in `redraw` forces a new body),
+  // a = camera tilt, fps, talkBody: the body moves with the words (a moustache). → stop()
+  const MOVING = { walk: 1, jump: 1, cheer: 1, scared: 1, wave: 1, think: 1 };
+  function perform(el, o) {
+    const NS = 'http://www.w3.org/2000/svg', D = el.ownerDocument, cam = camera({ a: o.a == null ? .3 : o.a }), g = D.createElementNS(NS, 'g'), fg = D.createElementNS(NS, 'g'), pool = [];
+    el.replaceChildren(g, fg);
+    const m = o.mind || mind(), still = root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let obj = null, key = '', faceWas = '', last = -1e9, raf = 0;
+    const body = x => {
+      const l = facets(x, cam);
+      for (let i = 0; i < Math.max(l.length, pool.length); i++) {
+        let p = pool[i];
+        if (!p) { p = D.createElementNS(NS, 'polygon'); p.setAttribute('stroke-width', '.7'); p.setAttribute('stroke-linejoin', 'round'); g.appendChild(p); pool.push(p); }
+        const f = l[i];
+        if (!f) { if (!p._h) { p.setAttribute('display', 'none'); p._h = 1; } continue; }
+        if (p._h) { p.removeAttribute('display'); p._h = 0; }
+        p.setAttribute('points', f.pts.map(q => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '));
+        if (p._f !== f.fill) { p.setAttribute('fill', f.fill); p.setAttribute('stroke', f.fill); p._f = f.fill; }
+      }
+    };
+    const frame = now => {
+      const inp = o.input ? o.input() : {}, p = m(now, inp);
+      if (still) Object.assign(p, { blink: false, talk: 0 });
+      const k = [p.pose, p.expression, Math.round(p.rot * 40), inp.redraw, o.talkBody ? p.talk.toFixed(1) : ''].join('|');
+      if (!obj || MOVING[p.pose] || k !== key) { key = k; obj = o.make(Object.assign({}, inp, p)); body(obj); }
+      else if (obj.face) Object.assign(obj.face, { gaze: p.gaze, blink: p.blink, talk: p.talk, brows: p.brows });
+      const f = face(obj, cam); if (f !== faceWas) { faceWas = f; fg.innerHTML = f; }
+    };
+    const loop = now => { raf = root.requestAnimationFrame(loop); if (now - last < 1000 / (o.fps || 18) - 2) return; last = now; frame(now); };
+    frame(root.performance.now());
+    raf = root.requestAnimationFrame(loop);
+    return () => root.cancelAnimationFrame(raf);
+  }
+  // where to look, from the middle of an element to a point on the screen (client coordinates) → [x, y] in -1..1
+  function lookAt(el, x, y) {
+    const r = el.getBoundingClientRect(), c = n => Math.max(-1, Math.min(1, n));
+    return [c((x - r.left - r.width / 2) / 110), c((y - r.top - r.height * .4) / 100)];
+  }
+
+  const LP = { mind, perform, lookAt, hero, dye, flat, scenes, biomes, biome, rng, camera, poses, face, project, facets, polys, draw, bounds, hull, castShadow, outline, material, mat, themes, useTheme, make, Mesh, icosphere, cone, cylinder, limb, ring, stitch, fan, hex2rgb, rgb2hex };
   root.LP = LP;
   useTheme('day');
 })(typeof window !== 'undefined' ? window : globalThis);

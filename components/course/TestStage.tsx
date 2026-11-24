@@ -1,8 +1,9 @@
 'use client'
 import { useEffect, useState } from 'react'
 import type { Question } from '@/lib/course/content'
+import { CoinIcon } from './ShopArt'
 
-type Result = { passed: boolean } | null
+type Result = { passed: boolean; coins?: number } | null
 
 /**
  * שלב 5 — מבחן מעבר: שאלות בסדר אקראי, בלי רמזים ובלי ניסיון שני.
@@ -14,7 +15,7 @@ export default function TestStage({ questions, count, mascot, hero, ui, onAnswer
   hero?: React.ReactNode
   ui: { testProgress: string; testPass: string; testFail: string; retry: string; backToPractice: string }
   onAnswer: (correct: boolean, q: Question, picked: number) => void
-  onFinish: (correct: number, total: number) => Promise<{ passed: boolean }>
+  onFinish: (correct: number, total: number) => Promise<{ passed: boolean; coins?: number }>
   onBackToPractice: () => void
 }) {
   const [order, setOrder] = useState<Question[] | null>(null)
@@ -77,6 +78,7 @@ export default function TestStage({ questions, count, mascot, hero, ui, onAnswer
         {result && (
           <>
             <p style={{ margin: 0, fontSize: 'clamp(26px, 4vw, 36px)', fontWeight: 500 }}>{result.passed ? ui.testPass : ui.testFail}</p>
+            {!!result.coins && <span className="s-coins" dir="ltr" aria-label={`${result.coins} מטבעות`}><CoinIcon size={30} /><span className="s-num">+{result.coins}</span></span>}
             {dots}
             {!result.passed && (
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>

@@ -31,8 +31,8 @@ async function isMastered({ childId, course, lessonId }: Ctx) {
 
 const STAGE_REWARD: Record<number, RewardKind> = { 1: 'video', 2: 'interactive', 3: 'practice', 4: 'enrichment', 5: 'test' }
 
-/** סימון שלב כהושלם (+ כוכבים / ציון) ותגמול במטבעות. completed=false שומר ציון בלי ✓ ובלי מטבעות. */
-export async function completeStage(ctx: Ctx, stage: number, extra: { stars?: number; score?: number; completed?: boolean } = {}) {
+/** סימון שלב כהושלם (+ כוכבים / ציון) ותגמול במטבעות. completed=false שומר ציון בלי ✓ ובלי מטבעות. מחזיר כמה מטבעות נוספו. */
+export async function completeStage(ctx: Ctx, stage: number, extra: { stars?: number; score?: number; completed?: boolean } = {}): Promise<number> {
   const row: Record<string, unknown> = {
     child_id: ctx.childId, course_id: ctx.course.courseId, lesson_id: ctx.lessonId, stage,
     updated_at: new Date().toISOString(),
@@ -42,10 +42,11 @@ export async function completeStage(ctx: Ctx, stage: number, extra: { stars?: nu
   if (extra.score != null) row.score = Math.max(0, Math.min(100, Math.round(extra.score)))
   const { error } = await adminClient().from('course_progress')
     .upsert(row, { onConflict: 'child_id,course_id,lesson_id,stage' })
-  if (error) { console.error('[course] progress', error.message); return }
+  if (error) { console.error('[course] progress', error.message); return 0 }
   if (extra.completed !== false && STAGE_REWARD[stage]) {
-    await reward(ctx.childId, STAGE_REWARD[stage], `course:${ctx.course.courseId}:${ctx.lessonId}:${stage}`)
+    return (await reward(ctx.childId, STAGE_REWARD[stage], `course:${ctx.course.courseId}:${ctx.lessonId}:${stage}`)) ?? 0
   }
+  return 0
 }
 
 /** תשובה אחת. בשלב התרגול — בודק שליטה לפי החלון האחרון. */
@@ -69,7 +70,7 @@ export async function recordAnswer(ctx: Ctx, stage: number, correct: boolean) {
 export async function recordTest(ctx: Ctx, correct: number, total: number) {
   const score = total > 0 ? Math.round((correct / total) * 100) : 0
   const passed = testPassed(score, ctx.course.mastery.test)
-  await completeStage(ctx, 5, { score, completed: passed })
+  const coins = await completeStage(ctx, 5, { score, completed: passed })
   const newlyMastered = passed ? await markMastered(ctx, 'test') : false
-  return { score, passed, newlyMastered }
+  return { score, passed, newlyMastered, coins }
 }
