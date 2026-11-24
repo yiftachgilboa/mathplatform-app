@@ -205,7 +205,7 @@
 - **הדמות של הילד** — `LP.hero(look, {...})`, ופריטים: כובעים `cap` / `party` / `crown`, משקפיים `round` / `square`. דוגמה: `samples/test-hero-items.html`.
 - **צבע אחד ← חומר שלם** — `LP.dye('#hex')`.
 
-### בדיקה — הבלש והמעלית (24.11.2026, לא מאושר)
+### הבלש והמעלית — מאושר (24.11.2026)
 
 `samples/test-detective.html`, בשביל ההתנסות `practices/elevator.html`:
 - **בלש** — `buddy({outfit:'detective', pose:'aim', aim, talk})`: גבוה יותר, מעיל טרנץ׳ עם צווארון, חגורה ועניבה, מגבעת, שפם עבה, הבעת `squint` (עיניים מצומצמות, גבה אחת מורמת), פנס ביד. `obj.tip` = קצה הפנס, בשביל האלומה.

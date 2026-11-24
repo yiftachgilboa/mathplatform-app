@@ -93,7 +93,7 @@
     }),
   };
   // noir: a detective-film night — indigo sky, a pale moon, cool dark hills; warm windows and the flashlight are the light
-  // (the elevator game, 24.11.2026 — not approved yet)
+  // (the elevator game, approved 24.11.2026)
   themes.noir = {
     sky: ['#161a34', '#2c3260', '#5b5a8c'], fog: '#3f4478', sun: '#f6f0d6', glow: '#c9c4e6', shadow: '#0b0d20',
     mat: Object.assign({}, themes.day.mat, {
@@ -142,7 +142,7 @@
     birdBlue: M(['#173c78', '#2563b0', '#3f86d6', '#86c4f2'], .07), birdBelly: M(['#c06a1c', '#e8902e', '#f6b356', '#ffd690'], .05),
     monster: M(['#2f1846', '#52287a', '#7a42a8', '#a874d1'], .07), monsterBelly: M(['#5b7a12', '#86a822', '#b2cf3a', '#dcef7a'], .05),
     horn: M(['#8a7a5c', '#bfae88', '#e6d9b8', '#fbf3dc'], .04),
-    // detective and his tower (not approved yet)
+    // detective and his tower
     trench: M(['#5f4a33', '#937452', '#bf9d72', '#e6cb9e'], .04), felt: M(['#1b1d26', '#31343f', '#4c505e', '#727786'], .04),
     brick: M(['#5a2a3a', '#8c4450', '#b86a66', '#dd9a88'], .03), iron: M(['#1d2230', '#333b4c', '#525d72', '#8490a6'], .03),
     cork: M(['#26231f', '#3a342e', '#50483f', '#6b6156'], .03), lampLight: M(['#b8923a', '#eac55a', '#fbe391', '#fff6cf'], .02),
@@ -1009,7 +1009,7 @@
   //   'kid'    - skin head, hair cap, shirt and pants as color bands on the egg, sleeves, pants legs
   //   'wizard' - robe-colored egg, skin face, big white beard, pointed hat, white brows, staff
   //   'detective' - taller; trench coat (skirt, belt, collar), fedora, thick moustache, narrowed eyes, flashlight in the right
-  //              hand (pose 'aim', o.aim). obj.tip = the flashlight's tip in the world, for the beam. (not approved yet)
+  //              hand (pose 'aim', o.aim). obj.tip = the flashlight's tip in the world, for the beam.
   make.buddy = function (o) {
     const H = o.size || 160, seed = o.seed || 1, d = clampD(o.detail == null ? 1 : o.detail), outfit = o.outfit;
     const P = Object.assign({ legL: 0, legR: 0, kneeL: 0, kneeR: 0, armL: 0, armR: 0, elbowL: .2, elbowR: .2, sideL: .25, sideR: .25, bob: 0 },
@@ -1785,7 +1785,7 @@
     },
   };
 
-  // ---------- the detective's tower (elevator game) — not approved yet ----------
+  // ---------- the detective's tower (elevator game) ----------
   // one floor seen from the front, like a toy house: a dark shaft on the left, a window, and an iron stairway outside on the
   // right, going up to the next floor. x = 0 is the tower's left edge, z = 0 the floor, y = 0 where a character stands.
   // o: w, h (floor to floor), shaft (its width), sx0 → sx1 (the stairs' bottom and top; omit sx0 for none), lit, ledge, seed
@@ -1853,7 +1853,7 @@
 
   // ---------- backdrops (whole scenes) ----------
   const scenes = {
-    // noir backdrop (the elevator game, not approved yet): LP.useTheme('noir') first. A night city in two rows with a big faceted
+    // noir backdrop (the elevator game): LP.useTheme('noir') first. A night city in two rows with a big faceted
     // moon, long clouds and lit windows. Markup for viewBox 0 0 1200 800 (slice); the ground is the game's.
     noir(o) {
       o = o || {}; const T = theme, W = 1200, id = o.id || 'noir';
