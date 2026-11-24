@@ -88,7 +88,7 @@ button:focus-visible{outline:4px solid var(--gold);outline-offset:3px}
 .big.good{background:var(--ok);color:#fff}
 .skipb{height:46px;padding:0 22px;border-radius:23px;background:rgba(255,255,255,.14);color:#fff;font-size:17px;font-weight:500;direction:rtl}
 .pips{display:flex;gap:14px;align-items:center}
-.pip{width:52px;height:52px;border-radius:50%;border:4px dashed rgba(255,255,255,.55);color:transparent;font-weight:700;font-size:21px;font-style:normal;display:flex;align-items:center;justify-content:center}
+.pip{width:34px;height:34px;border-radius:50%;border:4px dashed rgba(255,255,255,.55);color:transparent;font-weight:700;font-size:21px;font-style:normal;display:flex;align-items:center;justify-content:center}
 .pip.f{background:var(--gold);border:0;color:#3a2b00;animation:mpop .35s}
 .pip.f.over{background:var(--bad);color:#fff}
 @media(min-width:700px){.say{font-size:20px;padding:10px 18px}.acts{min-height:92px}}
@@ -319,7 +319,7 @@ const TREASURE=FR('chest','תיבת האוצר','תיבת אוצר מסתתרת'
 const Friend=({f,h,w})=>{if(w&&h*f.ar>w)h=w/f.ar;return <svg viewBox={f.vb.join(' ')} width={h*f.ar} height={h} style={{display:'block',overflow:'visible'}} dangerouslySetInnerHTML={{__html:f.html}}/>};
 
 const NoirBG=React.memo(function NoirBG(){
-  const html=useMemo(()=>LP.scenes.noir(),[]);
+  const html=useMemo(()=>LP.scenes.noir({sky:['#020307','#05060d','#0b0d18']}),[]);
   return <svg className="bg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" style={{position:'absolute'}} dangerouslySetInnerHTML={{__html:html}}/>;
 });
 const PAD=30;
@@ -459,7 +459,8 @@ function App(){
   /* ---------- the flow of one case ---------- */
   const ask=st=>{setStage(st);return new Promise(res=>{wait.current=res})};
   const answered=v=>{const r=wait.current;wait.current=null;if(r)r(v)};
-  function wrong(key,hint){stats.current.wrong++;stats.current.caseWrong++;sfx.buzz();setShake(s=>({k:key,n:s.n+1}));say('det',hint)}
+  const narr=useRef(null);      // the running explanation of a riddle; a press stops it
+  function wrong(key,hint){narr.current=null;setPose('stand');setExpr('happy');stats.current.wrong++;stats.current.caseWrong++;sfx.buzz();setShake(s=>({k:key,n:s.n+1}));say('det',hint)}
 
   function resetCase(){
     setLit(null);setTarget(null);setCur(null);setShown([]);setSteps(0);setReveal(false);setGood(null);setChosen(null);setStamp(false);setFriend(null);setHop(false);setInLift(false);setHint(false);setWho(false);
@@ -486,14 +487,13 @@ function App(){
     await go({k:'floor',f:to},ms,{bounce:fh*.1,hops:4});ck();
     setPose('stand');setRot(0);setCur(to);
   }
-  /* counting on, floor by floor: +1 for each, said aloud */
-  async function climb(from,to,ck,quiet){
+  /* up the stairs, floor by floor: +1 for each. Nothing is counted aloud */
+  async function climb(from,to,ck){
     for(let f=from+1;f<=to;f++){
       await stair(f-1,f,720,ck);
       setSteps(f-from);sfx.count(f);setPlus({f,id:Math.random()});
       if(f===to)setShown([from,to]);
-      if(!quiet)say('kid',`${f}!`,{});
-      await sleep(fast.current?0:quiet?250:560);ck();
+      await sleep(fast.current?0:250);ck();
     }
   }
   /* the opening: the detective explains the key, and the scene shows it */
@@ -518,7 +518,7 @@ function App(){
     sfx.lamp();setLit('small');setTarget({k:'num',which:'small'});
     line=say('det','ורק אז נתחיל לטפס אחד אחד את שאר הקומות, לפי המספר הנותר.');
     await nap(1500);setTarget(null);setStage('climb');
-    await climb(big,big+small,ck,true);
+    await climb(big,big+small,ck);
     setGood(big+small);setPose('cheer');sfx.tada();
     await line;ck();await nap(900);
   }
@@ -535,14 +535,21 @@ function App(){
       const c=list[i];
       setCi(i);resetCase();setStage('intro');await nap(250);
       // the riddle
+      // the two numbers can be pressed all along (a child who already knows does not wait); what he says goes on meanwhile
       setWho(true);
-      await say('det',`${i===0?(withIntro?'אוקי, חידה ראשונה.':'חידה ראשונה.'):i===list.length-1?'חידה אחרונה.':`חידה ${ORD[i]}.`} ${c.friend.hides} בקומה כלשהי.`);ck();
+      const id=narr.current={}, on=()=>narr.current===id;
+      const line1=say('det',`${i===0?(withIntro?'אוקי, חידה ראשונה.':'חידה ראשונה.'):i===list.length-1?'חידה אחרונה.':`חידה ${ORD[i]}.`} ${c.friend.hides} בקומה כלשהי.`);
+      if(i===0){await line1;ck()}
       setHint(true);sfx.tap();setPose('think');setExpr(undefined);
-      await say('det',`הרמז הוא: ${exText(c.a,c.b)}.`);ck();
+      const picked=ask('pick');
+      (async()=>{
+        await line1;if(!on())return;
+        await say('det',`הרמז הוא: ${exText(c.a,c.b)}.`);if(!on())return;
+        setPose('stand');setExpr('happy');
+        await say('det',i<2?'איזה מספר גדול יותר? לחצו עליו.':'מתחילים מהמספר הגדול יותר.');
+      })();
       // 1. the big number
-      setPose('stand');setExpr('happy');
-      say('det',i<2?'איזה מספר גדול יותר? לחצו עליו.':'מתחילים מהמספר הגדול יותר.');
-      await ask('pick');ck();
+      await picked;ck();narr.current=null;hush();setPose('stand');setExpr('happy');
       sfx.lamp();setLit('big');setTarget({k:'num',which:'big'});
       // 2. the elevator goes straight to it
       setStage('ride');
@@ -600,7 +607,7 @@ function App(){
     setTimeout(()=>sfx.stamp(),860)},[endStage]);
 
   function start(){
-    audio();hush();const tk=++run.current,first=firstGame.current,list=makeCases(first);firstGame.current=false;
+    audio();narr.current=null;hush();const tk=++run.current,first=firstGame.current,list=makeCases(first);firstGame.current=false;
     stats.current={wrong:0,caseWrong:0,answers:0,correct:0};doneReq.current=null;wait.current=null;
     setCases(list);setCi(0);setFound(0);setBuilt(REDUCE?11:0);setEndStage(null);setLidOpen(false);setHand(null);setLeaving(false);
     log('game_start',{cases:list.map(c=>c.a+'+'+c.b)});
@@ -647,10 +654,10 @@ function App(){
   useEffect(()=>{if(KP.claimCorner)KP.claimCorner()},[]);
   const bubRef=useRef(bub);bubRef.current=bub;
   useEffect(()=>{if(KP.onResume)KP.onResume(()=>{const b=bubRef.current;if(wait.current&&b.text)say(b.who,b.text)})},[]);
-  useEffect(()=>{start();return()=>{run.current++;hush()}},[]);
+  useEffect(()=>{start();return()=>{run.current++;narr.current=null;hush()}},[]);
 
   /* ---------- render ---------- */
-  const color=found/CFG.CASES, grayFilter=`grayscale(${(1-color).toFixed(2)}) brightness(${(1.12-.1*color).toFixed(2)})`, nightFilter=`grayscale(${(1-color).toFixed(2)}) brightness(${(.26+.14*color).toFixed(2)}) contrast(1.15)`;   // the city stays almost black, so the tower and the characters stand out
+  const color=found/CFG.CASES, grayFilter=`grayscale(${(1-color).toFixed(2)}) brightness(${(1.12-.1*color).toFixed(2)})`;
   const litFloor=cur!=null&&cur>0&&stage!=='ride'||stage==='ride'&&cur===C.big?cur:null;
   const num=which=>{const v=C[which];return(
     <button ref={numRefs[which]} key={which} className={'n'+(stage==='pick'?' ask':'')+(lit===which?' lit':lit?' dim':'')+(shake.k===which?' shake':'')} style={{width:Math.max(38,ef*1.1),height:paperH-6}}
@@ -661,7 +668,7 @@ function App(){
   return(
     <div className="app" ref={appRef} onPointerDownCapture={()=>audio()}>
       <div className="scene" ref={sceneRef}>
-        <div className="gray" style={{inset:0,filter:nightFilter}}>
+        <div className="gray" style={{inset:0,filter:grayFilter}}>
           <NoirBG/>
           <Street w={W} h={stH}/>
         </div>
@@ -723,8 +730,8 @@ function App(){
         <div className="acts" role="group" aria-label="מה עושים עכשיו">
           {stage==='pick'&&[C.a,C.b].map((v,i)=><button key={i} className={'big'+(shake.k==='small'&&v===C.small?' shake':'')} onClick={()=>pick(v)}>{v}</button>)}
           {demo&&stage!=='intro'&&<button className="skipb" style={stage==='climb'?{order:2}:null} onClick={skipIntro}>דילוג על ההסבר</button>}
-          {stage==='climb'&&<div className="pips" role="img" aria-label={`${steps} מתוך ${C.small}`}>{mk(Math.max(C.small,steps)).map((_,i)=><i key={i} className={'pip'+(i<steps?' f':'')+(i>=C.small?' over':'')}>+1</i>)}</div>}
-          {(stage==='answer'||stage==='solved')&&C.opts.map(v=><button key={v+(shake.k==='a'+v?'-'+shake.n:'')} className={'big'+(good===v?' good':'')+(shake.k==='a'+v?' shake':'')} disabled={stage!=='answer'} onClick={()=>choose(v)}>{v}</button>)}
+          {stage==='climb'&&<div className="pips" role="img" aria-label={`${steps} מתוך ${C.small}`}>{mk(Math.max(C.small,steps)).map((_,i)=><i key={i} className={'pip'+(i<steps?' f':'')+(i>=C.small?' over':'')}/>)}</div>}
+          {stage==='answer'&&C.opts.map(v=><button key={v+(shake.k==='a'+v?'-'+shake.n:'')} className={'big'+(good===v?' good':'')+(shake.k==='a'+v?' shake':'')} disabled={stage!=='answer'} onClick={()=>choose(v)}>{v}</button>)}
         </div>
       </div>
       {endStage==='done'&&(()=>{const n=starCount(mistakes());return(

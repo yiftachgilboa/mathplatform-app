@@ -1856,14 +1856,14 @@
     // noir backdrop (the elevator game): LP.useTheme('noir') first. A night city in two rows with a big faceted
     // moon, long clouds and lit windows. Markup for viewBox 0 0 1200 800 (slice); the ground is the game's.
     noir(o) {
-      o = o || {}; const T = theme, W = 1200, id = o.id || 'noir';
-      let svg = `<defs><linearGradient id="${id}sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${T.sky[0]}"/><stop offset=".55" stop-color="${T.sky[1]}"/><stop offset="1" stop-color="${T.sky[2]}"/></linearGradient>
-        <radialGradient id="${id}glow"><stop offset="0" stop-color="${T.glow}" stop-opacity=".55"/><stop offset=".5" stop-color="${T.glow}" stop-opacity=".16"/><stop offset="1" stop-color="${T.glow}" stop-opacity="0"/></radialGradient></defs>
+      o = o || {}; const T = theme, W = 1200, id = o.id || 'noir', sky = o.sky || T.sky; // o.sky: another sky (an almost black one for contrast); the city does not change
+      let svg = `<defs><linearGradient id="${id}sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky[0]}"/><stop offset=".55" stop-color="${sky[1]}"/><stop offset="1" stop-color="${sky[2]}"/></linearGradient>
+        <radialGradient id="${id}glow"><stop offset="0" stop-color="${T.glow}" stop-opacity="${o.sky ? .34 : .55}"/><stop offset=".5" stop-color="${T.glow}" stop-opacity="${o.sky ? .07 : .16}"/><stop offset="1" stop-color="${T.glow}" stop-opacity="0"/></radialGradient></defs>
         <rect width="${W}" height="800" fill="url(#${id}sky)"/><circle cx="600" cy="190" r="260" fill="url(#${id}glow)"/>`;
       svg += draw({ meshes: [icosphere(1, M(['#b7ae96', '#dcd3b4', '#f2ead0', '#fffbea'], .05), 5).scale(86)] }, camera({ a: .2, ox: 600, oy: 190 }));
       const rand = rng(77); for (let i = 0; i < 26; i++) { const x = rand() * W, y = rand() * 330, r = 1.2 + rand() * 1.8; svg += `<polygon points="${x.toFixed(1)},${(y - r * 1.6).toFixed(1)} ${(x + r).toFixed(1)},${y.toFixed(1)} ${x.toFixed(1)},${(y + r * 1.6).toFixed(1)} ${(x - r).toFixed(1)},${y.toFixed(1)}" fill="#fff" opacity="${(.35 + rand() * .4).toFixed(2)}"/>`; }
       [[180, 150, 130, 170, 'long'], [780, 250, 150, 210, 'long'], [1080, 110, 110, 190, 'long']].forEach(([x, y, sz, dur, kind], i) => {
-        svg += `<g class="cloud" style="animation-duration:${dur}s;animation-delay:${-(x / 1400 * dur).toFixed(1)}s" opacity=".8">${draw(make.cloud({ size: sz, seed: i + 3, detail: 1, kind }), camera({ a: .16, ox: 0, oy: y }))}</g>`;
+        svg += `<g class="cloud" style="animation-duration:${dur}s;animation-delay:${-(x / 1400 * dur).toFixed(1)}s" opacity="${o.sky ? .3 : .8}">${draw(make.cloud({ size: sz, seed: i + 3, detail: 1, kind }), camera({ a: .16, ox: 0, oy: y }))}</g>`;
       });
       const at = (list, oy, fog) => list.forEach(([mk, x, opt]) => { svg += draw(make[mk](Object.assign({ fog }, opt)), camera({ a: .1, ox: x, oy })); });
       at([['tallTower', 70, { size: 420, seed: 2, style: 'setback', mat: 'violet' }], ['tallTower', 250, { size: 330, seed: 3, style: 'tiers', mat: 'towerBlue' }], ['tallTower', 420, { size: 440, seed: 4, style: 'twist', mat: 'teal' }],
