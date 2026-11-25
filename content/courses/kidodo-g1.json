@@ -99,6 +99,7 @@
       "id": "lesson-03", "key": "מדרגות", "tagline": "עולים צעד אחר צעד עד 10", "range": "עד 10",
       "tint": "#FFF0B8", "deep": "#9B6A00", "icon": "M3 20h5v-5h5v-5h5V5h3",
       "stages": {
+        "interactive": { "page": "/practices/stairs.html" },
         "practice": { "gameId": "climb", "href": "/practices/climb.html" }
       }
     },
