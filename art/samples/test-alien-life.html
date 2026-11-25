@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>בדיקה — חייזר חי</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, "Segoe UI", Arial, sans-serif; color: #33373b; background: #f3f7f8; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 0 16px 32px; }
+  h1 { font-size: 20px; margin: 16px 0 4px; } p { margin: 0 0 10px; color: #6b7378; font-size: 14px; }
+  .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px; }
+  .row svg { width: 100%; height: 200px; background: linear-gradient(#cdebef, #eef8f8); border-radius: 12px; display: block; }
+  .row b { display: block; text-align: center; font-size: 13px; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>החייזר: מבט, מצמוץ, פה מדבר, גבה והבעות</h1>
+  <p>תוספת אופציונלית לפנים (`gaze`, `blink`, `talk`, `brows`, `expression`). בלי האפשרויות האלה הציור זהה למה שהיה. בשורה הראשונה חייזר חי: עוקב אחרי העכבר, ולחיצה עליו = מדבר.</p>
+  <div class="row"><div><svg id="live" viewBox="-60 -125 120 150"></svg><b>חי</b></div></div>
+  <div class="row" id="row"></div>
+</div>
+<script src="../lowpoly.js"></script>
+<script>
+const $ = id => document.getElementById(id), A = o => LP.make.alien(Object.assign({ size: 100, rot: .15 }, o));
+const card = ([o, t]) => { const cam = LP.camera({ a: .3 }), x = A(o); return `<div><svg viewBox="-60 -125 120 150">${LP.draw(x, cam)}${LP.face(x, cam)}</svg><b>${t}</b></div>`; };
+$('row').innerHTML = [[{}, 'כמו שהיה'], [{ gaze: [-1, 0] }, 'מבט לצד'], [{ gaze: [1, -1] }, 'מבט למעלה'], [{ gaze: [0, 1] }, 'מבט למטה'], [{ blink: true }, 'מצמוץ'], [{ talk: 1 }, 'מדבר'], [{ expression: 'joy', brows: [[.02, .1], [.02, .1]] }, 'שמח'],
+  [{ expression: 'surprised', brows: [[0, .14], [0, .14]] }, 'מופתע'], [{ expression: 'sad', brows: [[-.05, -.03], [-.05, -.03]] }, 'לא מרוצה'], [{ brows: [[0, .13], [0, -.04]] }, 'גבה אחת למעלה']].map(card).join('');
+let mouse = null, talk = false; const el = $('live');
+addEventListener('pointermove', e => mouse = [e.clientX, e.clientY]); el.onclick = () => talk = !talk;
+LP.perform(el, { mind: LP.mind({ acts: [{ expression: 'joy', ms: 1500 }, { expression: 'surprised', ms: 1200 }], turn: .35 }), make: p => A(p), input: () => ({ look: mouse && LP.lookAt(el, ...mouse), talking: talk, idle: true, redraw: Math.floor(performance.now() / (talk ? 90 : 250)) }) });
+</script>
+</body>
+</html>

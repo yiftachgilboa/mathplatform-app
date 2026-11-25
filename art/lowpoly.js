@@ -856,7 +856,7 @@
     });
     const obj = place(meshes, Object.assign({ rot: 0 }, o), S * .18, { ordered: 'depth' });
     const r = o.rot || 0, C = Math.cos(r), Sn = Math.sin(r);
-    obj.face = { c: [obj.x, obj.y, obj.z + hc[2]], r: hr, k: [.92, 1, .95], f: [Sn, -C, 0], u: [C, Sn, 0], style: 'cyclops' };
+    obj.face = { c: [obj.x, obj.y, obj.z + hc[2]], r: hr, k: [.92, 1, .95], f: [Sn, -C, 0], u: [C, Sn, 0], style: 'cyclops', gaze: o.gaze, blink: o.blink, talk: o.talk, brows: o.brows, expr: o.expression };
     return obj;
   };
 
@@ -1184,11 +1184,20 @@
     if (style === 'animal') return `<g class="face">${eyes.map(e => dotEye(e, .85) + bigBrow(e, .03, .24, .05, .75, '#2b2f33')).join('')}</g>`;
     if (style === 'cyclops') {
       const e = both[0]; if (!e.vis) return '';
-      out += `<circle cx="${f1(e[0])}" cy="${f1(e[1])}" r="${f1(s * .32)}" fill="#fff"/><circle cx="${f1(e[0])}" cy="${f1(e[1] + s * .03)}" r="${f1(s * .19)}" fill="#7b3fd1"/>`;
-      out += `<circle cx="${f1(e[0])}" cy="${f1(e[1] + s * .04)}" r="${f1(s * .1)}" fill="${E}"/><circle cx="${f1(e[0] + s * .07)}" cy="${f1(e[1] - s * .06)}" r="${f1(s * .055)}" fill="#fff"/>`;
-      if (m.vis) out += P(`M${f1(m[0] - s * .13)},${f1(m[1] - s * .02)} Q${f1(m[0])},${f1(m[1] + s * .12)} ${f1(m[0] + s * .13)},${f1(m[1] - s * .02)}`, .05);
+      // optional life, as in the other characters: gaze moves the iris, blink shuts the lid, talk opens the mouth, brows
+      // [[tilt, lift] left, right] tip the one wide brow; expr 'joy' smiles wide, 'surprised' shrinks the iris, 'sad' turns the mouth
+      const X = F.expr, gx = gz[0] * 1.45, gy = gz[1] * 1.7, ir = X === 'surprised' ? .8 : 1;
+      out += `<circle cx="${f1(e[0])}" cy="${f1(e[1])}" r="${f1(s * .32)}" fill="#fff"/><circle cx="${f1(e[0] + gx)}" cy="${f1(e[1] + s * .03 + gy)}" r="${f1(s * .19 * ir)}" fill="#7b3fd1"/>`;
+      out += `<circle cx="${f1(e[0] + gx)}" cy="${f1(e[1] + s * .04 + gy)}" r="${f1(s * .1 * ir)}" fill="${E}"/><circle cx="${f1(e[0] + s * .07 + gx)}" cy="${f1(e[1] - s * .06 + gy)}" r="${f1(s * .055)}" fill="#fff"/>`;
+      if (F.blink) out += `<circle cx="${f1(e[0])}" cy="${f1(e[1])}" r="${f1(s * .335)}" fill="#43bb6c"/>` + P(`M${f1(e[0] - s * .27)},${f1(e[1] + s * .04)} Q${f1(e[0])},${f1(e[1] + s * .2)} ${f1(e[0] + s * .27)},${f1(e[1] + s * .04)}`, .05);
+      if (m.vis) {
+        const w = X === 'joy' ? .2 : .13, dip = X === 'joy' ? .2 : X === 'sad' ? -.1 : .12;
+        out += F.talk ? `<ellipse cx="${f1(m[0])}" cy="${f1(m[1] + s * .04)}" rx="${f1(s * .13)}" ry="${f1(s * (.03 + .12 * F.talk))}" fill="${R}"/>`
+          : P(`M${f1(m[0] - s * w)},${f1(m[1] - s * .02)} Q${f1(m[0])},${f1(m[1] + s * dip)} ${f1(m[0] + s * w)},${f1(m[1] - s * .02)}`, .05);
+      }
       { const w = s * .4, y = e[1] - s * .46, t = s * .13; // one wide brow
-        out += `<path d="M${f1(e[0] - w)},${f1(y + t * .4)} Q${f1(e[0])},${f1(y - s * .12)} ${f1(e[0] + w)},${f1(y + t * .4)} L${f1(e[0] + w * .9)},${f1(y + t * 1.1)} Q${f1(e[0])},${f1(y - s * .12 + t * 1.4)} ${f1(e[0] - w * .9)},${f1(y + t * 1.1)} Z" fill="#124d2c" stroke="#124d2c" stroke-width="${f1(s * .02)}" stroke-linejoin="round"/>`; }
+        const bo = F.brows ? (Array.isArray(F.brows[0]) ? F.brows : [F.brows, F.brows]) : null, L = bo ? -s * bo[0][1] : 0, Rr = bo ? -s * bo[1][1] : 0, Md = (L + Rr) / 2 - (bo ? s * (bo[0][0] + bo[1][0]) * .5 : 0);
+        out += `<path d="M${f1(e[0] - w)},${f1(y + t * .4 + L)} Q${f1(e[0])},${f1(y - s * .12 + Md)} ${f1(e[0] + w)},${f1(y + t * .4 + Rr)} L${f1(e[0] + w * .9)},${f1(y + t * 1.1 + Rr)} Q${f1(e[0])},${f1(y - s * .12 + t * 1.4 + Md)} ${f1(e[0] - w * .9)},${f1(y + t * 1.1 + L)} Z" fill="#124d2c" stroke="#124d2c" stroke-width="${f1(s * .02)}" stroke-linejoin="round"/>`; }
       return `<g class="face">${out}</g>`;
     }
     if (style === 'monster') {
