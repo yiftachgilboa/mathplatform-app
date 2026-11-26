@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kidodo · התאומים של 10</title>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
+<script src="/practices/kidodo-practice.js"></script>
+<script src="../art/lowpoly.js"></script>
+<style>
+:root{--ink:#33373b;--panel:#1d3b4a;--gold:#FFD65A;--ok:#1FA36A;--bad:#EF5C55;--sky:#2EB6EA;--blue:#3d8fe0;--twin:#FFB648}
+*{box-sizing:border-box;margin:0}
+html,body{overflow:hidden;height:100%}
+body{font-family:Rubik,system-ui,sans-serif;color:var(--ink);background:#bfe6f5;-webkit-tap-highlight-color:transparent}
+button{font-family:inherit;cursor:pointer;border:0;color:inherit}
+button:focus-visible{outline:4px solid var(--gold);outline-offset:3px}
+.app{position:relative;display:flex;flex-direction:column;height:100vh;height:100dvh;user-select:none;-webkit-user-select:none}
+.scene{position:relative;flex:1;min-height:0;overflow:hidden}
+.scene>*{position:absolute}
+.bg{inset:0;width:100%;height:100%;display:block}
+.cloud{animation:cloudDrift linear infinite}
+@keyframes cloudDrift{from{transform:translateX(-220px)}to{transform:translateX(1300px)}}
+.vig{inset:0;pointer-events:none;z-index:8;background:radial-gradient(ellipse at 50% 48%,transparent 58%,rgba(10,40,60,.28) 100%)}
+.side{left:10px;top:10px;direction:ltr;display:flex;gap:6px;z-index:90}
+.iconbtn{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#176fbe;background:#F4F8FF;box-shadow:0 4px 0 rgba(0,0,0,.22)}
+.iconbtn.off{color:#8b95a5}
+
+.slab.pop{animation:slabIn .3s cubic-bezier(.3,1.5,.5,1) both}
+@keyframes slabIn{from{transform:translateY(-30px) scale(.7,1.2);opacity:0}}
+.plate{display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;background:rgba(20,52,70,.7);border-radius:8px;z-index:3;transition:transform .25s,background .25s,color .25s;pointer-events:none;animation:friendIn .4s cubic-bezier(.3,1.7,.5,1)}
+.plate.goal{background:#fff;color:#23866E;box-shadow:0 0 0 3px #58C9AD}
+.plate.cur{background:var(--gold);color:#3a2b00;transform:scale(1.22);box-shadow:0 0 14px rgba(255,214,90,.7)}
+.glow{border-radius:50%;pointer-events:none;z-index:2;background:radial-gradient(circle,rgba(255,236,150,.95) 0 22%,rgba(255,214,90,.4) 45%,transparent 70%)}
+
+.cube{position:absolute;border-radius:5px;z-index:2;pointer-events:none;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.35);animation:cubeIn .22s cubic-bezier(.3,1.6,.5,1) both}
+.cube.a{background:linear-gradient(180deg,#6fb3f2 0 22%,var(--blue) 22% 82%,#2a6fb8 82%)}
+.cube.b{background:linear-gradient(180deg,#ffd28a 0 22%,var(--twin) 22% 82%,#e08f22 82%)}
+.cube.empty{background:rgba(255,255,255,.35);border:3px dashed #2a6fb8;animation-name:cubeFade}
+@keyframes cubeIn{from{transform:translateY(-22px) scale(.6);opacity:0}}
+@keyframes cubeFade{from{opacity:0}}
+
+.boardx{z-index:6}
+.boardx>svg{position:absolute;left:0;top:0}
+.pin{position:absolute;width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff9d90,#d63a3a 60%,#8f1c22);box-shadow:1px 3px 2px rgba(0,0,0,.4)}
+.paper{position:absolute;background:#fbf6e6;border-radius:3px;box-shadow:0 3px 0 rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;direction:ltr;font-weight:700;color:#2b2f33;transform:rotate(-1deg)}
+.paper .n{background:none;font-weight:700;font-size:inherit;line-height:1;padding:0;position:relative;display:flex;align-items:center;justify-content:center;border-radius:8px;transition:opacity .3s,transform .3s,color .3s}
+.paper .n.box{border:3px dashed #9aa3ad;background:rgba(255,255,255,.6)}
+.paper .n.box.ask{border-color:var(--sky);animation:ring 1.1s infinite}
+.paper .n.box.known{border-color:transparent;background:none;color:var(--blue);animation:mpop .5s}
+.paper .n.guess{color:#9aa3ad}
+.paper .n.bad{color:var(--bad);animation:shake .4s}
+.paper .n.done{color:var(--ok);animation:mpop .5s}
+.paper .n.box.done{border-color:transparent;background:none}
+@keyframes ring{0%{box-shadow:0 0 0 0 rgba(46,182,234,.75)}70%,100%{box-shadow:0 0 0 11px rgba(46,182,234,0)}}
+.paper .n.lit{transform:scale(1.15);background:radial-gradient(circle,rgba(255,226,120,.95),rgba(255,226,120,.25) 60%,transparent 72%)}
+.paper .dim{opacity:.3}
+.paper .s{padding:0 .1em;transition:opacity .3s}
+.paper.blank>*{opacity:0!important;transition:none!important}
+.pol.sil svg{filter:brightness(0);opacity:.7}
+@keyframes mpop{40%{transform:scale(1.5)}}
+.pols{position:absolute;display:flex;justify-content:space-between;direction:rtl}
+.pol{background:#fbf6e6;border-radius:2px;display:flex;align-items:center;justify-content:center;color:#b8b09a;font-weight:700;box-shadow:0 2px 0 rgba(0,0,0,.3);overflow:hidden}
+.pol.now{outline:2px solid var(--gold)}
+.pol.in svg{animation:mpop .5s}
+
+.shake{animation:shake .4s}
+@keyframes shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+.beam{inset:0;width:100%;height:100%;pointer-events:none;z-index:7;transition:opacity .3s}
+.lift,.herox{left:0;top:0;will-change:transform;pointer-events:none}
+.herox .hop{animation:winHop .5s cubic-bezier(.3,0,.5,1) infinite alternate}
+@keyframes winHop{from{transform:translateY(0) scale(1.04,.96)}to{transform:translateY(-14%)}}
+.qm{position:absolute;font-weight:700;color:var(--gold);text-shadow:0 2px 0 rgba(0,0,0,.45);animation:qm 1.6s ease-in-out infinite;pointer-events:none;z-index:6}
+@keyframes qm{0%,100%{transform:translateY(0) rotate(-8deg)}50%{transform:translateY(-8px) rotate(8deg)}}
+.friend{z-index:6;pointer-events:none;transform-origin:50% 100%;animation:friendIn .6s cubic-bezier(.3,1.7,.5,1) both}
+@keyframes friendIn{from{transform:scale(0)}}
+.stamp{z-index:30;pointer-events:none;border:5px double currentColor;color:#1f8a5c;background:rgba(255,255,255,.82);border-radius:10px;padding:8px 18px;font-weight:700;white-space:nowrap;transform:translate(-50%,-50%) rotate(-12deg);animation:stamp .5s cubic-bezier(.3,1.5,.5,1) both}
+@keyframes stamp{from{transform:translate(-50%,-50%) rotate(-30deg) scale(3);opacity:0}60%{transform:translate(-50%,-50%) rotate(-10deg) scale(.92);opacity:1}}
+.walker{left:0;top:0;will-change:transform;pointer-events:none;z-index:0}
+
+/* the panel under the stage: what is said, and what can be pressed now */
+.panel{flex:none;position:relative;z-index:40;background:linear-gradient(180deg,var(--panel),#132a36);padding:10px 12px max(12px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:9px;align-items:center}
+.say{position:relative;width:100%;max-width:820px;background:#fff;border-radius:14px;padding:8px 14px;font-size:17px;line-height:1.3;font-weight:500;min-height:60px;display:flex;align-items:center;gap:10px;text-align:right;cursor:pointer}
+.say .tail{position:absolute;top:-11px;border:11px solid transparent;border-bottom-color:#fff;border-top:0;margin-left:-11px;transition:left .25s}
+.say .who{flex:none;font-size:13px;font-weight:700;color:#7a5a2e;background:#f4e6cb;border-radius:8px;padding:3px 8px}
+.say .who.kid{color:#8f1c22;background:#ffdcd7}
+.say .txt{animation:txtIn .3s both}
+@keyframes txtIn{from{opacity:0;transform:translateY(6px)}}
+.acts{width:100%;min-height:112px;display:flex;align-items:center;justify-content:center;gap:10px;direction:ltr}
+/* the elevator's buttons, 1–9 */
+.keys{display:grid;grid-template-columns:repeat(5,50px);gap:6px 7px;direction:ltr}
+.key{width:50px;height:50px;border-radius:50%;font-size:25px;font-weight:700;color:#3a2b00;background:radial-gradient(circle at 50% 38%,#fffaf0 0 55%,#f1e4c4 75%);box-shadow:0 0 0 3px #d9ac3c,0 5px 0 rgba(0,0,0,.35);transition:transform .1s}
+.key:active{transform:translateY(3px)}
+.key.good{background:var(--ok);color:#fff}
+.key.fall{animation:fall .9s cubic-bezier(.5,0,.8,.6) forwards;pointer-events:none}
+@keyframes fall{0%{transform:none}15%{transform:translateY(-6px) rotate(-8deg)}100%{transform:translateY(160px) rotate(40deg);opacity:0}}
+.key.gone{visibility:hidden}
+.watch{flex:none;width:48px;height:56px;position:relative}
+.watch svg{display:block}
+.watch.over{animation:shake .4s}
+.skipb{height:46px;padding:0 22px;border-radius:23px;background:rgba(255,255,255,.16);color:#fff;font-size:17px;font-weight:500;direction:rtl}
+@media(min-width:700px){.say{font-size:20px;padding:10px 18px}.keys{grid-template-columns:repeat(9,58px);gap:8px}.key{width:58px;height:58px;font-size:28px}.acts{min-height:86px}}
+@media(min-width:700px) and (max-height:700px){.say{font-size:18px;min-height:50px;padding:6px 16px}.acts{min-height:76px}}
+/* a low wide window (phone on its side): the panel sits beside the stage */
+@media(max-height:480px) and (min-aspect-ratio:5/4){.app{flex-direction:row}.panel{width:44%;justify-content:center;order:0}.scene{order:1}.say .tail{display:none}.acts{min-height:0}.keys{grid-template-columns:repeat(5,46px);gap:6px}.key{width:46px;height:46px;font-size:23px}}
+
+.wchest{background:none;padding:0;line-height:0;filter:drop-shadow(0 6px 0 rgba(0,0,0,.25))}
+.wchest.idle .chest{animation:chestBreath 1.1s ease-in-out infinite;transform-origin:50% 100%}
+@keyframes chestBreath{0%,100%{transform:scale(1)}50%{transform:scale(1.13)}}
+.hand{position:absolute;left:0;top:0;z-index:70;pointer-events:none;opacity:0;filter:drop-shadow(0 4px 4px rgba(0,0,0,.4))}
+.pt{position:fixed;pointer-events:none;z-index:999;will-change:transform,opacity}
+.coinp{position:fixed;left:0;top:0;pointer-events:none;z-index:1001;will-change:transform,opacity;line-height:0}
+.center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:20px;z-index:80}
+.endscreen{background:rgba(16,40,56,.55);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+.stars{display:flex;gap:14px;align-items:flex-end}
+.star{width:min(26vw,120px);aspect-ratio:100/96;animation:starIn .55s cubic-bezier(.3,1.6,.5,1) both}
+.star:nth-child(2){width:min(32vw,150px)}
+@keyframes starIn{from{transform:scale(0) rotate(-40deg);opacity:0}}
+.rise{animation:rise .5s ease-out both}
+@keyframes rise{from{transform:translateY(24px);opacity:0}}
+.endbtns{position:absolute;left:0;right:0;bottom:max(22px,5dvh);display:flex;justify-content:center;gap:clamp(56px,22vw,220px)}
+.endbtn{width:112px;height:64px;display:flex;align-items:center;justify-content:center;clip-path:polygon(16px 0,calc(100% - 16px) 0,100% 50%,calc(100% - 16px) 100%,16px 100%,0 50%);transition:transform .12s}
+.endbtn:active{transform:scale(.93)}
+.endbtn.next{background:linear-gradient(180deg,#2f8f62 0 50%,#237a52 50%)}
+.endbtn.again{background:linear-gradient(180deg,#2f5f9e 0 50%,#244f88 50%)}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01s!important;animation-iteration-count:1!important;transition-duration:.01s!important}.cloud{animation:none}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const {useState,useEffect,useLayoutEffect,useRef,useMemo} = React;
+
+/* ---------- the game's numbers — change them here, not in the logic ---------- */
+const CFG={
+  CASES:5, TOP:10,
+  FIRST:8,                        // the known number of the first riddle of the first game
+  GUESS_S:5,                      // the stopwatch: seconds to guess
+  PAIRS:[[1,9],[2,8],[3,7],[4,6],[5,5]],   // the opening explanation
+  SUPPORT_AFTER:2,                // mistakes in one riddle → the cubes of the known number + empty cubes up to 10
+  BPM:100, MUSIC_VOL:.45,
+};
+
+/* ---------- helpers ---------- */
+const SPOKEN=['אֶפֶס','אַחַת','שְׁתַּיִם','שָׁלוֹשׁ','אַרְבַּע','חָמֵשׁ','שֵׁשׁ','שֶׁבַע','שְׁמוֹנֶה','תֵּשַׁע','עֶשֶׂר'];
+const toSpeech=t=>t.replace(/[⁦-⁩]/g,'').replace(/\s*\+\s*/g,' ועוד ').replace(/\s*=\s*/g,' זה ').replace(/\d+/g,m=>SPOKEN[+m]??m);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const rand=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=rand(0,i);[a[i],a[j]]=[a[j],a[i]]}return a};
+const REDUCE=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+const ORD=['ראשונה','שנייה','שלישית','רביעית','חמישית'];
+const exText=t=>`⁦${t}⁩`;      // an exercise inside a Hebrew sentence, left to right
+/* five riddles, five different known numbers. The known number sits in the left box or the right one (never three times the same) */
+function makeCases(first){
+  let nums;do{nums=shuffle([1,2,3,4,5,6,7,8,9]).slice(0,CFG.CASES)}while(nums.filter(n=>n>=6).length<2||nums.filter(n=>n<=4).length<2);
+  if(first&&!nums.includes(CFG.FIRST))nums[0]=CFG.FIRST;else if(first)nums=[CFG.FIRST,...nums.filter(n=>n!==CFG.FIRST)];
+  let side=[];do{side=['L',...Array.from({length:CFG.CASES-1},()=>Math.random()<.5?'L':'R')]}while(side.join('').includes('LLL')||side.join('').includes('RRR'));
+  const who=shuffle(FRIENDS).slice(0,CFG.CASES-1).concat([TREASURE]);
+  return nums.map((a,i)=>({a,b:CFG.TOP-a,side:side[i],friend:who[i]}));
+}
+
+/* ---------- sound: everything made in code (Web Audio), no files ---------- */
+let heVoice=null, actx=null, soundOn=true, musicOn=true, noiseBuf=null, musicGain=null;
+const hasTTS=typeof window!=='undefined'&&'speechSynthesis' in window;
+function loadVoice(){try{const hv=speechSynthesis.getVoices().filter(v=>/^(he|iw)/i.test(v.lang));heVoice=hv.find(v=>/avri|asaf|male/i.test(v.name)&&!/female/i.test(v.name))||hv[0]||null}catch(e){}}
+if(hasTTS){loadVoice();try{speechSynthesis.onvoiceschanged=loadVoice}catch(e){}}
+function audio(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();music()}catch(e){}}
+function tone(f,d=.15,type='triangle',vol=.12,slideTo,at=0,out){
+  if(!actx||(!soundOn&&!out))return;
+  try{const t=actx.currentTime+at,o=actx.createOscillator(),g=actx.createGain();o.type=type;o.frequency.setValueAtTime(f,t);
+    if(slideTo)o.frequency.exponentialRampToValueAtTime(slideTo,t+d);
+    g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+d);
+    o.connect(g).connect(out||actx.destination);o.start(t);o.stop(t+d)}catch(e){}
+}
+function noise(d,{type='bandpass',f=800,f2,q=1,vol=.25,at=0,out}={}){
+  if(!actx||(!soundOn&&!out))return;
+  try{
+    if(!noiseBuf){noiseBuf=actx.createBuffer(1,actx.sampleRate,actx.sampleRate);const ch=noiseBuf.getChannelData(0);for(let i=0;i<ch.length;i++)ch[i]=Math.random()*2-1}
+    const t=actx.currentTime+at,s=actx.createBufferSource(),fl=actx.createBiquadFilter(),g=actx.createGain();
+    s.buffer=noiseBuf;fl.type=type;fl.Q.value=q;fl.frequency.setValueAtTime(f,t);if(f2)fl.frequency.exponentialRampToValueAtTime(f2,t+d);
+    g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+d);
+    s.connect(fl).connect(g).connect(out||actx.destination);s.start(t);s.stop(t+d)}catch(e){}
+}
+const NOTES=[262,294,330,349,392,440,494,523,587,659,698];
+const sfx={
+  pop(){tone(500,.09,'sine',.1,1400)},
+  build(){tone(70,.16,'sine',.35,48);noise(.1,{type:'lowpass',f:420,vol:.35})},
+  lamp(){noise(.03,{f:3000,q:2,vol:.3});tone(2500,.05,'square',.035)},
+  tap(){tone(520,.06,'sine',.08)},
+  cube(k){tone(NOTES[Math.min(10,k)]*1.5,.12,'triangle',.1)},
+  motor(s){tone(90,s,'sawtooth',.045,130);tone(45,s,'triangle',.1,65)},
+  ding(){tone(659,1.1,'sine',.16);tone(523,1.6,'sine',.16,undefined,.32);tone(1318,.8,'sine',.04);tone(1046,1,'sine',.04,undefined,.32)},
+  whoosh(){noise(1.1,{f:300,f2:3200,q:.7,vol:.3});tone(200,1,'sine',.08,1400)},
+  tick(){tone(1800,.03,'square',.03)},
+  buzz(){tone(110,.16,'sawtooth',.09);tone(116,.16,'square',.05);tone(92,.22,'sawtooth',.09,undefined,.2);tone(98,.22,'square',.05,undefined,.2)},
+  tada(){[523,659,784,1047].forEach((f,i)=>tone(f,i===3?.6:.2,'triangle',.14,undefined,i*.11))},
+  stamp(){tone(55,.3,'sine',.5,40);noise(.18,{f:1400,f2:500,q:.8,vol:.28})},
+  fall(){tone(700,.6,'triangle',.08,160)},
+  coin(){tone(988,.08,'square',.05);tone(1319,.25,'square',.05,undefined,.08)},
+  jackpot(){tone(330,.12,'square',.05);tone(660,.1,'square',.05,undefined,.07);
+    for(let i=0;i<7;i++){const at=.14+i*.07+Math.random()*.05,f=1600+Math.random()*900;tone(f,.09,'triangle',.08,undefined,at);tone(f*1.5,.12,'sine',.06,undefined,at+.045)}},
+};
+/* a light walk in the meadow: soft pentatonic notes over a slow bass. Scheduled on the audio clock, so the course's pause stops it too */
+const MEL=[523,659,784,659,587,784,880,784, 523,587,659,523,440,523,587,392], BASS=[131,131,165,165,110,110,147,147];
+let mNext=0,mStep=0,mTimer=null;
+function music(){
+  if(!musicGain){musicGain=actx.createGain();musicGain.gain.value=musicOn?CFG.MUSIC_VOL:0;musicGain.connect(actx.destination)}
+  if(mTimer)return;
+  mNext=actx.currentTime+.15;
+  mTimer=setInterval(()=>{
+    if(!actx||actx.state!=='running')return;
+    if(mNext<actx.currentTime-.5)mNext=actx.currentTime+.05;      // after a pause: go on from now
+    const beat=60/CFG.BPM/2;
+    while(mNext<actx.currentTime+.35){
+      const at=mNext-actx.currentTime;
+      if(musicOn&&at>=0){
+        if(mStep%2===0||Math.random()<.3)tone(MEL[mStep%16],beat*1.6,'sine',.05,undefined,at,musicGain);
+        if(mStep%4===0)tone(BASS[(mStep/4|0)%8],beat*3.6,'triangle',.16,undefined,at,musicGain);
+      }
+      mStep++;mNext+=beat;
+    }
+  },120);
+}
+function duck(on){try{if(musicGain)musicGain.gain.setTargetAtTime(musicOn?(on?CFG.MUSIC_VOL*.4:CFG.MUSIC_VOL):0,actx.currentTime,.12)}catch(e){}}
+const log=(ev,data)=>console.log('[kidodo]',ev,data||'');
+const KP=window.KidodoPractice||{inCourse:false,answer(){},complete:()=>Promise.resolve(),next(){location.reload()},exit(){history.back()}};
+
+/* ---------- particles ---------- */
+function burst(x0,y0,colors,n=22,spread=1){
+  for(let i=0;i<n;i++){
+    const p=document.createElement('div');p.className='pt';const s=5+Math.random()*9;
+    p.style.cssText=`left:${x0}px;top:${y0}px;width:${s}px;height:${s}px;background:${colors[i%colors.length]};`+(i%3===0?'border-radius:50%;':i%3===1?'clip-path:polygon(50% 0,100% 100%,0 100%);':'border-radius:2px;');
+    document.body.appendChild(p);
+    const ang=-Math.PI/2+(Math.random()-.5)*2.4*spread, dist=50+Math.random()*110, dx=Math.cos(ang)*dist, dy=Math.sin(ang)*dist;
+    const a=p.animate([{transform:'translate(0,0)',opacity:1},{transform:`translate(${dx*.7}px,${dy*.7}px) rotate(${Math.random()*360}deg)`,opacity:1,offset:.55},
+      {transform:`translate(${dx}px,${dy+90}px) rotate(${Math.random()*720}deg) scale(.4)`,opacity:0}],{duration:700+Math.random()*500,easing:'cubic-bezier(.15,.7,.4,1)'});
+    a.onfinish=()=>p.remove();
+  }
+}
+let liveCoins=0;
+function coinBurst(el,n=26){
+  if(!el)return; const r=el.getBoundingClientRect(); if(!r.width)return;
+  const x0=r.left+r.width/2, y0=r.top+r.height*.38, H=window.innerHeight;
+  n=Math.min(n,Math.max(0,140-liveCoins)); if(REDUCE)n=Math.min(n,8);
+  for(let i=0;i<n;i++){
+    const c=document.createElement('div');c.className='coinp';const s=22+Math.random()*16;c.style.width=c.style.height=s+'px';
+    c.innerHTML=COIN_SVG.replace('width="30" height="30"','width="100%" height="100%"');
+    document.body.appendChild(c);liveCoins++;
+    const vx=(Math.random()-.5)*Math.min(900,window.innerWidth*1.6), vy=-(520+Math.random()*520), g=1500;
+    const T=Math.max(1.1,(-vy+Math.sqrt(vy*vy+2*g*(H-y0+60)))/g), spin=2+Math.floor(Math.random()*4), frames=[];
+    for(let k=0;k<=12;k++){const t=T*k/12, x=x0+vx*t-s/2, y=y0+vy*t+.5*g*t*t-s/2;
+      frames.push({transform:`translate(${x}px,${y}px) scaleX(${Math.cos(k/12*spin*Math.PI*2).toFixed(2)})`,opacity:k===0?0:1})}
+    const a=c.animate(frames,{duration:T*1000,delay:i*18,easing:'linear',fill:'both'});
+    a.onfinish=()=>{c.remove();liveCoins--};
+  }
+}
+/* ---------- art: the kidodo Soft Low-Poly library (art/lowpoly.js, inlined by the build) ---------- */
+LP.useTheme('day');
+const A_OBJ=.3, A_W=.16, CA=Math.cos(A_W);
+function lpMarkup(obj,a){const cam=LP.camera({a});return LP.draw(obj,cam)+LP.face(obj,cam)}
+function lpBox(objs,a,pad=.04,padB=pad){const cam=LP.camera({a});let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  objs.forEach(o=>{const b=LP.bounds(LP.facets(o,cam));x0=Math.min(x0,b.x);y0=Math.min(y0,b.y);x1=Math.max(x1,b.x+b.w);y1=Math.max(y1,b.y+b.h)});
+  const p=Math.max(x1-x0,y1-y0)*pad, pb=Math.max(x1-x0,y1-y0)*padB;return [x0-p,y0-p,x1-x0+2*p,y1-y0+p+pb].map(v=>+v.toFixed(1))}
+/* a live object, drawn with a fixed pool of polygons (the performance rule from the bridge game) */
+const SVGNS='http://www.w3.org/2000/svg';
+function LPLive({build,a=A_OBJ,vb,fps=20,run=true,until,dep,className,style,width,height,innerRef}){
+  const ref=useRef(null), b=useRef(build); b.current=build;
+  useEffect(()=>{const el=ref.current;if(!el)return;const t0=performance.now();
+    const g=document.createElementNS(SVGNS,'g'), fg=document.createElementNS(SVGNS,'g'), pool=[];el.replaceChildren(g,fg);
+    const draw=now=>{const o=b.current((now-t0)/1000);if(!o)return;const cam=LP.camera({a}),list=LP.facets(o,cam);
+      for(let i=0;i<list.length;i++){let p=pool[i];if(!p){p=document.createElementNS(SVGNS,'polygon');p.setAttribute('stroke-width','.7');p.setAttribute('stroke-linejoin','round');g.appendChild(p);pool.push(p)}
+        const q=list[i].pts,f=list[i].fill;p.setAttribute('points',q[0][0].toFixed(1)+','+q[0][1].toFixed(1)+' '+q[1][0].toFixed(1)+','+q[1][1].toFixed(1)+' '+q[2][0].toFixed(1)+','+q[2][1].toFixed(1));
+        if(p._f!==f){p.setAttribute('fill',f);p.setAttribute('stroke',f);p._f=f}if(p._h){p.removeAttribute('display');p._h=0}}
+      for(let i=list.length;i<pool.length;i++)if(!pool[i]._h){pool[i].setAttribute('display','none');pool[i]._h=1}
+      const fh=LP.face(o,cam);if(fh!==fg._h){fg.innerHTML=fh;fg._h=fh}};
+    draw(t0); if(!run)return;
+    let raf,last=t0;const loop=now=>{if(now-last>=1000/fps-2){last=now;draw(now)}
+      if(until!=null&&(now-t0)/1000>until){draw(t0+until*1000);return}raf=requestAnimationFrame(loop)};
+    raf=requestAnimationFrame(loop);return()=>cancelAnimationFrame(raf)},[run,a,fps,dep]);
+  return <svg ref={el=>{ref.current=el;if(innerRef)innerRef.current=el}} className={className} viewBox={vb.join(' ')} width={width} height={height}
+    preserveAspectRatio="xMidYMax meet" style={{display:'block',overflow:'visible',...style}}/>;
+}
+const COIN_OBJ=LP.make.coin({size:40,rot:.45}), COIN_VB=lpBox([COIN_OBJ],A_OBJ,.03);
+const COIN_SVG=`<svg width="30" height="30" viewBox="${COIN_VB.join(' ')}" style="display:block;overflow:visible">${lpMarkup(COIN_OBJ,A_OBJ)}</svg>`;
+/* the child's own hero: rides the elevator */
+let LOOK=(window.KidodoPractice&&window.KidodoPractice.look&&window.KidodoPractice.look())||{};
+function useLook(){const [v,setV]=useState(0);useEffect(()=>{const K=window.KidodoPractice;if(K&&K.onLook)K.onLook(l=>{LOOK=l;setV(n=>n+1)})},[]);return v}
+const HERO_VB=lpBox(['stand','walk','think','cheer'].flatMap(p=>[0,.17,.33,.5].map(t=>LP.hero({},{pose:p,t,rot:0}))),A_OBJ,.02,0);
+const HERO_AR=HERO_VB[2]/HERO_VB[3];
+/* a living character: eyes, brows, blinks, faces and small acts all come from the art library (LP.mind / LP.perform) */
+function Actor({vb,w,h,make,input,acts,turn,rest,talkBody}){
+  const ref=useRef(null), live=useRef({}); live.current={make,input};
+  useEffect(()=>LP.perform(ref.current,{a:A_OBJ,fps:18,talkBody,mind:LP.mind({acts,turn,rest}),make:p=>live.current.make(p),input:()=>live.current.input(ref.current)}),[]);
+  return <svg ref={ref} viewBox={vb.join(' ')} width={w} height={h} preserveAspectRatio="xMidYMax meet" style={{display:'block',overflow:'visible'}}/>;
+}
+const Hero=({s,input})=>{const lookV=useLook();
+  return <Actor vb={HERO_VB} w={s*HERO_AR} h={s} make={({pose,t,rot,expression,gaze,blink,talk,brows})=>LP.hero(LOOK,{size:100,pose,t,rot,expression,gaze,blink,talk,brows})} input={el=>({...input(el),redraw:lookV})}/>};
+
+/* the detective (approved in the elevator practice): the flashlight arm turns to the target */
+const DET_ROT=.2;
+const detObj=(aim,o)=>LP.make.buddy({outfit:'detective',size:100,pose:'aim',aim,rot:DET_ROT,...o});
+const DET_VB=lpBox([0,.5,1,1.5,2.1].map(a=>detObj(a)),A_OBJ,.02,0), DET_AR=DET_VB[2]/DET_VB[3];
+const SHOULDER=(()=>{const q=LP.project([33*Math.cos(DET_ROT),33*Math.sin(DET_ROT)*.9,56],LP.camera({a:A_OBJ}));return [(q[0]-DET_VB[0])/DET_VB[3],(q[1]-DET_VB[1])/DET_VB[3]]})();
+const tipOf=aim=>{const q=LP.project(detObj(aim).tip,LP.camera({a:A_OBJ}));return [(q[0]-DET_VB[0])/DET_VB[3],(q[1]-DET_VB[1])/DET_VB[3]]};
+function Detective({s,aim,resting,input}){
+  const cur=useRef(aim), want=useRef(aim); want.current=aim; const rest=useRef(resting); rest.current=resting;
+  return <Actor vb={DET_VB} w={s*DET_AR} h={s} acts={[]} turn={.07} rest="aim" talkBody
+    make={({aimNow,t,rot,expression,gaze,blink,talk,brows})=>detObj(aimNow,{t,rot,expression,gaze,blink,talk,brows})}
+    input={el=>{const sway=rest.current?.07*Math.sin(performance.now()/900):0;cur.current+=(want.current+sway-cur.current)*.28;return {...input(el),rot:DET_ROT,pose:'aim',aimNow:cur.current,redraw:Math.round(cur.current*60)}}}/>;
+}
+
+/* treasure chest (library chest) */
+const chestObj=phi=>LP.make.chest({size:100,rot:0,open:phi});
+const CHEST_VB=lpBox([chestObj(0)],A_OBJ,.03);
+const lidAt=t=>{const k=Math.min(1,t/.45);return 2*(1-Math.pow(1-k,3))+Math.sin(k*Math.PI)*.3};
+const Chest=({open,s=62,innerRef})=>(<LPLive innerRef={innerRef} className="chest" vb={CHEST_VB} width={s} height={s*CHEST_VB[3]/CHEST_VB[2]}
+  dep={open?'o':'c'} run={!!open} until={.5} fps={30} build={t=>chestObj(open?lidAt(t):0)}/>);
+/* the animals that ran away from the forest (the library's approved animals) */
+const FR=(id,name,ran,mk)=>{const o=mk(), vb=lpBox([o],A_OBJ,.03,0);return {id,name,ran,vb,ar:vb[2]/vb[3],html:lpMarkup(o,A_OBJ)}};
+const FRIENDS=[
+  FR('fox','השועל','ברח מהיער ומסתתר',()=>LP.make.critter({kind:'fox',size:100,rot:.25})), FR('rabbit','הארנב','ברח מהיער ומסתתר',()=>LP.make.critter({kind:'rabbit',size:100,rot:.25})),
+  FR('bear','הדוב','ברח מהיער ומסתתר',()=>LP.make.critter({kind:'bear',size:100,rot:.25})), FR('bird','הציפור','ברחה מהיער ומסתתרת',()=>LP.make.bird({size:100,rot:.3})),
+];
+const TREASURE=FR('chest','תיבת האוצר','',()=>LP.make.chest({size:100,rot:0}));
+const Friend=({f,h,w})=>{if(w&&h*f.ar>w)h=w/f.ar;return <svg viewBox={f.vb.join(' ')} width={h*f.ar} height={h} style={{display:'block',overflow:'visible'}} dangerouslySetInnerHTML={{__html:f.html}}/>};
+
+/* the animals back home: they stroll slowly behind the detective and the tower, and now and then stop behind a bush */
+const WALK_ROT=1.35;
+const walkObj=(id,t,walking,dir)=>id==='bird'?LP.make.bird({size:100,t:walking?t:t*.25,rot:dir*WALK_ROT}):LP.make.critter({kind:id,size:100,pose:walking?'walk':'stand',t,rot:dir*WALK_ROT});
+const WALK_VB={};
+const walkVB=id=>WALK_VB[id]||(WALK_VB[id]=lpBox([-1,1].flatMap(d=>[0,.2,.4,.6].flatMap(t=>[walkObj(id,t,true,d),walkObj(id,t,false,d)])),A_OBJ,.03,0));
+function Walker({w,h}){
+  const vb=walkVB(w.id), ref=useRef(null); w.el=ref;
+  return <div ref={ref} className="walker" style={{position:'absolute'}}>
+    <LPLive vb={vb} width={h*vb[2]/vb[3]} height={h} fps={10} build={t=>walkObj(w.id,t,!(w.rest>0),w.dir)}/></div>;
+}
+function Walkers({list,x0,x1,y,h,bushes}){
+  const st=useRef({}), geo=useRef({}); geo.current={x0,x1,y,h,bushes};
+  list.forEach(({id,from})=>{if(!st.current[id])st.current[id]={id,x:from,dir:-1,v:.55+Math.random()*.3,rest:0,next:0,bush:-1}});
+  useEffect(()=>{let raf,last=performance.now();
+    const step=now=>{const dt=Math.min(.5,(now-last)/1000);last=now;const g=geo.current, sp=g.h*.6;
+      Object.values(st.current).forEach(w=>{
+        const ww=g.h*1.1;
+        if(w.rest>0){w.rest-=dt;if(w.rest<=0&&Math.random()<.35)w.dir*=-1}
+        else{w.x+=w.dir*w.v*sp*dt;
+          if(w.x<g.x0+ww/2){w.x=g.x0+ww/2;w.dir=1;w.rest=1+Math.random()}
+          if(w.x>g.x1-ww/2){w.x=g.x1-ww/2;w.dir=-1;w.rest=1+Math.random()}
+          const bi=g.bushes.findIndex(b=>Math.abs(b-w.x)<3);
+          if(bi>=0&&bi!==w.bush){w.bush=bi;if(Math.random()<.6)w.rest=2.5+Math.random()*3.5}      // a bush: often stop behind it for a while
+          if(bi<0&&Math.abs(g.bushes[w.bush]-w.x)>20)w.bush=-1;
+          if(Math.random()<dt*.04)w.rest=1+Math.random()*1.5}
+        const el=w.el&&w.el.current;if(el){const s=el.firstChild,bw=s?s.getAttribute('width'):ww;el.style.transform=`translate(${(w.x-bw/2).toFixed(1)}px,${(g.y-g.h).toFixed(1)}px)`}
+      });raf=requestAnimationFrame(step)};
+    raf=requestAnimationFrame(step);return()=>cancelAnimationFrame(raf)},[]);
+  return <>{list.map(({id})=><Walker key={id} w={st.current[id]} h={id==='bird'?h*.7:id==='bear'?h*1.1:h}/>)}</>;
+}
+
+const MeadowBG=React.memo(function MeadowBG({x0,x1}){      // x0–x1: the game's tower; no tree of the backdrop stands behind it
+  const html=useMemo(()=>LP.scenes.meadow({clear:[x0,x1]}),[x0,x1]);
+  return <svg className="bg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" style={{position:'absolute'}} dangerouslySetInnerHTML={{__html:html}}/>;
+});
+const MEADOW=LP.biome('meadow');
+const Ground=React.memo(function Ground({w,h}){
+  const html=useMemo(()=>LP.draw(LP.make.ground({w:w+60,h:h+20,depth:Math.max(30,h*1.6),seed:2,top:MEADOW.top,lip:MEADOW.lip,side:MEADOW.side}),LP.camera({a:.3,ox:-30,oy:h*.55})),[w,h]);
+  return <svg width={w} height={h} style={{position:'absolute',left:0,bottom:0,overflow:'visible'}} dangerouslySetInnerHTML={{__html:html}}/>;
+});
+const Bushes=React.memo(function Bushes({xs,y,s}){
+  return <>{xs.map((x,i)=>{const o=LP.make.bush({size:100,seed:i+3}),vb=lpBox([o],A_OBJ,.03,0),h=s*(i%2?.85:1);
+    return <svg key={i} viewBox={vb.join(' ')} width={h*vb[2]/vb[3]} height={h} style={{position:'absolute',left:x-h*vb[2]/vb[3]/2,top:y-h+h*.12,overflow:'visible',zIndex:0,pointerEvents:'none'}} dangerouslySetInnerHTML={{__html:lpMarkup(o,A_OBJ)}}/>})}</>;
+});
+const PAD=30;
+const FloorArt=React.memo(function FloorArt({w,fh,sw,winX,x0,x1,seed,lit}){
+  const html=useMemo(()=>LP.draw(LP.make.towerFloor({w,h:fh/CA,shaft:sw,winX,sx0:x0,sx1:x1,seed,lit}),LP.camera({a:A_W,ox:PAD,oy:fh+PAD})),[w,fh,sw,winX,x0,x1,seed,lit]);
+  return <svg width={w+2*PAD} height={fh+2*PAD} style={{display:'block',overflow:'visible'}} dangerouslySetInnerHTML={{__html:html}}/>;
+});
+const RoofArt=React.memo(function RoofArt({w,h}){
+  const html=useMemo(()=>LP.draw(LP.make.towerRoof({w,h,seed:3}),LP.camera({a:A_W,ox:PAD,oy:h*1.8})),[w,h]);
+  return <svg width={w+2*PAD} height={h*1.8+6} style={{display:'block',overflow:'visible'}} dangerouslySetInnerHTML={{__html:html}}/>;
+});
+const LiftArt=React.memo(function LiftArt({w,h,part}){
+  const html=useMemo(()=>LP.draw(LP.make.lift({w,h,part}),LP.camera({a:A_W,ox:w,oy:h})),[w,h,part]);
+  return <svg width={2*w} height={h+8} style={{display:'block',overflow:'visible'}} dangerouslySetInnerHTML={{__html:html}}/>;
+});
+const BoardArt=React.memo(function BoardArt({w,h}){
+  const html=useMemo(()=>LP.draw(LP.make.board({w,h:h/CA,frame:6}),LP.camera({a:A_W,ox:w/2,oy:h})),[w,h]);
+  return <svg width={w} height={h} style={{overflow:'visible'}} dangerouslySetInnerHTML={{__html:html}}/>;
+});
+
+/* the stopwatch: CFG.GUESS_S seconds, measured with performance.now() (the course's pause stops it) */
+function Stopwatch({run,onEnd}){
+  const ref=useRef(null), endRef=useRef(onEnd); endRef.current=onEnd; const [over,setOver]=useState(false);
+  useEffect(()=>{setOver(false);if(!run)return;const t0=performance.now(),D=CFG.GUESS_S*1000;let raf,lastS=-1;
+    const f=now=>{const q=Math.min(1,(now-t0)/D), el=ref.current;if(el)el.setAttribute('stroke-dashoffset',(q*113.1).toFixed(1));
+      const s=Math.floor((now-t0)/1000);if(s!==lastS&&q<1){lastS=s;sfx.tick()}
+      if(q<1)raf=requestAnimationFrame(f);else{setOver(true);endRef.current()}};
+    raf=requestAnimationFrame(f);return()=>cancelAnimationFrame(raf)},[run]);
+  return <div className={'watch'+(over?' over':'')} aria-hidden="true"><svg width="48" height="56" viewBox="0 0 48 56">
+    <rect x="19" y="1" width="10" height="6" rx="2" fill="#d9ac3c"/><rect x="36" y="8" width="7" height="5" rx="2" fill="#d9ac3c" transform="rotate(40 39 10)"/>
+    <circle cx="24" cy="32" r="22" fill="#fffaf0" stroke="#d9ac3c" strokeWidth="3"/>
+    <circle ref={ref} cx="24" cy="32" r="18" fill="none" stroke={over?'#c5ccd6':'#2EB6EA'} strokeWidth="7" strokeDasharray="113.1" strokeDashoffset="0" transform="rotate(-90 24 32) scale(1,-1) translate(0,-64)"/>
+    <line x1="24" y1="32" x2="24" y2="17" stroke="#3a2b00" strokeWidth="2.6" strokeLinecap="round"/><circle cx="24" cy="32" r="2.6" fill="#3a2b00"/></svg></div>;
+}
+
+function starCount(m){return m<=1?3:m<=4?2:1}
+const StarIcon=({on})=>(<svg width="100%" height="100%" viewBox="0 0 100 96">
+  <polygon points="50,2 63,34 98,36 71,58 80,94 50,74 20,94 29,58 2,36 37,34" fill={on?'#FFC531':'#D9DEE6'}/>
+  <polygon points="50,2 63,34 98,36 71,58 50,52" fill={on?'#FFD95A':'#E6EAF0'}/><polygon points="50,52 71,58 80,94 50,74" fill={on?'#E9A913':'#C5CCD6'}/>
+  <polygon points="50,52 29,58 20,94 50,74" fill={on?'#F2B21B':'#CDD3DC'}/></svg>);
+const SpeakerIcon=({on})=>(<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+  <path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/>{on?<><path d="M16 9a4 4 0 0 1 0 6"/><path d="M18.5 6.5a7.5 7.5 0 0 1 0 11"/></>:<><path d="M16 9l5 6"/><path d="M21 9l-5 6"/></>}</svg>);
+const MusicIcon=({on})=>(<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+  <path d="M9 18V6l10-2v11"/><ellipse cx="6.5" cy="18" rx="2.6" ry="2.2" fill="currentColor"/><ellipse cx="16.5" cy="15" rx="2.6" ry="2.2" fill="currentColor"/>{!on&&<path d="M3 3l18 18"/>}</svg>);
+const HandIcon=()=>(<svg width="44" height="62" viewBox="0 0 44 62" style={{display:'block'}}>
+  <polygon points="10,4 14,0 18,4 18,28 10,28" fill="#FFDDB8"/><polygon points="14,0 18,4 18,28 14,28" fill="#F6C99A"/>
+  <polygon points="18,16 25,15 26,28 18,28" fill="#F6C99A"/><polygon points="26,18 32,18 33,30 26,30" fill="#EBB585"/>
+  <polygon points="4,26 34,26 36,46 8,48" fill="#FFDDB8"/><polygon points="20,26 34,26 36,46 22,47" fill="#F6C99A"/>
+  <polygon points="0,30 6,27 9,38 3,39" fill="#FFDDB8"/>
+  <polygon points="7,47 36,45 37,60 8,62" fill="#3D6FE0"/><polygon points="22,46 36,45 37,60 23,61" fill="#2D57C2"/></svg>);
+function TapHand({x,y}){
+  const ref=useRef(null);
+  useEffect(()=>{const a=ref.current.animate([{transform:`translate(${x-14}px,${y+18}px)`,opacity:1},{transform:`translate(${x-14}px,${y}px) scale(.92)`,opacity:1,offset:.45},
+    {transform:`translate(${x-14}px,${y+18}px)`,opacity:1}],{duration:1000,iterations:Infinity,easing:'ease-in-out'});return()=>a.cancel()},[x,y]);
+  return <div ref={ref} className="hand"><HandIcon/></div>;
+}
+const other=s=>s==='L'?'R':'L';
+const mk=n=>Array.from({length:n});
+
+/* ---------- app ---------- */
+function App(){
+  const [cases,setCases]=useState(()=>makeCases(true));
+  const [ci,setCi]=useState(0);
+  const [stage,setStageS]=useState('intro'), stageRef=useRef('intro');   // explain intro guess ride solved end
+  const setStage=s=>{stageRef.current=s;setStageS(s)};
+  const [built,setBuilt]=useState(REDUCE?11:0);
+  const [bub,setBub]=useState({who:'det',text:'',n:0}), [talk,setTalk]=useState(null);
+  const [lit,setLit]=useState(null);                 // 'sum' | 'L' | 'R' : what the flashlight is on
+  const [target,setTarget]=useState(null);           // {k:'num',which} | {k:'floor',f}
+  const [hint,setHint]=useState(false), [known,setKnown]=useState(false), [who,setWho]=useState(false);
+  const [guess,setGuess]=useState(null), [bad,setBad]=useState(false), [good,setGood]=useState(false);
+  const [keysOn,setKeysOn]=useState(false), [fallen,setFallen]=useState([]), [falling,setFalling]=useState(null), [timer,setTimer]=useState(0);
+  const [pair,setPair]=useState(null);               // the explanation: {p,q,n} — n cubes shown
+  const [support,setSupport]=useState(false);
+  const [shown,setShown]=useState([]);               // floor numbers on the tower: 10 (the goal), the known number, where the elevator stopped
+  const [cur,setCur]=useState(null);
+  const [qm,setQm]=useState(false);
+  const [stamp,setStamp]=useState(false), [friend,setFriend]=useState(null), [found,setFound]=useState(0), [home,setHome]=useState([]);
+  const [pose,setPose]=useState('stand'), [rot,setRot]=useState(0), [expr,setExpr]=useState('happy'), [hop,setHop]=useState(false), [heroOn,setHeroOn]=useState(false), [onStreet,setOnStreet]=useState(false);
+  const [mood,setMood]=useState('calm');
+  const [sound,setSound]=useState(true), [mus,setMus]=useState(true);
+  const [endStage,setEndStageS]=useState(null), endRef=useRef(null), setEndStage=v=>{endRef.current=v;setEndStageS(v)};
+  const [lidOpen,setLidOpen]=useState(false), [hand,setHand]=useState(null), [leaving,setLeaving]=useState(false);
+  const [size,setSize]=useState({w:360,h:440});
+  const sceneRef=useRef(null), heroRef=useRef(null), heroIn=useRef(null), liftB=useRef(null), liftF=useRef(null), chestRef=useRef(null), friendRef=useRef(null);
+  const numRefs={sum:useRef(null),L:useRef(null),R:useRef(null)};
+  const fast=useRef(false), firstGame=useRef(true), run=useRef(0), stats=useRef(null), wait=useRef(null), toldGuess=useRef(false), fallenRef=useRef(new Set());
+  const C=cases[ci];
+
+  useLayoutEffect(()=>{const el=sceneRef.current;const m=()=>setSize({w:el.clientWidth,h:el.clientHeight});m();
+    if(typeof ResizeObserver==='undefined'){window.addEventListener('resize',m);return()=>window.removeEventListener('resize',m)}
+    const ro=new ResizeObserver(m);ro.observe(el);return()=>ro.disconnect()},[]);
+
+  /* ---------- geometry ---------- */
+  const W=size.w, H=size.h, stH=Math.max(22,Math.round(H*.07));
+  const fh=Math.max(16,(H-stH-6)/(11+1.75)), CW=Math.min(W,H*1.75), cx0=(W-CW)/2;
+  const nw=Math.max(24,Math.round(fh*.9)), cw=Math.round(fh*.82);
+  const TW=Math.round(Math.min(fh*5.2,CW*.47-nw-cw)), over=TW*.08;
+  const tx=Math.round(cx0+CW-Math.max(8,CW*.02)-over-TW);
+  const sw=Math.round(Math.min(TW*.28,fh*1.25)), xL=TW*.61, xR=TW*.87, winX=sw+(xL-sw)*.5;
+  const yb=H-stH, Y=f=>yb-f*fh, landX=f=>f%2?xR:xL;
+  const cubeX=tx-nw-cw-2;                                    // the column of cubes, beside the floor numbers
+  const leftW=cubeX-6-cx0, bw=Math.round(Math.min(leftW-10,fh*8.5,400)), ef=Math.min(50,bw/5.6), polS=Math.max(8,Math.min(48,(bw-28)/5)), paperH=Math.max(48,ef*1.6), bh=Math.round(paperH+polS*1.08+30);
+  const bx=Math.round(cx0+Math.max(6,(leftW-bw)*.35)), by=62;
+  const dh=Math.round(Math.min(leftW*.84,(H-by-bh-stH)*1.02,300)), dw=dh*DET_AR, detX=cx0+Math.max(2,leftW*.02)+(leftW>400?leftW*.06:0), detY=H-stH*.35-dh;
+  const hs=dh*.66, heroStreetX=Math.min(detX+dw*.98,cubeX-hs*HERO_AR*.3)+(leftW>400?leftW*.12:0), small=Math.min(1,fh*1.02/hs);
+  const geo=useRef({});geo.current={Y,tx,sw,hs,H,stH,fh,heroStreetX,small,yb};
+  const spot=s=>{const g=geo.current;return s.k==='street'?{x:g.heroStreetX,y:g.H-g.stH*.3,s:1}:{x:g.tx+g.sw/2,y:g.Y(s.f),s:g.small*.92}};
+  const at=useRef({a:{k:'lift',f:0},b:{k:'lift',f:0},p:1}), liftLv=useRef(0);
+  function place(){
+    const g=geo.current,m=at.current,a=spot(m.a),b=spot(m.b),q=m.p,x=a.x+(b.x-a.x)*q,y=a.y+(b.y-a.y)*q,s=a.s+(b.s-a.s)*q,w=g.hs*HERO_AR;
+    if(heroRef.current)heroRef.current.style.transform=`translate(${(x-w/2).toFixed(1)}px,${(y-g.hs).toFixed(1)}px) scale(${s.toFixed(3)})`;
+    [liftB,liftF].forEach(r=>{if(r.current)r.current.style.transform=`translate(${(g.tx+g.sw/2-g.sw*.92).toFixed(1)}px,${(g.Y(liftLv.current)-g.fh*.95).toFixed(1)}px)`});
+  }
+  useLayoutEffect(place);
+  const tween=(ms,fn)=>new Promise(res=>{if(REDUCE)ms=Math.min(ms,60);const t0=performance.now();
+    const f=now=>{const q=fast.current?1:Math.min(1,Math.max(0,(now-t0)/ms));fn(q);place();if(q<1)requestAnimationFrame(f);else res()};requestAnimationFrame(f)});
+  const ease=q=>q<.5?2*q*q:1-Math.pow(-2*q+2,2)/2;
+
+  /* ---------- flashlight ---------- */
+  const [beam,setBeam]=useState(null);
+  useLayoutEffect(()=>{
+    if(!target){setBeam(null);return}
+    let x,y,r;
+    if(target.k==='num'){const el=numRefs[target.which].current;if(!el)return;const e=el.getBoundingClientRect(),s=sceneRef.current.getBoundingClientRect();x=e.left+e.width/2-s.left;y=e.top+e.height/2-s.top;r=Math.max(22,ef*.8)}
+    else{x=tx+winX;y=Y(target.f)-fh*.5;r=fh*.62}
+    const aim=Math.max(.05,Math.min(2.3,Math.atan2(detY+SHOULDER[1]*dh-y,x-(detX+SHOULDER[0]*dh))));
+    const tp=tipOf(aim);
+    setBeam({x,y,r,aim,tx:detX+tp[0]*dh,ty:detY+tp[1]*dh});
+  },[target,size,ci,known]);
+  const aim=beam?beam.aim:.35;
+
+  /* ---------- where the two characters look (the eyes and the body follow) ---------- */
+  const actsRef=useRef(null), detRef=useRef(null), beamT=useRef(0);
+  useEffect(()=>{beamT.current=performance.now()},[beam]);
+  const mid=(el,fy=.5)=>{const r=el&&el.getBoundingClientRect();return r&&r.width?[r.left+r.width/2,r.top+r.height*fy]:null};
+  const beamPt=()=>{const s=sceneRef.current&&beam&&sceneRef.current.getBoundingClientRect();return s?[s.left+beam.x,s.top+beam.y]:null};
+  const waiting=stage==='guess'&&keysOn;
+  const look=(el,p)=>p?LP.lookAt(el,p[0],p[1]):[0,0];     // [0,0] = at the child who plays
+  function heroInput(el){
+    const now=performance.now(), c=now%4600, lit=now-beamT.current<1700;
+    let l;
+    if(pose==='walk'||pose==='cheer'||stage==='ride')l=[0,0];
+    else if(stage==='end')l=look(el,mid(chestRef.current));
+    else if(lit&&beam)l=look(el,beamPt());
+    else if(talk==='det')l=look(el,beam&&c>3300?beamPt():mid(detRef.current,.4));
+    else if(talk==='kid')l=[0,0];
+    else if(waiting)l=c<2300?look(el,mid(actsRef.current)):c<3300?[0,0]:look(el,beamPt()||mid(numRefs.sum.current));
+    return {look:l,talking:talk==='kid'&&pose==='stand',pose,expression:expr,rot,idle:waiting&&!talk,mood:mood==='happy'?'happy':'calm'};
+  }
+  function detInput(el){
+    const now=performance.now(), c=(now+1900)%4400, lit=now-beamT.current<1500, hero=()=>look(el,mid(heroRef.current,.4));
+    let l;
+    if(stage==='end')l=c<2600?look(el,mid(chestRef.current)):[0,0];
+    else if(lit&&beam)l=look(el,beamPt());
+    else if(talk==='det')l=c<2500?[0,0]:hero();
+    else if(talk==='kid'||stage==='ride'||stage==='solved')l=hero();
+    else if(waiting)l=c<1700?look(el,mid(actsRef.current)):c<3200?[0,0]:hero();
+    return {look:l,talking:talk==='det',expression:stage==='solved'||stage==='end'?'joy':undefined,mood};
+  }
+
+  /* ---------- talk ---------- */
+  const fin=useRef(null);
+  function say(who,text,{show=true,voice=true}={}){
+    if(fin.current)fin.current();
+    if(show){setBub(b=>({who,text,n:b.n+1}));sfx.pop()}
+    return new Promise(res=>{
+      let done=false,tm;const end=()=>{if(done)return;done=true;clearTimeout(tm);if(fin.current===end){fin.current=null;setTalk(null);duck(false)}res()};fin.current=end;
+      setTalk(who);duck(true);
+      const est=900+text.length*52;
+      if(voice&&soundOn&&hasTTS&&(heVoice||window.KidodoVoice)){
+        try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(toSpeech(text));u.voice=heVoice;u.lang=heVoice?heVoice.lang:'he-IL';u.rate=.95;u.pitch=who==='det'?.75:1.35;u.onend=end;u.onerror=end;speechSynthesis.speak(u);tm=setTimeout(end,est*2.2+2500)}
+        catch(e){tm=setTimeout(end,est)}
+      }else tm=setTimeout(end,est);
+    });
+  }
+  const hush=()=>{if(hasTTS)try{speechSynthesis.cancel()}catch(e){};if(fin.current)fin.current()};
+
+  /* ---------- the elevator ---------- */
+  async function rideTo(from,to,ck,ms){
+    ms=ms||500+Math.abs(to-from)*230;sfx.motor(ms/1000);
+    at.current={a:{k:'lift',f:from},b:{k:'lift',f:to},p:0};
+    await tween(ms,q=>{const e=ease(q);at.current.p=e;liftLv.current=from+(to-from)*e});ck();
+    at.current={a:{k:'lift',f:to},b:{k:'lift',f:to},p:1};liftLv.current=to;place();setCur(to);
+  }
+  const popIn=()=>[heroIn,liftB,liftF].forEach(r=>{const el=r.current&&(r===heroIn?r.current:r.current.firstChild);if(el&&!REDUCE)el.animate([{transform:'scale(0)'},{transform:'scale(1.18)',offset:.6},{transform:'scale(1)'}],{duration:500,easing:'ease-out'})});
+  /* too far: out through the roof, into space — and back in its place */
+  async function flyAway(from,ck){
+    const to=19, ms=900+(10-from)*150;let crossed=false;sfx.whoosh();setCur(null);
+    at.current={a:{k:'lift',f:from},b:{k:'lift',f:to},p:0};
+    await tween(ms,q=>{const e=q*q;at.current.p=e;liftLv.current=from+(to-from)*e;
+      if(!crossed&&liftLv.current>10.6){crossed=true;const s=sceneRef.current.getBoundingClientRect();burst(s.left+tx+TW/2,s.top+Y(11)-fh,['#FFD65A','#fff','#2EB6EA','#EF5C55'],24);sfx.stamp()}});ck();
+    await sleep(fast.current?0:500);ck();
+    at.current={a:{k:'lift',f:from},b:{k:'lift',f:from},p:1};liftLv.current=from;place();setCur(from);popIn();sfx.pop();
+  }
+
+  /* ---------- the flow ---------- */
+  const ask=st=>{setStage(st);return new Promise(res=>{wait.current=res})};
+  const answered=v=>{const r=wait.current;wait.current=null;if(r)r(v)};
+  const narr=useRef(null);      // the running explanation of a riddle; a press stops it
+
+  function resetCase(){
+    setLit(null);setTarget(null);setHint(false);setKnown(false);setWho(false);setGuess(null);setBad(false);setGood(false);setKeysOn(false);
+    setFallen([]);setFalling(null);fallenRef.current=new Set();setTimer(0);setSupport(false);setShown([10]);setStamp(false);setFriend(null);setHop(false);setQm(false);
+    stats.current.caseWrong=0;setPose('stand');setExpr('happy');setMood('calm');setRot(0);
+  }
+  /* the opening: what the twins of 10 are, shown as two towers of cubes that together reach floor 10 */
+  async function explain(ck){
+    const nap=async ms=>{await sleep(fast.current?0:ms);ck()};
+    setStage('explain');setShown([10]);
+    const talk=say('det','היום נתנסה בלעשות השלמה לעשר.');
+    if(!REDUCE)for(let f=1;f<=11;f++){setBuilt(f);sfx.build();await nap(130)}else setBuilt(11);
+    setHeroOn(true);popIn();
+    await talk;ck();
+    setPose('think');setExpr(undefined);
+    await say('det','לכל מספר קטן, יש את התאום שלו. שאם נחבר אותם, נרכיב את המספר 10.');ck();
+    setPose('stand');setExpr('happy');
+    for(const [p,q] of CFG.PAIRS){
+      setPair({p,q,n:0});
+      const line=say('det',exText(`${p} + ${q} = 10`));
+      for(let k=1;k<=10;k++){setPair({p,q,n:k});sfx.cube(k);await nap(k===p?260:85)}
+      setTarget({k:'floor',f:10});await line;ck();await nap(350);setTarget(null);
+    }
+    setPair(null);
+  }
+  async function play(list,tk,withIntro){
+    const ck=()=>{if(tk!==run.current)throw 'stop'};
+    const nap=async ms=>{await sleep(ms);ck()};
+    fast.current=false;resetCase();
+    if(withIntro){
+      setBub({who:'det',text:'',n:0});await nap(350);
+      try{await explain(()=>{ck();if(fast.current)throw 'skip'})}catch(e){if(e!=='skip')throw e}
+      hush();fast.current=false;setBuilt(11);setPair(null);setTarget(null);setHeroOn(true);setPose('stand');setExpr('happy');await nap(300);
+    }else{if(!REDUCE)for(let f=1;f<=11;f++){setBuilt(f);sfx.build();await nap(90)}setBuilt(11);setHeroOn(true);popIn()}
+    for(let i=0;i<list.length;i++){
+      const c=list[i], long=withIntro&&i===0, side=c.side, miss=other(side);
+      setCi(i);resetCase();setStage('intro');await nap(250);
+      // the riddle
+      setWho(true);setQm(true);
+      const head=long?'איך נתאמן? לפנינו חידה.':i===list.length-1?'חידה אחרונה.':`חידה ${ORD[i]}.`;
+      const story=c.friend===TREASURE?'החיות השאירו לנו הפתעה בקומה 10.':`${c.friend.name} ${c.friend.ran} בקומה 10.`;
+      await say('det',`${head} ${story}`);ck();
+      setHint(true);sfx.tap();
+      await nap(250);
+      sfx.lamp();setLit('sum');setTarget({k:'num',which:'sum'});
+      await say('det',long?'הרמז הראשון: סכום התרגיל הוא 10.':'הסכום הוא 10.');ck();
+      sfx.lamp();setLit(side);setTarget({k:'num',which:side});setKnown(true);sfx.pop();
+      const arrived=rideTo(0,c.a,ck).then(()=>{setShown([10,c.a]);sfx.ding()});
+      // from here the buttons can be pressed (a child who already knows does not wait); what the detective says goes on meanwhile
+      setKeysOn(true);
+      for(let tries=0;;tries++){
+        const id=narr.current={}, on=()=>narr.current===id;
+        const picked=ask('guess');
+        (async()=>{
+          if(tries===0){
+            await say('det',long?`הרמז השני: ${c.a}.`:`הרמז: ${c.a}.`);if(!on())return;
+            sfx.lamp();setLit(miss);setTarget({k:'num',which:miss});
+            if(long){await say('det','ועכשיו, אנחנו צריכים לגלות מה מסתתר כאן.');if(!on())return}
+            await arrived;if(!on())return;
+          }
+          await say('det',tries?`ננסה שוב. מי התאום של ${c.a}?`:long?`מי התאום של ${c.a}? נחשו, ונבדוק במעלית!`:`מי התאום של ${c.a}?`);if(!on())return;
+          setTimer(t=>t+1);
+        })();
+        const v=await picked;ck();narr.current=null;hush();setTimer(0);setKeysOn(false);
+        await arrived;ck();
+        setStage('ride');setGuess(v);setLit(null);setTarget(null);setPose('stand');setExpr('joy');setMood('calm');
+        const to=c.a+v;
+        say('kid',to>10?`${v}! למעלה!`:`${v}! בודקים!`);
+        await nap(500);
+        if(to<=10)await rideTo(c.a,to,ck);
+        else{await flyAway(c.a,ck)}
+        if(to===10)break;
+        // not the twin: the floor shows where we got to; the number falls and cannot be pressed again
+        stats.current.wrong++;stats.current.caseWrong++;
+        setBad(true);setPose('stand');setExpr('sad');setMood('unhappy');sfx.buzz();
+        if(to<10){setShown([10,c.a,to]);setTarget({k:'floor',f:to})}
+        fallenRef.current.add(v);setFalling(v);sfx.fall();setTimeout(()=>{setFallen([...fallenRef.current]);setFalling(f=>f===v?null:f)},900);
+        await say('det',`${v} הוא לא התאום של ${c.a}.`);ck();
+        setTarget(null);
+        if(to<10){await rideTo(to,c.a,ck,400+(to-c.a)*160);setShown([10,c.a])}
+        setBad(false);setGuess(null);setExpr('happy');
+        if(stats.current.caseWrong===CFG.SUPPORT_AFTER){
+          setSupport(true);for(let k=0;k<c.a;k++){sfx.cube(k+1);await nap(70)}
+          await say('det',`הקוביות הכחולות הן ${c.a}. כמה קוביות ריקות יש עד קומה 10?`);ck();
+        }
+        setKeysOn(true);
+      }
+      // the twin: floor 10, and who hid there
+      setStage('solved');setGood(true);setGuess(null);setQm(false);setTarget({k:'floor',f:10});sfx.ding();sfx.tada();
+      setPose('cheer');setExpr('joy');setMood('happy');setHop(true);setFriend(c.friend);setFound(i+1);
+      await nap(250);
+      const fr=friendRef.current&&friendRef.current.getBoundingClientRect();if(fr)burst(fr.left+fr.width/2,fr.top+fr.height/2,['#FFD65A','#fff','#2EB6EA','#58C9AD'],20);
+      await say('det',`נכון, ${c.b} הוא התאום של ${c.a}!`);ck();
+      setStamp(true);sfx.stamp();
+      const L=side==='L'?c.a:c.b, R=side==='L'?c.b:c.a;
+      log('CASE',{n:i+1,known:c.a,twin:c.b,wrong:stats.current.caseWrong});
+      if(c.friend!==TREASURE){
+        await say('kid',`מצאנו את ${c.friend.name}! ${exText(`${L} + ${R} = 10`)}`);ck();
+        await nap(300);setStamp(false);setHop(false);setPose('stand');
+        // back to the forest
+        setFriend(null);sfx.pop();setHome(h=>h.concat([{id:c.friend.id,from:tx+TW*.5}]));
+        setTarget(null);
+        await rideTo(10,0,ck,1100);await nap(250);
+      }else{
+        await say('kid',`מצאנו את ${c.friend.name}! ${exText(`${L} + ${R} = 10`)}`);ck();
+        await nap(500);setStamp(false);
+      }
+    }
+    // all the animals are home: the treasure comes down to the detective
+    setStage('end');setTarget(null);hush();setHop(false);
+    chestFrom.current=friendRef.current&&friendRef.current.getBoundingClientRect();setFriend(null);setEndStage('chest');
+    [523,659,784,1047,1319].forEach((f,j)=>tone(f,.25,'triangle',.12,undefined,j*.12));
+    log('GAME_OVER',{won:true,wrong:stats.current.wrong,answers:stats.current.answers});
+    say('det','כל החיות חזרו ליער, ומצאנו את תיבת האוצר!');
+    (async()=>{try{setPose('stand');setShown([]);await rideTo(10,0,ck,1100);setCur(null);setPose('cheer');setHop(true)}catch(e){}})();
+    await nap(1100+3000);
+    if(endRef.current==='chest')setHand(true);
+  }
+  const chestFrom=useRef(null), chestFly=useRef(null);
+  useLayoutEffect(()=>{const el=chestFly.current,from=chestFrom.current;if(endStage!=='chest'||!el||!from||REDUCE)return;
+    const r=el.getBoundingClientRect(),dx=from.left+from.width/2-(r.left+r.width/2),dy=from.bottom-r.bottom,k=from.width/r.width;
+    el.animate([{transform:`translate(${dx}px,${dy}px) scale(${k})`},{transform:`translate(${dx*.5}px,${dy*.75-40}px) scale(${(1+k)/2})`,offset:.5},{transform:'none',offset:.86},{transform:'scale(1.06,.92)',offset:.93},{transform:'none'}],{duration:1000,easing:'ease-in-out'});
+    setTimeout(()=>sfx.stamp(),860)},[endStage]);
+
+  function start(){
+    audio();narr.current=null;hush();const tk=++run.current,first=firstGame.current,list=makeCases(first);firstGame.current=false;
+    stats.current={wrong:0,caseWrong:0,answers:0,correct:0};doneReq.current=null;wait.current=null;toldGuess.current=false;
+    at.current={a:{k:'lift',f:0},b:{k:'lift',f:0},p:1};liftLv.current=0;setOnStreet(false);setHeroOn(!first&&REDUCE);
+    setCases(list);setCi(0);setFound(0);setHome([]);setBuilt(REDUCE?11:0);setEndStage(null);setLidOpen(false);setHand(null);setLeaving(false);
+    log('game_start',{cases:list.map(c=>c.a+'|'+c.side)});
+    play(list,tk,first).catch(e=>{if(e!=='stop')console.error(e)});
+  }
+
+  /* ---------- what the child presses ---------- */
+  function choose(v){if(stageRef.current!=='guess'||!wait.current||fallenRef.current.has(v))return;audio();sfx.tap();
+    const ok=C.a+v===CFG.TOP;stats.current.answers++;KP.answer(ok);log('ANSWER',{known:C.a,chosen:v,correct:ok});
+    if(ok)stats.current.correct++;
+    answered(v)}
+  function timeUp(){
+    if(stageRef.current!=='guess'||!wait.current)return;
+    const first=!toldGuess.current;toldGuess.current=true;
+    say('det',first?'אל תפחדו לנחש! אנחנו רוצים להרגיש את המרחק בין הקומות, ולא רק לספור.':'אל תפחדו לנחש!');
+  }
+  function skipIntro(){fast.current=true;hush()}
+
+  // keyboard: 1–9 press the elevator's buttons
+  useEffect(()=>{const onKey=e=>{if(/^[1-9]$/.test(e.key))choose(+e.key)};
+    window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)});
+
+  /* ---------- end: chest → coins → stars (as in the other games) ---------- */
+  function tapChest(){
+    if(endRef.current!=='chest')return;
+    audio();setHand(null);setEndStage('coins');setLidOpen(true);sfx.jackpot();
+    const t0=performance.now(),el=chestRef.current;
+    const iv=setInterval(()=>{coinBurst(el,9);if(Math.random()<.5)sfx.coin();if(performance.now()-t0>3000)clearInterval(iv)},200);
+    setTimeout(()=>{clearInterval(iv);setEndStage('done');finish()},3200);
+  }
+  const mistakes=()=>stats.current?stats.current.wrong:0;
+  useEffect(()=>{if(endStage!=='done')return;const n=starCount(mistakes());for(let i=0;i<3;i++)setTimeout(()=>i<n?tone(784+i*196,.3,'sine',.12):tone(260,.15,'triangle',.05),150+i*350)},[endStage]);
+  const doneReq=useRef(null);
+  function finish(){const s=stats.current;if(!doneReq.current)doneReq.current=KP.complete({answers:s.answers,correct:s.correct,wrong:s.wrong,stars:starCount(s.wrong)});return doneReq.current}
+  async function goNext(){if(leaving)return;setLeaving(true);hush();await finish();KP.next()}
+  function toggleSound(){const v=!sound;setSound(v);soundOn=v;audio();if(!v)hush()}
+  function toggleMusic(){const v=!mus;setMus(v);musicOn=v;audio();duck(false)}
+
+  useEffect(()=>{if(KP.claimCorner)KP.claimCorner()},[]);
+  const bubRef=useRef(bub);bubRef.current=bub;
+  useEffect(()=>{if(KP.onResume)KP.onResume(()=>{const b=bubRef.current;if(wait.current&&b.text)say(b.who,b.text)})},[]);
+  useEffect(()=>{start();return()=>{run.current++;narr.current=null;hush()}},[]);
+
+  /* ---------- render ---------- */
+  const box=which=>{
+    const isKnown=which===C.side, val=isKnown?(known?C.a:null):good?C.b:guess;
+    const cls='n box'+(isKnown&&known?' known':'')+(!isKnown&&good?' done':'')+(!isKnown&&!good&&guess!=null?(bad?' bad':' guess'):'')
+      +(!isKnown&&stage==='guess'&&keysOn&&guess==null?' ask':'')+(lit===which?' lit':lit?' dim':'');
+    return <span ref={numRefs[which]} key={which+(bad?'b':'')} className={cls} style={{width:Math.max(34,ef*1.15),height:Math.max(34,ef*1.25)}}>{val!=null?val:''}</span>};
+  const speakerX=bub.who==='det'?detX+dw*.42:onStreet?heroStreetX:tx+sw/2;
+  const bgS=Math.max(W/1200,H/800), bgX=(W-1200*bgS)/2;
+  const chW=Math.max(40,Math.min(230,Math.max(dh*.86,leftW*.66))), chH=chW*CHEST_VB[3]/CHEST_VB[2], chX=Math.max(detX+dw*.66,heroStreetX-chW*.9);
+  const bushXs=useMemo(()=>[.05,.27,.45,.62,.9].map(k=>Math.round(cx0+CW*k)),[cx0,CW]);
+  const cubes=pair?mk(pair.n).map((_,k)=>({k,cls:k<pair.p?'a':'b',lab:k===Math.floor((pair.p-1)/2)&&pair.n>=pair.p?pair.p:k===pair.p+Math.floor((pair.q-1)/2)&&pair.n>=10?pair.q:null}))
+    :support?mk(CFG.TOP).map((_,k)=>({k,cls:k<C.a?'a':'empty',lab:null})):[];
+  return(
+    <div className="app" onPointerDownCapture={()=>audio()}>
+      <div className="scene" ref={sceneRef}>
+        <MeadowBG x0={Math.floor((tx-over-nw-cw-bgX)/bgS/10)*10} x1={Math.ceil((tx+TW+over+8-bgX)/bgS/10)*10}/>
+        <Ground w={W} h={stH}/>
+        <Walkers list={home} x0={cx0+4} x1={cx0+CW-4} y={yb+3} h={fh*1.25} bushes={bushXs}/>
+        <Bushes xs={bushXs} y={yb+4} s={fh*1.15}/>
+        {/* the tower */}
+        <div style={{inset:0,zIndex:1,pointerEvents:'none'}}>
+          {mk(11).map((_,f)=>f<built&&<div key={f} className="slab pop" style={{position:'absolute',left:tx-PAD,top:Y(f+1)-PAD,zIndex:f}}>
+            <FloorArt w={TW} fh={fh} sw={sw} winX={winX} x0={null} x1={null} seed={f+1} lit={f===10}/></div>)}
+          {built>=11&&<div className="slab pop" style={{position:'absolute',left:tx-PAD,top:Y(11)-fh*1.05*1.8,zIndex:20}}><RoofArt w={TW} h={fh*1.05}/></div>}
+        </div>
+        {cur!=null&&cur>0&&stage!=='ride'&&<div className="glow" style={{left:tx+winX-fh*.75,top:Y(cur)-fh*1.25,width:fh*1.5,height:fh*1.5}}/>}
+        {built>=11&&shown.map(f=><div key={f} className={'plate'+(f===10&&cur!==10?' goal':'')+(cur===f&&stage!=='ride'?' cur':'')} style={{left:tx-nw,top:Y(f)-fh*.86,width:nw-5,height:fh*.72,fontSize:Math.max(14,fh*.5)}}>{f}</div>)}
+        {cubes.map(({k,cls,lab})=><div key={(pair?'p'+pair.p:'s')+k} className={'cube '+cls} style={{left:cubeX,top:Y(k+1)+1,width:cw,height:fh-3,fontSize:Math.max(13,fh*.55)}}>{lab}</div>)}
+        {built>=11&&<>
+          <div ref={liftB} className="lift" style={{zIndex:3}}><div style={{transformOrigin:'50% 100%'}}><LiftArt w={sw*.92} h={fh*.95} part="back"/></div></div>
+          <div ref={liftF} className="lift" style={{zIndex:5}}><div style={{transformOrigin:'50% 100%'}}><LiftArt w={sw*.92} h={fh*.95} part="front"/></div></div></>}
+        {qm&&built>=11&&<span className="qm" style={{left:tx+winX-fh*.28,top:Y(10)-fh*1.05,fontSize:fh*.8}}>?</span>}
+        {friend&&<div ref={friendRef} className="friend" key={friend.id} style={{left:tx+xL-fh*.75*friend.ar,top:Y(10)-fh*1.5}}><Friend f={friend} h={fh*1.5}/></div>}
+        {/* the clue board */}
+        <div className="boardx" style={{left:bx,top:by,width:bw,height:bh}}>
+          <BoardArt w={bw} h={bh}/>
+          <div className={'paper'+(hint?'':' blank')} style={{left:9,top:11,width:bw-18,height:paperH,fontSize:ef}} role="img" aria-label={hint?`${C.side==='L'&&known?C.a:'ריבוע'} ועוד ${C.side==='R'&&known?C.a:'ריבוע'} שווה 10`:''}>
+            {box('L')}<span className={'s'+(lit?' dim':'')}>+</span>{box('R')}<span className={'s'+(lit?' dim':'')}>=</span>
+            <span ref={numRefs.sum} className={'n'+(lit==='sum'?' lit':lit?' dim':'')+(good?' done':'')} style={{minWidth:ef*1.2}}>10</span></div>
+          <div className="pin" style={{left:bw/2-6,top:5}}/>
+          <div className="pols" style={{left:12,right:12,bottom:11}}>
+            {cases.map((c,i)=><div key={i} className={'pol'+(i<found?' in':i===ci&&who?' now sil':'')} style={{width:polS,height:polS*1.08,fontSize:polS*.5}}>{i<found||i===ci&&who?<Friend f={c.friend} h={polS*.86} w={polS*.86}/>:'?'}</div>)}</div>
+        </div>
+        {/* the detective and the child's hero */}
+        <div ref={detRef} style={{left:detX,top:detY,zIndex:5,pointerEvents:'none'}}><Detective s={dh} aim={aim} resting={!beam} input={detInput}/></div>
+        <div ref={heroRef} className="herox" style={{width:hs*HERO_AR,height:hs,zIndex:onStreet?6:4,transformOrigin:'50% 100%',opacity:heroOn&&built>=11?1:0,transition:'opacity .25s'}}>
+          <div ref={heroIn} style={{transformOrigin:'50% 100%'}}><div className={hop?'hop':''} style={{transformOrigin:'50% 100%'}}><Hero s={hs} input={heroInput}/></div></div>
+        </div>
+        {beam&&<svg className="beam"><defs><linearGradient id="bm" gradientUnits="userSpaceOnUse" x1={beam.tx} y1={beam.ty} x2={beam.x} y2={beam.y}><stop offset="0" stopColor="#FFF3C4" stopOpacity=".85"/><stop offset="1" stopColor="#FFE08A" stopOpacity=".35"/></linearGradient></defs>
+          {(()=>{const dx=beam.x-beam.tx,dy=beam.y-beam.ty,L=Math.hypot(dx,dy)||1,nx=-dy/L,ny=dx/L,r=beam.r;return <>
+            <polygon points={[[beam.tx+nx*5,beam.ty+ny*5],[beam.x+nx*r,beam.y+ny*r],[beam.x-nx*r,beam.y-ny*r],[beam.tx-nx*5,beam.ty-ny*5]].map(p=>p.map(v=>v.toFixed(1)).join(',')).join(' ')} fill="url(#bm)"/>
+            <circle cx={beam.x} cy={beam.y} r={r} fill="#FFE9A8" opacity=".38"/></>})()}</svg>}
+        {stamp&&<div className="stamp" style={{left:cx0+leftW*.52,top:by+bh+Math.max(30,(H-by-bh-stH)*.3),fontSize:Math.max(20,Math.min(44,leftW*.13))}}>נמצא!</div>}
+        <div className="vig"/>
+        {endStage&&<div style={{left:chX,top:H-stH*.2-chH,width:chW,zIndex:20}}>
+          <div className="glow" style={{position:'absolute',left:-chW*.3,top:-chW*.35,width:chW*1.6,height:chW*1.6,opacity:.6,zIndex:0}}/>
+          <div ref={chestFly} style={{position:'relative',zIndex:1,transformOrigin:'50% 100%'}}><button ref={chestRef} className={'wchest'+(endStage==='chest'?' idle':'')} aria-label="לפתוח את תיבת האוצר" onClick={tapChest}><Chest open={lidOpen} s={chW}/></button></div>
+          {hand&&<TapHand x={chW/2} y={chH*.5}/>}
+        </div>}
+        <div className="side">
+          {KP.embedded?<span style={{width:44,height:44}} aria-hidden="true"/>:<button className="iconbtn" title="יציאה" aria-label="יציאה" onClick={()=>{hush();KP.exit()}}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>}
+          <button className={'iconbtn'+(sound?'':' off')} title="אפקטים" aria-label="אפקטים ודיבור" aria-pressed={sound} onClick={toggleSound}><SpeakerIcon on={sound}/></button>
+          <button className={'iconbtn'+(mus?'':' off')} title="מוזיקה" aria-label="מוזיקה" aria-pressed={mus} onClick={toggleMusic}><MusicIcon on={mus}/></button>
+        </div>
+      </div>
+      <div className="panel">
+        <div className="say" onClick={hush} style={{visibility:bub.text?'visible':'hidden'}}>
+          <span className="tail" style={{left:`clamp(24px,${(speakerX-(W-Math.min(W-24,820))/2).toFixed(0)}px,calc(100% - 24px))`}}/>
+          <span className={'who'+(bub.who==='kid'?' kid':'')}>{bub.who==='kid'?'העוזר':'הבלש'}</span>
+          <span className="txt" key={bub.n} aria-live="polite">{bub.text||'…'}</span></div>
+        <div className="acts" ref={actsRef} role="group" aria-label="מה עושים עכשיו">
+          {stage==='explain'&&<button className="skipb" onClick={skipIntro}>דילוג על ההסבר</button>}
+          {(stage==='guess'&&keysOn||stage==='ride')&&<>
+            <Stopwatch key={'w'+ci} run={stage==='guess'&&timer>0?timer:0} onEnd={timeUp}/>
+            <div className="keys" aria-label={`מי התאום של ${C.a}?`}>
+              {[1,2,3,4,5,6,7,8,9].map(v=><button key={v} className={'key'+(fallen.includes(v)?' gone':falling===v?' fall':'')+(good&&v===C.b?' good':'')}
+                disabled={stage!=='guess'||fallen.includes(v)} aria-label={String(v)} onClick={()=>choose(v)}>{v}</button>)}</div></>}
+        </div>
+      </div>
+      {endStage==='done'&&(()=>{const n=starCount(mistakes());return(
+        <div className="center endscreen" style={{justifyContent:'flex-start',paddingTop:'max(70px,13dvh)'}}>
+          <div className="stars" dir="ltr">{[0,1,2].map(i=><div key={i} className="star" style={{animationDelay:.15+i*.35+'s'}}><StarIcon on={i<n}/></div>)}</div>
+          <div className="rise" style={{marginTop:14,animationDelay:'1s'}}><div ref={KP.coinBadge}/></div>
+          <div className="endbtns rise" style={{animationDelay:'1.2s'}}>
+            <button className="endbtn again" onClick={start} aria-label="שוב" title="שוב">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v5h5"/></svg></button>
+            <button className="endbtn next" onClick={goNext} disabled={leaving} aria-label="המשך" title="המשך">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12H4M10 6l-6 6 6 6"/></svg></button>
+          </div>
+        </div>)})()}
+    </div>);
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

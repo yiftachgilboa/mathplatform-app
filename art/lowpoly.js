@@ -1909,7 +1909,9 @@
       });
       [[70, 640, 90, 1], [190, 625, 70, 2], [1110, 640, 95, 3], [1000, 628, 66, 4], [300, 648, 60, 5], [900, 646, 64, 6]].forEach(([x, y, s, k]) => {
         const t = k % 3 ? make.tree({ size: s, seed: k * 7, kind: 'round', detail: 0, fog: .15 }) : make.pine({ size: s * 1.1, seed: k * 7, fog: .15 });
-        svg += draw(t, camera({ a: .3, ox: x, oy: y }));
+        const l = facets(t, camera({ a: .3, ox: x, oy: y })), b = bounds(l);
+        // o.clear = [x0, x1]: no tree may stand there (behind the game's own tower), as in the noir backdrop
+        if (!o.clear || b.x + b.w < o.clear[0] || b.x > o.clear[1]) svg += polys(l);
       });
       return svg;
     },
