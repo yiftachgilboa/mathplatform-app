@@ -49,7 +49,7 @@ button:focus-visible{outline:4px solid var(--gold);outline-offset:3px}
 .paper .n{background:none;font-weight:700;font-size:inherit;line-height:1;padding:0;position:relative;display:flex;align-items:center;justify-content:center;border-radius:8px;transition:opacity .3s,transform .3s,color .3s}
 .paper .n.box{border:3px dashed #9aa3ad;background:rgba(255,255,255,.6)}
 .paper .n.box.ask{border-color:var(--sky);animation:ring 1.1s infinite}
-.paper .n.box.known{border-color:transparent;background:none;color:var(--blue);animation:mpop .5s}
+.paper .n.box.known{border-color:transparent;background:none;color:#2b2f33;animation:mpop .5s}
 .paper .n.guess{color:#9aa3ad}
 .paper .n.bad{color:var(--bad);animation:shake .4s}
 .paper .n.done{color:var(--ok);animation:mpop .5s}
@@ -93,7 +93,8 @@ button:focus-visible{outline:4px solid var(--gold);outline-offset:3px}
 .keys{display:grid;grid-template-columns:repeat(5,50px);gap:6px 7px;direction:ltr}
 .key{width:50px;height:50px;border-radius:50%;font-size:25px;font-weight:700;color:#3a2b00;background:radial-gradient(circle at 50% 38%,#fffaf0 0 55%,#f1e4c4 75%);box-shadow:0 0 0 3px #d9ac3c,0 5px 0 rgba(0,0,0,.35);transition:transform .1s}
 .key:active{transform:translateY(3px)}
-.key.good{background:var(--ok);color:#fff}
+.key.good,.key.pressed{background:var(--ok);color:#fff;box-shadow:0 0 0 3px #137a4c,0 5px 0 rgba(0,0,0,.35)}
+.key:disabled{cursor:default}
 .key.fall{animation:fall .9s cubic-bezier(.5,0,.8,.6) forwards;pointer-events:none}
 @keyframes fall{0%{transform:none}15%{transform:translateY(-6px) rotate(-8deg)}100%{transform:translateY(160px) rotate(40deg);opacity:0}}
 .key.gone{visibility:hidden}
@@ -113,6 +114,7 @@ button:focus-visible{outline:4px solid var(--gold);outline-offset:3px}
 .pt{position:fixed;pointer-events:none;z-index:999;will-change:transform,opacity}
 .coinp{position:fixed;left:0;top:0;pointer-events:none;z-index:1001;will-change:transform,opacity;line-height:0}
 .center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:20px;z-index:80}
+.playb{width:112px;height:112px;border-radius:50%;background:#176fbe;box-shadow:0 8px 0 rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;padding-left:8px;animation:chestBreath 1.4s ease-in-out infinite}
 .endscreen{background:rgba(16,40,56,.55);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
 .stars{display:flex;gap:14px;align-items:flex-end}
 .star{width:min(26vw,120px);aspect-ratio:100/96;animation:starIn .55s cubic-bezier(.3,1.6,.5,1) both}
@@ -137,7 +139,7 @@ const {useState,useEffect,useLayoutEffect,useRef,useMemo} = React;
 const CFG={
   CASES:5, TOP:10,
   FIRST:8,                        // the known number of the first riddle of the first game
-  GUESS_S:5,                      // the stopwatch: seconds to guess
+  GUESS_S:10,                     // the stopwatch: seconds to guess
   PAIRS:[[1,9],[2,8],[3,7],[4,6],[5,5]],   // the opening explanation
   SUPPORT_AFTER:2,                // mistakes in one riddle → the cubes of the known number + empty cubes up to 10
   BPM:100, MUSIC_VOL:.45,
@@ -371,8 +373,8 @@ const Bushes=React.memo(function Bushes({xs,y,s}){
     return <svg key={i} viewBox={vb.join(' ')} width={h*vb[2]/vb[3]} height={h} style={{position:'absolute',left:x-h*vb[2]/vb[3]/2,top:y-h+h*.12,overflow:'visible',zIndex:0,pointerEvents:'none'}} dangerouslySetInnerHTML={{__html:lpMarkup(o,A_OBJ)}}/>})}</>;
 });
 const PAD=30;
-const FloorArt=React.memo(function FloorArt({w,fh,sw,winX,x0,x1,seed,lit}){
-  const html=useMemo(()=>LP.draw(LP.make.towerFloor({w,h:fh/CA,shaft:sw,winX,sx0:x0,sx1:x1,seed,lit}),LP.camera({a:A_W,ox:PAD,oy:fh+PAD})),[w,fh,sw,winX,x0,x1,seed,lit]);
+const FloorArt=React.memo(function FloorArt({w,fh,sw,winX,x0,x1,seed,lit,plain,noLedge}){
+  const html=useMemo(()=>LP.draw(LP.make.towerFloor({w,h:fh/CA,shaft:sw,winX,sx0:x0,sx1:x1,seed,lit,plain,noLedge}),LP.camera({a:A_W,ox:PAD,oy:fh+PAD})),[w,fh,sw,winX,x0,x1,seed,lit,plain,noLedge]);
   return <svg width={w+2*PAD} height={fh+2*PAD} style={{display:'block',overflow:'visible'}} dangerouslySetInnerHTML={{__html:html}}/>;
 });
 const RoofArt=React.memo(function RoofArt({w,h}){
@@ -433,15 +435,15 @@ function App(){
   const [ci,setCi]=useState(0);
   const [stage,setStageS]=useState('intro'), stageRef=useRef('intro');   // explain intro guess ride solved end
   const setStage=s=>{stageRef.current=s;setStageS(s)};
-  const [built,setBuilt]=useState(REDUCE?11:0);
+  const [built,setBuilt]=useState(REDUCE?10:0);
   const [bub,setBub]=useState({who:'det',text:'',n:0}), [talk,setTalk]=useState(null);
   const [lit,setLit]=useState(null);                 // 'sum' | 'L' | 'R' : what the flashlight is on
   const [target,setTarget]=useState(null);           // {k:'num',which} | {k:'floor',f}
   const [hint,setHint]=useState(false), [known,setKnown]=useState(false), [who,setWho]=useState(false);
   const [guess,setGuess]=useState(null), [bad,setBad]=useState(false), [good,setGood]=useState(false);
   const [keysOn,setKeysOn]=useState(false), [fallen,setFallen]=useState([]), [falling,setFalling]=useState(null), [timer,setTimer]=useState(0);
-  const [pair,setPair]=useState(null);               // the explanation: {p,q,n} — n cubes shown
-  const [support,setSupport]=useState(false);
+  const [pairs,setPairs]=useState([]);               // the explanation: [{p,q,n}] — the pairs stand side by side, n cubes shown
+  const [support,setSupport]=useState(false), [blank,setBlank]=useState(null), [boom,setBoom]=useState(false);   // blank: floors above it are bare walls (nothing to count)
   const [shown,setShown]=useState([]);               // floor numbers on the tower: 10 (the goal), the known number, where the elevator stopped
   const [cur,setCur]=useState(null);
   const [qm,setQm]=useState(false);
@@ -462,25 +464,28 @@ function App(){
     const ro=new ResizeObserver(m);ro.observe(el);return()=>ro.disconnect()},[]);
 
   /* ---------- geometry ---------- */
-  const W=size.w, H=size.h, stH=Math.max(22,Math.round(H*.07));
-  const fh=Math.max(16,(H-stH-6)/(11+1.75)), CW=Math.min(W,H*1.75), cx0=(W-CW)/2;
+  const W=size.w, H=size.h, stH=Math.max(22,Math.round(H*.07)), sink=Math.round(stH*.3);     // the building stands a little inside the ground
+  const fh=Math.max(16,(H-stH+sink-8)/11.95), CW=Math.min(W,H*1.75), cx0=(W-CW)/2;
   const nw=Math.max(24,Math.round(fh*.9)), cw=Math.round(fh*.82);
   const TW=Math.round(Math.min(fh*5.2,CW*.47-nw-cw)), over=TW*.08;
   const tx=Math.round(cx0+CW-Math.max(8,CW*.02)-over-TW);
   const sw=Math.round(Math.min(TW*.28,fh*1.25)), xL=TW*.61, xR=TW*.87, winX=sw+(xL-sw)*.5;
-  const yb=H-stH, Y=f=>yb-f*fh, landX=f=>f%2?xR:xL;
+  const yb=H-stH, Y=f=>yb+sink-f*fh, LY=f=>Y(f-1);          // floors 1–10: floor f stands on the line Y(f-1)
   const cubeX=tx-nw-cw-2;                                    // the column of cubes, beside the floor numbers
   const leftW=cubeX-6-cx0, bw=Math.round(Math.min(leftW-10,fh*8.5,400)), ef=Math.min(50,bw/5.6), polS=Math.max(8,Math.min(48,(bw-28)/5)), paperH=Math.max(48,ef*1.6), bh=Math.round(paperH+polS*1.08+30);
   const bx=Math.round(cx0+Math.max(6,(leftW-bw)*.35)), by=62;
-  const dh=Math.round(Math.min(leftW*.84,(H-by-bh-stH)*1.02,300)), dw=dh*DET_AR, detX=cx0+Math.max(2,leftW*.02)+(leftW>400?leftW*.06:0), detY=H-stH*.35-dh;
-  const hs=dh*.66, heroStreetX=Math.min(detX+dw*.98,cubeX-hs*HERO_AR*.3)+(leftW>400?leftW*.12:0), small=Math.min(1,fh*1.02/hs);
-  const geo=useRef({});geo.current={Y,tx,sw,hs,H,stH,fh,heroStreetX,small,yb};
-  const spot=s=>{const g=geo.current;return s.k==='street'?{x:g.heroStreetX,y:g.H-g.stH*.3,s:1}:{x:g.tx+g.sw/2,y:g.Y(s.f),s:g.small*.92}};
-  const at=useRef({a:{k:'lift',f:0},b:{k:'lift',f:0},p:1}), liftLv=useRef(0);
+  const dh=Math.round(Math.min(leftW*.84,(H-by-bh-stH)*1.02,300)), dw=dh*DET_AR, detX0=cx0+Math.max(2,leftW*.02)+(leftW>400?leftW*.06:0), detY=H-stH*.35-dh;
+  // the explanation's five pairs of cubes, side by side up to floor 10; the detective steps aside if they need his place
+  const pg=Math.max(3,Math.round(cw*.22)), pairX=j=>cubeX+cw-(5*cw+4*pg)+j*(cw+pg);
+  const detX=detX0-(stage==='explain'?Math.max(0,Math.min(dw*.72,detX0+dw*.82-pairX(0)+4)):0);
+  const hs=dh*.66, heroStreetX=Math.min(detX0+dw*.98,cubeX-hs*HERO_AR*.3)+(leftW>400?leftW*.12:0), small=Math.min(1,fh*1.02/hs);
+  const geo=useRef({});geo.current={Y,LY,tx,sw,hs,H,stH,fh,heroStreetX,small,yb};
+  const spot=s=>{const g=geo.current;return s.k==='street'?{x:g.heroStreetX,y:g.H-g.stH*.3,s:1}:{x:g.tx+g.sw/2,y:g.LY(s.f),s:g.small*.92}};
+  const at=useRef({a:{k:'lift',f:1},b:{k:'lift',f:1},p:1}), liftLv=useRef(1);
   function place(){
     const g=geo.current,m=at.current,a=spot(m.a),b=spot(m.b),q=m.p,x=a.x+(b.x-a.x)*q,y=a.y+(b.y-a.y)*q,s=a.s+(b.s-a.s)*q,w=g.hs*HERO_AR;
     if(heroRef.current)heroRef.current.style.transform=`translate(${(x-w/2).toFixed(1)}px,${(y-g.hs).toFixed(1)}px) scale(${s.toFixed(3)})`;
-    [liftB,liftF].forEach(r=>{if(r.current)r.current.style.transform=`translate(${(g.tx+g.sw/2-g.sw*.92).toFixed(1)}px,${(g.Y(liftLv.current)-g.fh*.95).toFixed(1)}px)`});
+    [liftB,liftF].forEach(r=>{if(r.current)r.current.style.transform=`translate(${(g.tx+g.sw/2-g.sw*.92).toFixed(1)}px,${(g.LY(liftLv.current)-g.fh*.95).toFixed(1)}px)`});
   }
   useLayoutEffect(place);
   const tween=(ms,fn)=>new Promise(res=>{if(REDUCE)ms=Math.min(ms,60);const t0=performance.now();
@@ -493,11 +498,11 @@ function App(){
     if(!target){setBeam(null);return}
     let x,y,r;
     if(target.k==='num'){const el=numRefs[target.which].current;if(!el)return;const e=el.getBoundingClientRect(),s=sceneRef.current.getBoundingClientRect();x=e.left+e.width/2-s.left;y=e.top+e.height/2-s.top;r=Math.max(22,ef*.8)}
-    else{x=tx+winX;y=Y(target.f)-fh*.5;r=fh*.62}
+    else{x=tx+winX;y=LY(target.f)-fh*.5;r=fh*.62}
     const aim=Math.max(.05,Math.min(2.3,Math.atan2(detY+SHOULDER[1]*dh-y,x-(detX+SHOULDER[0]*dh))));
     const tp=tipOf(aim);
     setBeam({x,y,r,aim,tx:detX+tp[0]*dh,ty:detY+tp[1]*dh});
-  },[target,size,ci,known]);
+  },[target,size,ci,known,detX]);
   const aim=beam?beam.aim:.35;
 
   /* ---------- where the two characters look (the eyes and the body follow) ---------- */
@@ -507,10 +512,14 @@ function App(){
   const beamPt=()=>{const s=sceneRef.current&&beam&&sceneRef.current.getBoundingClientRect();return s?[s.left+beam.x,s.top+beam.y]:null};
   const waiting=stage==='guess'&&keysOn;
   const look=(el,p)=>p?LP.lookAt(el,p[0],p[1]):[0,0];     // [0,0] = at the child who plays
+  const mouse=useRef({x:0,y:0,t:-1e9});
+  useEffect(()=>{const m=e=>{if(e.pointerType==='mouse')mouse.current={x:e.clientX,y:e.clientY,t:performance.now()}};window.addEventListener('pointermove',m);return()=>window.removeEventListener('pointermove',m)},[]);
+  const mouseNow=()=>performance.now()-mouse.current.t<1300?[mouse.current.x,mouse.current.y]:null;    // the mouse moves: the eyes follow it
   function heroInput(el){
-    const now=performance.now(), c=now%4600, lit=now-beamT.current<1700;
+    const now=performance.now(), c=now%4600, lit=now-beamT.current<1700, mo=mouseNow();
     let l;
-    if(pose==='walk'||pose==='cheer'||stage==='ride')l=[0,0];
+    if(mo)l=look(el,mo);
+    else if(pose==='walk'||pose==='cheer'||stage==='ride')l=[0,0];
     else if(stage==='end')l=look(el,mid(chestRef.current));
     else if(lit&&beam)l=look(el,beamPt());
     else if(talk==='det')l=look(el,beam&&c>3300?beamPt():mid(detRef.current,.4));
@@ -519,9 +528,10 @@ function App(){
     return {look:l,talking:talk==='kid'&&pose==='stand',pose,expression:expr,rot,idle:waiting&&!talk,mood:mood==='happy'?'happy':'calm'};
   }
   function detInput(el){
-    const now=performance.now(), c=(now+1900)%4400, lit=now-beamT.current<1500, hero=()=>look(el,mid(heroRef.current,.4));
+    const now=performance.now(), c=(now+1900)%4400, lit=now-beamT.current<1500, hero=()=>look(el,mid(heroRef.current,.4)), mo=mouseNow();
     let l;
-    if(stage==='end')l=c<2600?look(el,mid(chestRef.current)):[0,0];
+    if(mo)l=look(el,mo);
+    else if(stage==='end')l=c<2600?look(el,mid(chestRef.current)):[0,0];
     else if(lit&&beam)l=look(el,beamPt());
     else if(talk==='det')l=c<2500?[0,0]:hero();
     else if(talk==='kid'||stage==='ride'||stage==='solved')l=hero();
@@ -554,14 +564,16 @@ function App(){
     at.current={a:{k:'lift',f:to},b:{k:'lift',f:to},p:1};liftLv.current=to;place();setCur(to);
   }
   const popIn=()=>[heroIn,liftB,liftF].forEach(r=>{const el=r.current&&(r===heroIn?r.current:r.current.firstChild);if(el&&!REDUCE)el.animate([{transform:'scale(0)'},{transform:'scale(1.18)',offset:.6},{transform:'scale(1)'}],{duration:500,easing:'ease-out'})});
-  /* too far: out through the roof, into space — and back in its place */
+  /* too far: out through the roof — and it bursts into pieces; then it is back in its place */
   async function flyAway(from,ck){
-    const to=19, ms=900+(10-from)*150;let crossed=false;sfx.whoosh();setCur(null);
+    const to=11.8, ms=700+(10-from)*130;sfx.whoosh();setCur(null);
     at.current={a:{k:'lift',f:from},b:{k:'lift',f:to},p:0};
-    await tween(ms,q=>{const e=q*q;at.current.p=e;liftLv.current=from+(to-from)*e;
-      if(!crossed&&liftLv.current>10.6){crossed=true;const s=sceneRef.current.getBoundingClientRect();burst(s.left+tx+TW/2,s.top+Y(11)-fh,['#FFD65A','#fff','#2EB6EA','#EF5C55'],24);sfx.stamp()}});ck();
-    await sleep(fast.current?0:500);ck();
-    at.current={a:{k:'lift',f:from},b:{k:'lift',f:from},p:1};liftLv.current=from;place();setCur(from);popIn();sfx.pop();
+    await tween(ms,q=>{const e=q*q;at.current.p=e;liftLv.current=from+(to-from)*e});ck();
+    const s=sceneRef.current.getBoundingClientRect(), bx=s.left+tx+sw/2, by=s.top+LY(to)-fh*.5;
+    setBoom(true);sfx.stamp();noise(.5,{type:'lowpass',f:900,vol:.5});
+    burst(bx,by,['#FFD65A','#e9b949','#fff','#EF5C55','#8b5a3c','#2EB6EA'],34,1.6);setTimeout(()=>burst(bx,by,['#FFD65A','#fff','#EF5C55'],18,2),90);
+    await sleep(fast.current?0:750);ck();
+    at.current={a:{k:'lift',f:from},b:{k:'lift',f:from},p:1};liftLv.current=from;place();setBoom(false);setCur(from);popIn();sfx.pop();
   }
 
   /* ---------- the flow ---------- */
@@ -571,7 +583,7 @@ function App(){
 
   function resetCase(){
     setLit(null);setTarget(null);setHint(false);setKnown(false);setWho(false);setGuess(null);setBad(false);setGood(false);setKeysOn(false);
-    setFallen([]);setFalling(null);fallenRef.current=new Set();setTimer(0);setSupport(false);setShown([10]);setStamp(false);setFriend(null);setHop(false);setQm(false);
+    setFallen([]);setFalling(null);fallenRef.current=new Set();setTimer(0);setSupport(false);setBlank(null);setShown([10]);setStamp(false);setFriend(null);setHop(false);setQm(false);
     stats.current.caseWrong=0;setPose('stand');setExpr('happy');setMood('calm');setRot(0);
   }
   /* the opening: what the twins of 10 are, shown as two towers of cubes that together reach floor 10 */
@@ -579,19 +591,20 @@ function App(){
     const nap=async ms=>{await sleep(fast.current?0:ms);ck()};
     setStage('explain');setShown([10]);
     const talk=say('det','היום נתנסה בלעשות השלמה לעשר.');
-    if(!REDUCE)for(let f=1;f<=11;f++){setBuilt(f);sfx.build();await nap(130)}else setBuilt(11);
+    if(!REDUCE)for(let f=1;f<=10;f++){setBuilt(f);sfx.build();await nap(140)}else setBuilt(10);
     setHeroOn(true);popIn();
     await talk;ck();
     setPose('think');setExpr(undefined);
     await say('det','לכל מספר קטן, יש את התאום שלו. שאם נחבר אותם, נרכיב את המספר 10.');ck();
     setPose('stand');setExpr('happy');
-    for(const [p,q] of CFG.PAIRS){
-      setPair({p,q,n:0});
-      const line=say('det',exText(`${p} + ${q} = 10`));
-      for(let k=1;k<=10;k++){setPair({p,q,n:k});sfx.cube(k);await nap(k===p?260:85)}
-      setTarget({k:'floor',f:10});await line;ck();await nap(350);setTarget(null);
+    const done=[];
+    for(const [p,q] of CFG.PAIRS){                    // the numbers are shown, not read aloud
+      const line=say('det',exText(`${p} + ${q} = 10`),{voice:false});
+      for(let k=1;k<=10;k++){setPairs(done.concat([{p,q,n:k}]));sfx.cube(k);await nap(k===p?260:85)}
+      done.push({p,q,n:10});await line;ck();await nap(400);
     }
-    setPair(null);
+    setTarget({k:'floor',f:10});await nap(1400);setTarget(null);
+    setPairs([]);
   }
   async function play(list,tk,withIntro){
     const ck=()=>{if(tk!==run.current)throw 'stop'};
@@ -600,22 +613,22 @@ function App(){
     if(withIntro){
       setBub({who:'det',text:'',n:0});await nap(350);
       try{await explain(()=>{ck();if(fast.current)throw 'skip'})}catch(e){if(e!=='skip')throw e}
-      hush();fast.current=false;setBuilt(11);setPair(null);setTarget(null);setHeroOn(true);setPose('stand');setExpr('happy');await nap(300);
-    }else{if(!REDUCE)for(let f=1;f<=11;f++){setBuilt(f);sfx.build();await nap(90)}setBuilt(11);setHeroOn(true);popIn()}
+      hush();fast.current=false;setBuilt(10);setPairs([]);setTarget(null);setHeroOn(true);setPose('stand');setExpr('happy');await nap(300);
+    }else{if(!REDUCE)for(let f=1;f<=10;f++){setBuilt(f);sfx.build();await nap(90)}setBuilt(10);setHeroOn(true);popIn()}
     for(let i=0;i<list.length;i++){
       const c=list[i], long=withIntro&&i===0, side=c.side, miss=other(side);
       setCi(i);resetCase();setStage('intro');await nap(250);
       // the riddle
       setWho(true);setQm(true);
-      const head=long?'איך נתאמן? לפנינו חידה.':i===list.length-1?'חידה אחרונה.':`חידה ${ORD[i]}.`;
+      const head=long?'איך נתאמן? לפנינו חידה.':i===list.length-1?'חידה אחרונה.':'חידה הבאה.';
       const story=c.friend===TREASURE?'החיות השאירו לנו הפתעה בקומה 10.':`${c.friend.name} ${c.friend.ran} בקומה 10.`;
-      await say('det',`${head} ${story}`);ck();
+      await say('det',i===0?`${head} ${story}`:head);ck();
       setHint(true);sfx.tap();
       await nap(250);
       sfx.lamp();setLit('sum');setTarget({k:'num',which:'sum'});
       await say('det',long?'הרמז הראשון: סכום התרגיל הוא 10.':'הסכום הוא 10.');ck();
       sfx.lamp();setLit(side);setTarget({k:'num',which:side});setKnown(true);sfx.pop();
-      const arrived=rideTo(0,c.a,ck).then(()=>{setShown([10,c.a]);sfx.ding()});
+      const arrived=rideTo(1,c.a,ck).then(()=>{setShown([10,c.a]);setBlank(c.a);sfx.ding()});
       // from here the buttons can be pressed (a child who already knows does not wait); what the detective says goes on meanwhile
       setKeysOn(true);
       for(let tries=0;;tries++){
@@ -631,7 +644,7 @@ function App(){
           await say('det',tries?`ננסה שוב. מי התאום של ${c.a}?`:long?`מי התאום של ${c.a}? נחשו, ונבדוק במעלית!`:`מי התאום של ${c.a}?`);if(!on())return;
           setTimer(t=>t+1);
         })();
-        const v=await picked;ck();narr.current=null;hush();setTimer(0);setKeysOn(false);
+        const v=await picked;ck();narr.current=null;hush();setTimer(0);
         await arrived;ck();
         setStage('ride');setGuess(v);setLit(null);setTarget(null);setPose('stand');setExpr('joy');setMood('calm');
         const to=c.a+v;
@@ -656,7 +669,7 @@ function App(){
         setKeysOn(true);
       }
       // the twin: floor 10, and who hid there
-      setStage('solved');setGood(true);setGuess(null);setQm(false);setTarget({k:'floor',f:10});sfx.ding();sfx.tada();
+      setStage('solved');setGood(true);setGuess(null);setQm(false);setBlank(null);setTarget({k:'floor',f:10});sfx.ding();sfx.tada();
       setPose('cheer');setExpr('joy');setMood('happy');setHop(true);setFriend(c.friend);setFound(i+1);
       await nap(250);
       const fr=friendRef.current&&friendRef.current.getBoundingClientRect();if(fr)burst(fr.left+fr.width/2,fr.top+fr.height/2,['#FFD65A','#fff','#2EB6EA','#58C9AD'],20);
@@ -670,7 +683,7 @@ function App(){
         // back to the forest
         setFriend(null);sfx.pop();setHome(h=>h.concat([{id:c.friend.id,from:tx+TW*.5}]));
         setTarget(null);
-        await rideTo(10,0,ck,1100);await nap(250);
+        await rideTo(10,1,ck,1100);await nap(250);
       }else{
         await say('kid',`מצאנו את ${c.friend.name}! ${exText(`${L} + ${R} = 10`)}`);ck();
         await nap(500);setStamp(false);
@@ -682,7 +695,7 @@ function App(){
     [523,659,784,1047,1319].forEach((f,j)=>tone(f,.25,'triangle',.12,undefined,j*.12));
     log('GAME_OVER',{won:true,wrong:stats.current.wrong,answers:stats.current.answers});
     say('det','כל החיות חזרו ליער, ומצאנו את תיבת האוצר!');
-    (async()=>{try{setPose('stand');setShown([]);await rideTo(10,0,ck,1100);setCur(null);setPose('cheer');setHop(true)}catch(e){}})();
+    (async()=>{try{setPose('stand');setShown([]);await rideTo(10,1,ck,1100);setCur(null);setPose('cheer');setHop(true)}catch(e){}})();
     await nap(1100+3000);
     if(endRef.current==='chest')setHand(true);
   }
@@ -695,8 +708,8 @@ function App(){
   function start(){
     audio();narr.current=null;hush();const tk=++run.current,first=firstGame.current,list=makeCases(first);firstGame.current=false;
     stats.current={wrong:0,caseWrong:0,answers:0,correct:0};doneReq.current=null;wait.current=null;toldGuess.current=false;
-    at.current={a:{k:'lift',f:0},b:{k:'lift',f:0},p:1};liftLv.current=0;setOnStreet(false);setHeroOn(!first&&REDUCE);
-    setCases(list);setCi(0);setFound(0);setHome([]);setBuilt(REDUCE?11:0);setEndStage(null);setLidOpen(false);setHand(null);setLeaving(false);
+    at.current={a:{k:'lift',f:1},b:{k:'lift',f:1},p:1};liftLv.current=1;setOnStreet(false);setHeroOn(!first&&REDUCE);
+    setCases(list);setCi(0);setFound(0);setHome([]);setBuilt(REDUCE?10:0);setEndStage(null);setLidOpen(false);setHand(null);setLeaving(false);
     log('game_start',{cases:list.map(c=>c.a+'|'+c.side)});
     play(list,tk,first).catch(e=>{if(e!=='stop')console.error(e)});
   }
@@ -705,7 +718,7 @@ function App(){
   function choose(v){if(stageRef.current!=='guess'||!wait.current||fallenRef.current.has(v))return;audio();sfx.tap();
     const ok=C.a+v===CFG.TOP;stats.current.answers++;KP.answer(ok);log('ANSWER',{known:C.a,chosen:v,correct:ok});
     if(ok)stats.current.correct++;
-    answered(v)}
+    setGuess(v);answered(v)}      // the pressed button lights green at once
   function timeUp(){
     if(stageRef.current!=='guess'||!wait.current)return;
     const first=!toldGuess.current;toldGuess.current=true;
@@ -736,20 +749,23 @@ function App(){
   useEffect(()=>{if(KP.claimCorner)KP.claimCorner()},[]);
   const bubRef=useRef(bub);bubRef.current=bub;
   useEffect(()=>{if(KP.onResume)KP.onResume(()=>{const b=bubRef.current;if(wait.current&&b.text)say(b.who,b.text)})},[]);
-  useEffect(()=>{start();return()=>{run.current++;narr.current=null;hush()}},[]);
+  // opened on its own (not inside the course, which has its own Play): a browser speaks only after a tap, so the game waits for one
+  const [ready,setReady]=useState(!!KP.embedded);
+  useEffect(()=>{if(ready)start();return()=>{run.current++;narr.current=null;hush()}},[ready]);
 
   /* ---------- render ---------- */
   const box=which=>{
     const isKnown=which===C.side, val=isKnown?(known?C.a:null):good?C.b:guess;
     const cls='n box'+(isKnown&&known?' known':'')+(!isKnown&&good?' done':'')+(!isKnown&&!good&&guess!=null?(bad?' bad':' guess'):'')
-      +(!isKnown&&stage==='guess'&&keysOn&&guess==null?' ask':'')+(lit===which?' lit':lit?' dim':'');
+      +(!isKnown&&stage==='guess'&&keysOn&&guess==null?' ask':'')+(lit===which?' lit':'');
     return <span ref={numRefs[which]} key={which+(bad?'b':'')} className={cls} style={{width:Math.max(34,ef*1.15),height:Math.max(34,ef*1.25)}}>{val!=null?val:''}</span>};
   const speakerX=bub.who==='det'?detX+dw*.42:onStreet?heroStreetX:tx+sw/2;
   const bgS=Math.max(W/1200,H/800), bgX=(W-1200*bgS)/2;
   const chW=Math.max(40,Math.min(230,Math.max(dh*.86,leftW*.66))), chH=chW*CHEST_VB[3]/CHEST_VB[2], chX=Math.max(detX+dw*.66,heroStreetX-chW*.9);
   const bushXs=useMemo(()=>[.05,.27,.45,.62,.9].map(k=>Math.round(cx0+CW*k)),[cx0,CW]);
-  const cubes=pair?mk(pair.n).map((_,k)=>({k,cls:k<pair.p?'a':'b',lab:k===Math.floor((pair.p-1)/2)&&pair.n>=pair.p?pair.p:k===pair.p+Math.floor((pair.q-1)/2)&&pair.n>=10?pair.q:null}))
-    :support?mk(CFG.TOP).map((_,k)=>({k,cls:k<C.a?'a':'empty',lab:null})):[];
+  const cubes=pairs.length?pairs.flatMap((pr,j)=>mk(pr.n).map((_,k)=>({key:'p'+j+'-'+k,x:pairX(j),k,cls:k<pr.p?'a':'b',
+      lab:k===Math.floor((pr.p-1)/2)&&pr.n>=pr.p?pr.p:k===pr.p+Math.floor((pr.q-1)/2)&&pr.n>=10?pr.q:null})))
+    :support?mk(CFG.TOP).map((_,k)=>({key:'s'+k,x:cubeX,k,cls:k<C.a?'a':'empty',lab:null})):[];
   return(
     <div className="app" onPointerDownCapture={()=>audio()}>
       <div className="scene" ref={sceneRef}>
@@ -759,31 +775,31 @@ function App(){
         <Bushes xs={bushXs} y={yb+4} s={fh*1.15}/>
         {/* the tower */}
         <div style={{inset:0,zIndex:1,pointerEvents:'none'}}>
-          {mk(11).map((_,f)=>f<built&&<div key={f} className="slab pop" style={{position:'absolute',left:tx-PAD,top:Y(f+1)-PAD,zIndex:f}}>
-            <FloorArt w={TW} fh={fh} sw={sw} winX={winX} x0={null} x1={null} seed={f+1} lit={f===10}/></div>)}
-          {built>=11&&<div className="slab pop" style={{position:'absolute',left:tx-PAD,top:Y(11)-fh*1.05*1.8,zIndex:20}}><RoofArt w={TW} h={fh*1.05}/></div>}
+          {mk(10).map((_,i)=>{const F=i+1;return i<built&&<div key={F} className="slab pop" style={{position:'absolute',left:tx-PAD,top:Y(F)-PAD,zIndex:i}}>
+            <FloorArt w={TW} fh={fh} sw={sw} winX={winX} x0={null} x1={null} seed={F+1} lit={F===10} plain={blank!=null&&F>blank&&F<10} noLedge={blank!=null&&F===10}/></div>})}
+          {built>=10&&<div className="slab pop" style={{position:'absolute',left:tx-PAD,top:Y(10)-fh*1.05*1.8,zIndex:20}}><RoofArt w={TW} h={fh*1.05}/></div>}
         </div>
-        {cur!=null&&cur>0&&stage!=='ride'&&<div className="glow" style={{left:tx+winX-fh*.75,top:Y(cur)-fh*1.25,width:fh*1.5,height:fh*1.5}}/>}
-        {built>=11&&shown.map(f=><div key={f} className={'plate'+(f===10&&cur!==10?' goal':'')+(cur===f&&stage!=='ride'?' cur':'')} style={{left:tx-nw,top:Y(f)-fh*.86,width:nw-5,height:fh*.72,fontSize:Math.max(14,fh*.5)}}>{f}</div>)}
-        {cubes.map(({k,cls,lab})=><div key={(pair?'p'+pair.p:'s')+k} className={'cube '+cls} style={{left:cubeX,top:Y(k+1)+1,width:cw,height:fh-3,fontSize:Math.max(13,fh*.55)}}>{lab}</div>)}
-        {built>=11&&<>
-          <div ref={liftB} className="lift" style={{zIndex:3}}><div style={{transformOrigin:'50% 100%'}}><LiftArt w={sw*.92} h={fh*.95} part="back"/></div></div>
-          <div ref={liftF} className="lift" style={{zIndex:5}}><div style={{transformOrigin:'50% 100%'}}><LiftArt w={sw*.92} h={fh*.95} part="front"/></div></div></>}
-        {qm&&built>=11&&<span className="qm" style={{left:tx+winX-fh*.28,top:Y(10)-fh*1.05,fontSize:fh*.8}}>?</span>}
-        {friend&&<div ref={friendRef} className="friend" key={friend.id} style={{left:tx+xL-fh*.75*friend.ar,top:Y(10)-fh*1.5}}><Friend f={friend} h={fh*1.5}/></div>}
+        {cur!=null&&cur>0&&stage!=='ride'&&<div className="glow" style={{left:tx+winX-fh*.75,top:LY(cur)-fh*1.25,width:fh*1.5,height:fh*1.5}}/>}
+        {built>=10&&shown.map(f=><div key={f} className={'plate'+(f===10&&cur!==10?' goal':'')+(cur===f&&stage!=='ride'?' cur':'')} style={{left:tx-nw,top:LY(f)-fh*.86,width:nw-5,height:fh*.72,fontSize:Math.max(14,fh*.5)}}>{f}</div>)}
+        {cubes.map(({key,x,k,cls,lab})=><div key={key} className={'cube '+cls} style={{left:x,top:Y(k+1)+1,width:cw,height:fh-3,fontSize:Math.max(12,Math.min(fh*.55,cw*.7)),zIndex:6}}>{lab}</div>)}
+        {built>=10&&<>
+          <div ref={liftB} className="lift" style={{zIndex:3,opacity:boom?0:1}}><div style={{transformOrigin:'50% 100%'}}><LiftArt w={sw*.92} h={fh*.95} part="back"/></div></div>
+          <div ref={liftF} className="lift" style={{zIndex:5,opacity:boom?0:1}}><div style={{transformOrigin:'50% 100%'}}><LiftArt w={sw*.92} h={fh*.95} part="front"/></div></div></>}
+        {qm&&built>=10&&<span className="qm" style={{left:tx+winX-fh*.28,top:LY(10)-fh*1.05,fontSize:fh*.8}}>?</span>}
+        {friend&&<div ref={friendRef} className="friend" key={friend.id} style={{left:tx+xL-fh*.75*friend.ar,top:LY(10)-fh*1.5}}><Friend f={friend} h={fh*1.5}/></div>}
         {/* the clue board */}
-        <div className="boardx" style={{left:bx,top:by,width:bw,height:bh}}>
+        <div className="boardx" style={{left:bx,top:by,width:bw,height:bh,opacity:stage==='explain'?0:1,transition:'opacity .4s'}}>
           <BoardArt w={bw} h={bh}/>
           <div className={'paper'+(hint?'':' blank')} style={{left:9,top:11,width:bw-18,height:paperH,fontSize:ef}} role="img" aria-label={hint?`${C.side==='L'&&known?C.a:'ריבוע'} ועוד ${C.side==='R'&&known?C.a:'ריבוע'} שווה 10`:''}>
-            {box('L')}<span className={'s'+(lit?' dim':'')}>+</span>{box('R')}<span className={'s'+(lit?' dim':'')}>=</span>
-            <span ref={numRefs.sum} className={'n'+(lit==='sum'?' lit':lit?' dim':'')+(good?' done':'')} style={{minWidth:ef*1.2}}>10</span></div>
+            {box('L')}<span className="s">+</span>{box('R')}<span className="s">=</span>
+            <span ref={numRefs.sum} className={'n'+(lit==='sum'?' lit':'')+(good?' done':'')} style={{minWidth:ef*1.2}}>10</span></div>
           <div className="pin" style={{left:bw/2-6,top:5}}/>
           <div className="pols" style={{left:12,right:12,bottom:11}}>
             {cases.map((c,i)=><div key={i} className={'pol'+(i<found?' in':i===ci&&who?' now sil':'')} style={{width:polS,height:polS*1.08,fontSize:polS*.5}}>{i<found||i===ci&&who?<Friend f={c.friend} h={polS*.86} w={polS*.86}/>:'?'}</div>)}</div>
         </div>
         {/* the detective and the child's hero */}
-        <div ref={detRef} style={{left:detX,top:detY,zIndex:5,pointerEvents:'none'}}><Detective s={dh} aim={aim} resting={!beam} input={detInput}/></div>
-        <div ref={heroRef} className="herox" style={{width:hs*HERO_AR,height:hs,zIndex:onStreet?6:4,transformOrigin:'50% 100%',opacity:heroOn&&built>=11?1:0,transition:'opacity .25s'}}>
+        <div ref={detRef} style={{left:detX,top:detY,zIndex:5,pointerEvents:'none',transition:'left .6s ease-in-out'}}><Detective s={dh} aim={aim} resting={!beam} input={detInput}/></div>
+        <div ref={heroRef} className="herox" style={{width:hs*HERO_AR,height:hs,zIndex:onStreet?6:4,transformOrigin:'50% 100%',opacity:heroOn&&built>=10&&!boom?1:0,transition:boom?'none':'opacity .25s'}}>
           <div ref={heroIn} style={{transformOrigin:'50% 100%'}}><div className={hop?'hop':''} style={{transformOrigin:'50% 100%'}}><Hero s={hs} input={heroInput}/></div></div>
         </div>
         {beam&&<svg className="beam"><defs><linearGradient id="bm" gradientUnits="userSpaceOnUse" x1={beam.tx} y1={beam.ty} x2={beam.x} y2={beam.y}><stop offset="0" stopColor="#FFF3C4" stopOpacity=".85"/><stop offset="1" stopColor="#FFE08A" stopOpacity=".35"/></linearGradient></defs>
@@ -814,10 +830,12 @@ function App(){
           {(stage==='guess'&&keysOn||stage==='ride')&&<>
             <Stopwatch key={'w'+ci} run={stage==='guess'&&timer>0?timer:0} onEnd={timeUp}/>
             <div className="keys" aria-label={`מי התאום של ${C.a}?`}>
-              {[1,2,3,4,5,6,7,8,9].map(v=><button key={v} className={'key'+(fallen.includes(v)?' gone':falling===v?' fall':'')+(good&&v===C.b?' good':'')}
+              {[1,2,3,4,5,6,7,8,9].map(v=><button key={v} className={'key'+(fallen.includes(v)?' gone':falling===v?' fall':'')+(good&&v===C.b?' good':guess===v&&!falling?' pressed':'')}
                 disabled={stage!=='guess'||fallen.includes(v)} aria-label={String(v)} onClick={()=>choose(v)}>{v}</button>)}</div></>}
         </div>
       </div>
+      {!ready&&<div className="center" style={{background:'rgba(16,40,56,.35)'}}><button className="playb" aria-label="להתחיל" onClick={()=>{audio();setReady(true)}}>
+        <svg width="54" height="54" viewBox="0 0 24 24"><path d="M8 5l12 7-12 7z" fill="#fff"/></svg></button></div>}
       {endStage==='done'&&(()=>{const n=starCount(mistakes());return(
         <div className="center endscreen" style={{justifyContent:'flex-start',paddingTop:'max(70px,13dvh)'}}>
           <div className="stars" dir="ltr">{[0,1,2].map(i=><div key={i} className="star" style={{animationDelay:.15+i*.35+'s'}}><StarIcon on={i<n}/></div>)}</div>

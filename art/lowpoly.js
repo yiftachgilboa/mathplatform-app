@@ -1109,7 +1109,7 @@
       const tk = o.talk || 0, mz = zc + (.025 + tk * .015) * H, sd = seed * 37 + 230;
       [-1, 1].forEach((sx, i) => {
         const w = limb([sx * .012 * H, -ry * 1.02, mz], [sx * .2 * H, -ry * .9, mz - (.055 - .02 * tk) * H], .062 * H, .014 * H, o.hair || mat.hair, sd + i, 5);
-        w.group = 'stache'; w.order = i; w.bias = rz * .9; meshes.push(w);
+        w.group = 'stache'; w.order = (sx > 0) === ((o.rot || 0) >= 0) ? 0 : 1; w.bias = rz * .9; meshes.push(w);   // the far wing under the near one
       });
       const nose = icosphere(0, skin, sd + 3).scale(.05 * H, .05 * H, .045 * H).move(0, -ry * 1.07, mz + .075 * H); nose.group = 'stache'; nose.order = 3; nose.bias = rz * .9; meshes.push(nose);
       // fedora: a wide brim (dips at the front), a band, a crown with a crease
@@ -1810,13 +1810,16 @@
       meshes.push(decal([[sw * .12, 0], [sw * .88, 0], [sw * .88, h], [sw * .12, h]], fy, mat.windowDark, seed * 61 + 2));
       [.3, .7].forEach((k, i) => put(box(sw * .05, 1, h, mat.iron, seed * 61 + 3 + i, .02), sw * k, fy - 1.5, 0));
       // window, dark or lit
+      // o.plain: a bare wall — no window and no ledge (nothing to count floor by floor); o.noLedge: the window only
       const ws = Math.min(h * .56, (w - sw) * .3), wx = o.winX != null ? o.winX : sw + (w - sw) * .22, wz = h * .5;
       const B = (a, b, c, m, dx, dz, k, sd) => put(box(a, b, c, m, sd, .04), wx + dx, fy - k, wz - c / 2 + dz);
-      B(ws * 1.16, 2, ws * 1.2, mat.wood, 0, 0, 1, seed * 61 + 10);
-      B(ws * .94, 2, ws * .98, o.lit ? mat.lampLight : mat.windowDark, 0, 0, 2.4, seed * 61 + 11);
-      B(ws * .09, 2, ws, mat.wood, 0, 0, 3.4, seed * 61 + 12); B(ws * .96, 2, ws * .09, mat.wood, 0, 0, 3.6, seed * 61 + 13);
+      if (!o.plain) {
+        B(ws * 1.16, 2, ws * 1.2, mat.wood, 0, 0, 1, seed * 61 + 10);
+        B(ws * .94, 2, ws * .98, o.lit ? mat.lampLight : mat.windowDark, 0, 0, 2.4, seed * 61 + 11);
+        B(ws * .09, 2, ws, mat.wood, 0, 0, 3.4, seed * 61 + 12); B(ws * .96, 2, ws * .09, mat.wood, 0, 0, 3.6, seed * 61 + 13);
+      }
       // ledge to walk on
-      put(box(w + h * .12, L, h * .09, mat.iron, seed * 61 + 20, .04), w / 2, 0, -h * .09);
+      if (!o.plain && !o.noLedge) put(box(w + h * .12, L, h * .09, mat.iron, seed * 61 + 20, .04), w / 2, 0, -h * .09);
       if (o.sx0 != null) {
         const n = 4, x0 = o.sx0, x1 = o.sx1, dx = (x1 - x0) / n;
         meshes.push(limb([x0, L * .3, -h * .03], [x1, L * .3, h * .95], h * .035, h * .035, mat.iron, seed * 61 + 30, 4));
