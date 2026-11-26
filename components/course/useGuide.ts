@@ -51,7 +51,7 @@ export function useGuide({ enabled, course, state, lessonIdx, stage, name, cover
   const noteDone = useCallback((s: number) => { justDone.current = s }, [])
 
   const say = useCallback((text: string) => {
-    const stop = speak(text, () => { stopRef.current = null; setTalking(false) })
+    const stop = speak(text, () => { stopRef.current = null; setTalking(false) }, live.current.name || undefined)   // שם הילד לא נשלח לקול בענן
     if (!stop) return false
     stopRef.current = stop
     setTalking(true)

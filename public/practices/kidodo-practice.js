@@ -149,10 +149,109 @@
     media = []
   }
 
+  /*
+   * cloud voice (/api/tts, Azure): a Hebrew utterance the game speaks is played as a saved recording
+   * instead of the device's voice — the same voice on every device. pitch < .95 = the man's voice (Avri),
+   * otherwise Hila; rate and pitch become small changes of that voice. The game gets the same 'start' /
+   * 'end' / 'error' events as from speechSynthesis. Without the server (or when it fails) the device's
+   * voice speaks, as before; with no Hebrew voice either, 'end' comes after the time it takes to read.
+   * window.KidodoVoice exists while the cloud voice may be on: games speak even without a Hebrew voice.
+   */
+  var cloud = (function () {
+    var on = null, el = null, cur = null, queue = [], unlocked = false
+    window.KidodoVoice = { on: null }
+    var ready = fetch('/api/tts').then(function (r) { return r.ok ? r.json() : { on: false } })
+      .then(function (j) { on = !!(j && j.on) }, function () { on = false })
+      .then(function () { window.KidodoVoice.on = on; if (!on) window.KidodoVoice = null })
+    var HE = /[א-ת]/
+    function url(u) {
+      var p = u.pitch == null ? 1 : u.pitch, man = p < .95
+      var r = Math.round(((u.rate || 1) - 1) * 100)
+      var dp = Math.round((p - (man ? .75 : 1)) * 30)
+      return '/api/tts?v=' + (man ? 'avri' : 'hila') + '&r=' + r + '&p=' + dp + '&t=' + encodeURIComponent(u.text.trim())
+    }
+    function fire(u, type) {
+      var e
+      try { e = new SpeechSynthesisEvent(type, { utterance: u }) } catch (x) { e = new Event(type) }
+      try { u.dispatchEvent(e) } catch (x) {}
+    }
+    function player() {
+      if (!el) { el = new Audio(); el.preload = 'auto' }
+      return el
+    }
+    // on phones a sound may start only from a tap: one silent sound in the first tap opens this player for good
+    function unlock() {
+      if (unlocked || cur) return   // never cut a sentence that is playing
+      unlocked = true
+      try { var a = player(); a.src = SILENT; a.play().catch(function () { unlocked = false }) } catch (e) { unlocked = false }
+    }
+    function hebrewVoice() {
+      try { return synth.getVoices().some(function (v) { return /^(he|iw)/i.test(v.lang) }) } catch (e) { return false }
+    }
+    function finish(u) { if (cur === u) { cur = null; fire(u, 'end'); next() } }
+    // the cloud voice did not work for this sentence: the device's voice, or just the time it takes to read
+    function fallback(u) {
+      if (cur !== u) return
+      cur = null
+      if (u.voice || hebrewVoice()) {
+        u.addEventListener('end', next); u.addEventListener('error', next)
+        try { real.speak(u); return } catch (e) {}
+      }
+      var me = u
+      cur = me
+      setTimeout(function () { finish(me) }, 900 + u.text.length * 60)
+    }
+    function next() {
+      if (cur || !queue.length) return
+      var u = queue.shift()
+      cur = u
+      ready.then(function () {
+        if (cur !== u) return
+        if (!on) return fallback(u)
+        var a = player()
+        a.onended = function () { finish(u) }
+        a.onerror = function () { fallback(u) }
+        a.src = url(u)
+        var go = a.play()
+        fire(u, 'start')
+        if (go && go.catch) go.catch(function () { fallback(u) })
+      })
+    }
+    return {
+      take: function (u) {
+        if (on === false || !u || !u.text || !HE.test(u.text) || u.volume === 0) return false
+        queue.push(u); next()
+        return true
+      },
+      cancel: function () {
+        var was = cur
+        queue = []; cur = null
+        if (el) { el.onended = el.onerror = null; try { el.pause() } catch (e) {} }
+        if (was) fire(was, 'error')
+      },
+      unlock: unlock,
+    }
+  })()
+  // a short silent WAV (unlocks the player on phones)
+  var SILENT = (function () {
+    var n = 800, b = new Uint8Array(44 + n), d = new DataView(b.buffer)
+    function s(o, t) { for (var i = 0; i < t.length; i++) b[o + i] = t.charCodeAt(i) }
+    s(0, 'RIFF'); d.setUint32(4, 36 + n, true); s(8, 'WAVEfmt '); d.setUint32(16, 16, true); d.setUint16(20, 1, true)
+    d.setUint16(22, 1, true); d.setUint32(24, 8000, true); d.setUint32(28, 8000, true); d.setUint16(32, 1, true)
+    d.setUint16(34, 8, true); s(36, 'data'); d.setUint32(40, n, true); b.fill(128, 44)
+    var str = ''; for (var i = 0; i < b.length; i++) str += String.fromCharCode(b[i])
+    return 'data:audio/wav;base64,' + btoa(str)
+  })()
+  // opened alone (no Play button): the first tap anywhere opens the player
+  ;['pointerdown', 'touchend', 'keydown'].forEach(function (type) {
+    window.addEventListener(type, function () { if (!paused) cloud.unlock() }, { capture: true, once: true })
+  })
+
   /* speech: while paused nothing is said; what was cut, or asked for meanwhile, is said on Play */
   var synth = window.speechSynthesis, S = null, live = [], held = []
   if (synth) {
-    S = { speak: synth.speak.bind(synth), cancel: synth.cancel.bind(synth) }
+    var real = { speak: synth.speak.bind(synth), cancel: synth.cancel.bind(synth) }
+    S = { speak: function (u) { if (!cloud.take(u)) real.speak(u) }, cancel: function () { cloud.cancel(); real.cancel() } }
     var speak = function (u) {
       if (paused) { held.push(u); return }
       var off = function () { live = live.filter(function (x) { return x !== u }) }
@@ -183,7 +282,8 @@
     if (!S) return false
     var list = held; held = []
     // inside the tap itself: opens the voice on phones that allow speech only from a tap
-    if (first && !list.length) try { var u = new SpeechSynthesisUtterance(' '); u.volume = 0; S.speak(u) } catch (e) {}
+    if (first) cloud.unlock()
+    if (first && !list.length) try { var u = new SpeechSynthesisUtterance(' '); u.volume = 0; real.speak(u) } catch (e) {}
     list.forEach(function (x) { synth.speak(x) })
     return list.length > 0
   }

@@ -447,7 +447,7 @@ function App(){
     if(typeof ResizeObserver==='undefined'){window.addEventListener('resize',m);return()=>window.removeEventListener('resize',m)}
     const ro=new ResizeObserver(m);ro.observe(el);return()=>ro.disconnect()},[screen]);
 
-  const tts=()=>soundOn&&hasTTS&&heVoice;
+  const tts=()=>soundOn&&hasTTS&&(heVoice||window.KidodoVoice);
   const newFlow=()=>{const f=++flow.current;return()=>f===flow.current};
   const later=(alive,ms,fn)=>setTimeout(()=>{if(alive())fn()},ms);
 
@@ -460,7 +460,7 @@ function App(){
       finRef.current=fin;
       const sp=toSpeech(text);
       if(tts()){
-        try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(sp);u.voice=heVoice;u.lang=heVoice.lang;u.rate=.95;
+        try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(sp);u.voice=heVoice;u.lang=heVoice?heVoice.lang:'he-IL';u.rate=.95;
           u.onend=fin;u.onerror=fin;timer=setTimeout(fin,sp.length*130+3000);speechSynthesis.speak(u)}catch(e){timer=setTimeout(fin,1500)}
       }else timer=setTimeout(fin,Math.max(1300,sp.length*62));
     });
@@ -468,7 +468,7 @@ function App(){
   const sayWord=w=>new Promise(res=>{
     if(!tts()){setTimeout(res,470);return}
     let done=false;const fin=()=>{if(!done){done=true;res()}};
-    try{const u=new SpeechSynthesisUtterance(w);u.voice=heVoice;u.lang=heVoice.lang;u.rate=1.35;u.onend=fin;u.onerror=fin;speechSynthesis.speak(u);setTimeout(fin,1400)}catch(e){setTimeout(fin,470)}
+    try{const u=new SpeechSynthesisUtterance(w);u.voice=heVoice;u.lang=heVoice?heVoice.lang:'he-IL';u.rate=1.35;u.onend=fin;u.onerror=fin;speechSynthesis.speak(u);setTimeout(fin,1400)}catch(e){setTimeout(fin,470)}
   });
   const hush=()=>{if(hasTTS)try{speechSynthesis.cancel()}catch(e){};if(finRef.current)finRef.current()};
   const clearNudges=()=>{nudges.current.forEach(clearTimeout);nudges.current=[];setWiggle(false)};
@@ -674,7 +674,7 @@ function App(){
       <div className="h1 fall" style={{animationDelay:'.2s'}}>בואו נתאמן בפירוק מספרים</div>
       <div className="note fall" style={{animationDelay:'.35s'}}>ננחש עם המוח המהיר, נבדוק במדרגות עם המוח החושב, ונמלא את תיבת האוצר.</div>
       <div className="fall" style={{animationDelay:'.5s'}}><button className="cta" onClick={start}>מתחילים</button></div>
-      {hasTTS&&!heVoice&&<div className="note">לא נמצא קול בעברית בדפדפן הזה, אז הקריינות תופיע ככתוביות.</div>}
+      {hasTTS&&!heVoice&&!window.KidodoVoice&&<div className="note">לא נמצא קול בעברית בדפדפן הזה, אז הקריינות תופיע ככתוביות.</div>}
     </div>);
   }else if(screen==='end'){
     stageContent=(<div className="center endscreen" key="end">

@@ -363,9 +363,9 @@ function App(){
   function say(text,{show=true}={}){
     if(finRef.current)finRef.current();
     if(show){setCaption(text);setCapN(n=>n+1)}
-    if(!(soundOn&&voiceOn&&hasTTS&&heVoice)){setTalking(false);return}
+    if(!(soundOn&&voiceOn&&hasTTS&&(heVoice||window.KidodoVoice))){setTalking(false);return}
     let done=false;const fin=()=>{if(done)return;done=true;if(finRef.current===fin){finRef.current=null;setTalking(false)}};finRef.current=fin;setTalking(true);
-    try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(toSpeech(text));u.voice=heVoice;u.lang=heVoice.lang;u.rate=.95;u.onend=fin;u.onerror=fin;speechSynthesis.speak(u);setTimeout(fin,8000)}catch(e){fin()}
+    try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(toSpeech(text));u.voice=heVoice;u.lang=heVoice?heVoice.lang:'he-IL';u.rate=.95;u.onend=fin;u.onerror=fin;speechSynthesis.speak(u);setTimeout(fin,8000)}catch(e){fin()}
   }
   const hush=()=>{if(hasTTS)try{speechSynthesis.cancel()}catch(e){};if(finRef.current)finRef.current()};
 

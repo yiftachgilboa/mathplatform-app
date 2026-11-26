@@ -698,7 +698,7 @@ function App(){
   const mh=hs*2, mw=Math.round(mh*MON_VB[2]/MON_VB[3]);              // the chasing monster: twice the hero's height
   R.current.geo={U,T,Lx,groundY,W,H,topY,maxY,layMaxY,C,hw,heroX,mw,mh,cs:Math.round(Math.max(84,Math.min(145,W*.32,groundY*.34)))};
 
-  const tts=()=>soundOn&&speechOn&&hasTTS&&heVoice;
+  const tts=()=>soundOn&&speechOn&&hasTTS&&(heVoice||window.KidodoVoice);
   const newFlow=()=>{const f=++flow.current;return()=>f===flow.current};
   const later=(alive,ms,fn)=>setTimeout(()=>{if(alive())fn()},ms);
   function say(text,{voice=true}={}){
@@ -710,7 +710,7 @@ function App(){
       finRef.current=fin;
       const sp=toSpeech(text);
       if(voice&&tts()){
-        try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(sp);u.voice=heVoice;u.lang=heVoice.lang;u.rate=.95;
+        try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(sp);u.voice=heVoice;u.lang=heVoice?heVoice.lang:'he-IL';u.rate=.95;
           u.onend=fin;u.onerror=fin;timer=setTimeout(fin,sp.length*130+3000);speechSynthesis.speak(u)}catch(e){timer=setTimeout(fin,1500)}
       }else timer=setTimeout(fin,voice?Math.max(1300,sp.length*62):700);
     });

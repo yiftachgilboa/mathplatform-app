@@ -435,8 +435,8 @@ function App(){
       let done=false,tm;const end=()=>{if(done)return;done=true;clearTimeout(tm);if(fin.current===end){fin.current=null;setTalk(false)}res()};fin.current=end;
       setTalk(true);
       const est=900+text.length*52;
-      if(soundOn&&hasTTS&&heVoice){
-        try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(toSpeech(text));u.voice=heVoice;u.lang=heVoice.lang;u.rate=.95;u.pitch=1.2;u.onend=end;u.onerror=end;speechSynthesis.speak(u);tm=setTimeout(end,est*2.2+2500)}
+      if(soundOn&&hasTTS&&(heVoice||window.KidodoVoice)){
+        try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(toSpeech(text));u.voice=heVoice;u.lang=heVoice?heVoice.lang:'he-IL';u.rate=.95;u.pitch=1.2;u.onend=end;u.onerror=end;speechSynthesis.speak(u);tm=setTimeout(end,est*2.2+2500)}
         catch(e){tm=setTimeout(end,est)}
       }else tm=setTimeout(end,est);
     });
