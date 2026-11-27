@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { authorizeChild, currentUser } from '@/lib/course/admin'
-import { completeStage, recordAnswer, validLesson } from '@/lib/course/record'
+import { completeStage, recordAnswer, STAGE_REWARD, stageRewardRef, validLesson } from '@/lib/course/record'
 import { reward, rewardSurprise } from '@/lib/shop/wallet'
 import { coursePlatformGame, gameRow } from '@/lib/course/platformGames'
 
@@ -92,7 +92,11 @@ async function payCoins(childId: string, gameId: string, data: { stars?: number;
   const stars = Number(data?.stars ?? 0), collected = Number(data?.correctAnswers ?? 0)
   const isSurprise = gameId === 'surprise-coins-001'
   if (!isSurprise && stars < 1) return 0
-  const paid = isSurprise ? await rewardSurprise(childId, collected) : await reward(childId, 'platformGame', `game:${gameId}`)
+  // משחק של הקורס: אותו תגמול ואותו מזהה כמו בשלב בקורס — מה שהרווחנו באחד כבר נספר בשני
+  const fromCourse = coursePlatformGame(gameId)
+  const paid = isSurprise ? await rewardSurprise(childId, collected)
+    : fromCourse ? await reward(childId, STAGE_REWARD[fromCourse.stage], stageRewardRef(fromCourse.courseId, fromCourse.lessonId, fromCourse.stage))
+    : await reward(childId, 'platformGame', `game:${gameId}`)
   if (paid !== null) return paid
 
   // הארנק עוד לא מותקן (המיגרציה לא רצה) — כמו קודם

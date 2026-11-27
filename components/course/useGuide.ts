@@ -6,14 +6,15 @@ import { guideText, type GuideEvent } from '@/lib/course/guide'
 import { canSpeak, speak } from '@/lib/course/speak'
 
 const SETTLE = 600            // מחכים רגע אחרי מעבר, שהמסך יתייצב (וגם הכתובת בטעינה)
-const CLOSE_AFTER = 30_000    // אחרי שההקראה נגמרה, הבועה נסגרת לבד
+const CLOSE_AFTER = 30_000    // בועה שלא הוקראה (הדפדפן לא הרשה קול) נסגרת לבד
+const CLOSE_SAID = 1_200      // הדמות סיימה לדבר → הבועה נסגרת אחרי רגע
 const EVENTS = ['pointerdown', 'pointermove', 'keydown'] as const
 const REMIND_AFTER = 60_000   // בלי נגיעה, בלי משחק פתוח: תזכורת אחת לכל שלב
 
 /**
  * בועת ההוראות של הדמות: מה כתוב בה, מתי היא נפתחת ומתי היא מדברת.
  * נפתחת בכניסה, במעבר שיעור או שלב, בסיום שלב, בחזרה מהחנות, בנגיעה בדמות, ופעם אחת כשהילד תקוע.
- * נסגרת ב-X, לבד 30 שניות אחרי ההקראה, בנגיעה בשלב, וכשמשחק או סרטון מתחילים (busy).
+ * נסגרת כשהדמות מסיימת לדבר, ב-X, לבד אחרי 30 שניות אם לא הוקראה, בנגיעה בשלב, וכשמשחק או סרטון מתחילים (busy).
  */
 export function useGuide({ enabled, course, state, lessonIdx, stage, name, covered, busy, pending }: {
   enabled: boolean; course: Course; state: CourseState; lessonIdx: number; stage: number; name: string; covered: boolean; busy: boolean
@@ -51,12 +52,17 @@ export function useGuide({ enabled, course, state, lessonIdx, stage, name, cover
   const noteDone = useCallback((s: number) => { justDone.current = s }, [])
 
   const say = useCallback((text: string) => {
-    const stop = speak(text, () => { stopRef.current = null; setTalking(false) }, live.current.name || undefined)   // שם הילד לא נשלח לקול בענן
+    const mine = turn.current
+    // onEnd = ההקראה נגמרה מעצמה (לא הושתקה) → הבועה נסגרת, אם לא נפתחה בינתיים אחרת
+    const stop = speak(text, () => {
+      stopRef.current = null; setTalking(false)
+      setTimeout(() => { if (mine === turn.current && !stopRef.current) close() }, CLOSE_SAID)
+    }, live.current.name || undefined)   // שם הילד לא נשלח לקול בענן
     if (!stop) return false
     stopRef.current = stop
     setTalking(true)
     return true
-  }, [])
+  }, [close])
   const toggleSay = useCallback(() => {
     if (stopRef.current) quiet()
     else if (msg) say(msg.text)
@@ -105,7 +111,7 @@ export function useGuide({ enabled, course, state, lessonIdx, stage, name, cover
     return () => { document.removeEventListener('visibilitychange', onHide); stopRef.current?.() }
   }, [quiet])
 
-  // נשארה פתוחה: נסגרת לבד 30 שניות אחרי ההקראה
+  // לא הוקראה (או הושתקה): נסגרת לבד אחרי 30 שניות
   useEffect(() => {
     if (!msg || talking) return
     const t = setTimeout(close, CLOSE_AFTER)

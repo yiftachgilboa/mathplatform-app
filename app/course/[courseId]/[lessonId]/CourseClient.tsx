@@ -31,15 +31,22 @@ type Props = {
   initialShop: ShopState | null
 }
 
-/** השלב שנכנסים אליו בשיעור: הראשון (מאלה שיש בהם תוכן) שעוד לא הושלם */
+/** השלב הראשון בשיעור: הסרטון, ואם הוא עוד לא עלה — ההתנסות / המשחק הראשון */
+function firstStage(lesson: Lesson) {
+  const st = availableStages(lesson)
+  return lesson.stages.video?.src ? 1 : st.find(s => s > 1) ?? 1
+}
+
+/** השלב שנכנסים אליו בשיעור: הראשון (מאלה שיש בהם תוכן) שעוד לא הושלם. סרטון שעוד לא עלה — מדלגים עליו */
 function defaultStage(state: CourseState, lesson: Lesson) {
   const done = state.done[lesson.id] ?? []
-  return availableStages(lesson).find(s => !done.includes(s)) ?? 1
+  const skip = lesson.stages.video?.src ? 0 : 1
+  return availableStages(lesson).find(s => s > skip && !done.includes(s)) ?? firstStage(lesson)
 }
 
 /** שלב שאין בו תוכן → השלב הראשון */
 function fitStage(lesson: Lesson, s: number) {
-  return availableStages(lesson).includes(s) ? s : 1
+  return availableStages(lesson).includes(s) ? s : firstStage(lesson)
 }
 
 export default function CourseClient({ course, childId, childName, avatar, initialLesson, initialStage, initialState, initialShop }: Props) {

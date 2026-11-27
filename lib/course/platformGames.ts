@@ -11,6 +11,10 @@ export type PlatformGame = {
   page: string
   thumbnail: string
   topic: string
+  /** איפה הוא בקורס — המטבעות במתיקה הם אותם מטבעות של השלב בקורס */
+  courseId: string
+  lessonId: string
+  stage: number
 }
 
 const PREFIX = 'kidodo-'
@@ -27,17 +31,17 @@ export function coursePlatformGames(): PlatformGame[] {
     if (!course) continue
     for (const lesson of course.lessons) {
       const st = lesson.stages
-      const items: [string | null, string, string][] = [
-        [pageOf(st.interactive?.page), 'התנסות', '🔍'],
-        [pageOf(st.practice?.href), 'משחק', '🎮'],
-        [pageOf(st.enrichment?.href), 'משחק', '🎮'],
+      const items: [string | null, string, string, number][] = [
+        [pageOf(st.interactive?.page), 'התנסות', '🔍', 2],
+        [pageOf(st.practice?.href), 'משחק', '🎮', 3],
+        [pageOf(st.enrichment?.href), 'משחק', '🎮', 4],
       ]
-      for (const [page, kind, thumbnail] of items) {
+      for (const [page, kind, thumbnail, stage] of items) {
         if (!page) continue
         const id = PREFIX + page.slice('/practices/'.length).replace(/\.html$/, '')
         if (seen.has(id)) continue
         seen.add(id)
-        out.push({ id, title: `${kind} ${lesson.key}`, grade: course.grade, page, thumbnail, topic: lesson.key })
+        out.push({ id, title: `${kind} ${lesson.key}`, grade: course.grade, page, thumbnail, topic: lesson.key, courseId: cid, lessonId: lesson.id, stage })
       }
     }
   }

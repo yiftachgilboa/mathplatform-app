@@ -351,6 +351,8 @@ MathPlatformSDK.emit('GAME_OVER', { score, maxScore, stars, correctAnswers, tota
 - **שום טקסט בקוד** — הכל ב-`content/courses/<courseId>.json` (ui, שיעורים, צבעים, אייקונים, סרטונים, משחקים, שאלות, ספי שליטה). קורס חדש = קובץ + שורה ב-`COURSES` ב-`lib/course/content.ts`.
 - אין נעילות. "השיעור הנוכחי" = הראשון שלא הושג (`isAchieved` ב-`lib/course/progress.ts`: שליטה בשרת או 90% בתרגול/במבחן — אותה הגדרה לווי הירוק, לשיעור הנוכחי ולבועה). שליטה = ≥90% ב-30 תשובות התרגול האחרונות (מינימום 20) **או** ≥90% במבחן → חגיגה + מעבר אוטומטי.
 - עיצוב: שטוח (אין box-shadow), Rubik (400 לטקסט, 500 לכותרות, בלי משקלים כבדים יותר), טקסט אפור כהה `--ink:#33373B`, RTL, מובייל פירסט (שבירה ב-700px), כפתורים ≥ 44px, `prefers-reduced-motion`. טוקנים ב-`app/course/course.css`; מצבי כרטיסיות ב-`data-state`/`data-sel`.
+- שיעור בלי סרטון שעלה נפתח בהתנסות / במשחק הראשון (`firstStage` ב-`CourseClient.tsx`); פיל הסרטון נשאר בשורת השלבים (״יעלה בקרוב״).
+- בועת הדמות נסגרת רגע (1.2 שניות) אחרי שההקראה נגמרת; אם לא הוקראה — אחרי 30 שניות (`useGuide.ts`).
 - הדמות (`LiveHero` ב-`components/course/Hero.tsx`) עוקבת אחרי העכבר/נגיעה, ממצמצת ומדברת; כשמשחק או סרטון רץ היא עומדת (`calm`). בועת ההוראות: מתי — `components/course/useGuide.ts`, מה נאמר — `lib/course/guide.ts`, טקסטים — `ui.guide` ב-JSON, הקראה — `lib/course/speak.ts`.
 - סרטונים: נתיבים יחסיים ל-bucket `kidodo-media` (`mediaUrl()`); אם הקובץ חסר — "יעלה בקרוב". התנסות בלי סרטון → השאלות ברצף.
 
@@ -368,6 +370,7 @@ MathPlatformSDK.emit('GAME_OVER', { score, maxScore, stars, correctAnswers, tota
 - כל עמוד `/practices/…` שמופיע בקורס (שלב 2 / 3 / 4) הוא גם משחק במתיקה, בכיתה של הקורס (`grade`): `lib/course/platformGames.ts`. מזהה `kidodo-<שם הקובץ>`, שם ״התנסות <מפתח>״ (שלב 2) / ״משחק <מפתח>״ (שלב 3/4).
 - לוח הילד (`app/child/[id]/page.tsx`, בלי מסלול של הורה) מוסיף אותם תמיד, בסדר השיעורים. `/games/kidodo-…` (`app/games/[gameId]/page.tsx`) ← העמוד במסך מלא עם `?gameId=…&childId=…`.
 - `kidodo-practice.js` במצב מתיקה: `complete()` ← GAME_OVER ב-`/api/sdk/event` (progress + מטבעות, כוכבים = `extra.stars` או 3), ״המשך״/יציאה ← `/child/<id>`. ה-route מוסיף את שורת `games` אם חסרה; `npm run sync-games` (עכשיו `tsx`) מוסיף את כולם מראש (בשביל המסלול של ההורה).
+- מטבעות: אותו ארנק (`children.coins`) ואותו תגמול — משחק קורס במתיקה משלם לפי השלב שלו בקורס עם אותו מזהה (`stageRewardRef` ב-`lib/course/record.ts`), כך שמה שהורווח בקורס לא משולם שוב במתיקה ולהפך, והתקרה היומית משותפת.
 - לא צריך לעשות כלום במשחק חדש — רק להכניס אותו לקורס.
 - לוח הילד תמיד מציג כפתור לקורס: רשום ← ״חזרה לקורס״ (השיעור הנוכחי), לא רשום ← ״לקורס kidodo״ (`/course`).
 

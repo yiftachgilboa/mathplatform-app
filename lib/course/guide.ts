@@ -10,7 +10,7 @@ export type GuideEvent =
   | { type: 'testFail' }
   | { type: 'remind' }                   // תזכורת, נגיעה בדמות, או חזרה מהחנות
 
-const hasContent = (l: Lesson) => !!l.stages.video?.src || availableStages(l).length > 1
+const hasContent = (l: Lesson) => !!l.stages.video?.src || availableStages(l).some(s => s > 1)
 
 /** כל השלבים שיש בהם תוכן הושלמו (סרטון שעוד לא עלה לא נספר) */
 function finished(l: Lesson, state: CourseState) {
@@ -52,7 +52,7 @@ export function guideText(course: Course, state: CourseState, lessonIdx: number,
   const mastered = () => say(cur < 0 ? g.achieved : cur < lessonIdx ? g.achievedBack : g.achievedNext)
   // כל השלבים נעשו ועוד אין שליטה: לפי האחוזים — סרטון ותרגול, או עוד קצת תרגול
   const improve = () => {
-    const back = stages.includes(PRACTICE_STAGE) ? PRACTICE_STAGE : 1
+    const back = stages.includes(PRACTICE_STAGE) ? PRACTICE_STAGE : hasVideo ? 1 : stages.find(s => s > 1) ?? 1
     if (!measured) return back === stage && back !== 1 ? say(g.again) : goTo(back)
     if (pct < 60) return say(hasVideo ? g.low : g.lowNoVideo, { stage: label(back) })
     return say(g.mid, { stage: label(back) })

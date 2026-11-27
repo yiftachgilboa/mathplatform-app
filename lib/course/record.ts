@@ -29,7 +29,10 @@ async function isMastered({ childId, course, lessonId }: Ctx) {
   return !!data
 }
 
-const STAGE_REWARD: Record<number, RewardKind> = { 1: 'video', 2: 'interactive', 3: 'practice', 4: 'enrichment', 5: 'test' }
+/** מזהה התגמול של שלב — אותו מזהה בקורס ובמתיקה (lib/course/platformGames.ts), כך שזה אותו ארנק ואותה תקרה יומית */
+export const stageRewardRef = (courseId: string, lessonId: string, stage: number) => `course:${courseId}:${lessonId}:${stage}`
+
+export const STAGE_REWARD: Record<number, RewardKind> = { 1: 'video', 2: 'interactive', 3: 'practice', 4: 'enrichment', 5: 'test' }
 
 /** סימון שלב כהושלם (+ כוכבים / ציון) ותגמול במטבעות. completed=false שומר ציון בלי ✓ ובלי מטבעות. מחזיר כמה מטבעות נוספו. */
 export async function completeStage(ctx: Ctx, stage: number, extra: { stars?: number; score?: number; completed?: boolean } = {}): Promise<number> {
@@ -44,7 +47,7 @@ export async function completeStage(ctx: Ctx, stage: number, extra: { stars?: nu
     .upsert(row, { onConflict: 'child_id,course_id,lesson_id,stage' })
   if (error) { console.error('[course] progress', error.message); return 0 }
   if (extra.completed !== false && STAGE_REWARD[stage]) {
-    return (await reward(ctx.childId, STAGE_REWARD[stage], `course:${ctx.course.courseId}:${ctx.lessonId}:${stage}`)) ?? 0
+    return (await reward(ctx.childId, STAGE_REWARD[stage], stageRewardRef(ctx.course.courseId, ctx.lessonId, stage))) ?? 0
   }
   return 0
 }
