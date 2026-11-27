@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "sync-games": "dotenv -e .env.local -- ts-node scripts/sync-games.ts",
+    "sync-games": "dotenv -e .env.local -- tsx scripts/sync-games.ts",
     "sync-stories": "node scripts/sync-stories.js",
     "build-practices": "node scripts/build-practices.mjs"
   },

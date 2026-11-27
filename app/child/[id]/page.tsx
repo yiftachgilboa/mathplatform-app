@@ -7,6 +7,7 @@ import ChildDashboardClient from './ChildDashboardClient'
 import { getCourse } from '@/lib/course/content'
 import { loadCourseState } from '@/lib/course/admin'
 import { currentLessonIndex } from '@/lib/course/progress'
+import { coursePlatformGames } from '@/lib/course/platformGames'
 
 export default async function ChildDashboardPage({
   params,
@@ -72,7 +73,12 @@ export default async function ChildDashboardPage({
       .eq('grade', child.grade)
       .eq('is_visible', true)
       .order('difficulty', { ascending: true })
-    games = gradeGames ?? []
+    // משחקי הקורס של הכיתה — תמיד, בסדר השיעורים, גם לפני שנוספה להם שורה ב-games
+    const fromCourse = coursePlatformGames()
+      .filter(g => g.grade === child.grade)
+      .map(g => ({ id: g.id, title: g.title, topic: g.topic, thumbnail: g.thumbnail, bg_image: null }))
+    const ids = new Set(fromCourse.map(g => g.id))
+    games = [...(gradeGames ?? []).filter(g => !ids.has(g.id)), ...fromCourse]
   }
 
   // Fetch progress using service role (works for both parent and child sessions)
@@ -104,6 +110,9 @@ export default async function ChildDashboardPage({
       courseHref = '/course'
     }
   }
+  // תמיד יש מעבר לקורס — גם לילד שעוד לא רשום (שם הוא מגיע לכניסה / ״אין גישה״)
+  const enrolled = !!courseHref
+  courseHref ??= '/course'
 
-  return <ChildDashboardClient child={child} games={games} progress={progressData ?? []} courseHref={courseHref} />
+  return <ChildDashboardClient child={child} games={games} progress={progressData ?? []} courseHref={courseHref} enrolled={enrolled} />
 }

@@ -130,7 +130,7 @@ function readWeekDays(childId: string): number[] {
   try { return JSON.parse(localStorage.getItem(weekKey(childId)) || '[]') } catch { return [] }
 }
 
-export default function ChildDashboardClient({ child, games, progress, courseHref = null }: { child: Child; games: Game[]; progress: ProgressEntry[]; courseHref?: string | null }) {
+export default function ChildDashboardClient({ child, games, progress, courseHref = null, enrolled = false }: { child: Child; games: Game[]; progress: ProgressEntry[]; courseHref?: string | null; enrolled?: boolean }) {
   const router = useRouter()
   const stations = buildStations(games)
   const starsForGame = Object.fromEntries(progress.map(p => [p.game_id, p.stars]))
@@ -428,15 +428,15 @@ export default function ChildDashboardClient({ child, games, progress, courseHre
             </span>
           </div>
 
-          {/* חזרה לקורס kidodo — רק לילד שרשום לקורס (אותו חשבון, בלי כניסה נוספת) */}
+          {/* מעבר לקורס kidodo — תמיד (אותו חשבון, בלי כניסה נוספת). רשום: חזרה לשיעור הנוכחי */}
           {courseHref && (
-            <a href={courseHref} title="חזרה לקורס" style={{
+            <a href={courseHref} title={enrolled ? 'חזרה לקורס' : 'לקורס kidodo'} style={{
               ...PILL, height: '48px', padding: '0 18px', gap: '8px', flexShrink: 0,
               color: 'white', fontSize: '16px', textDecoration: 'none',
               background: 'rgba(124,255,159,0.18)', border: '1.5px solid rgba(124,255,159,0.45)',
             }}>
               <span aria-hidden style={{ fontSize: '20px' }}>🔑</span>
-              <span>חזרה לקורס</span>
+              <span>{enrolled ? 'חזרה לקורס' : 'לקורס kidodo'}</span>
             </a>
           )}
 

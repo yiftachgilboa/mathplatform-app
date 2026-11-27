@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { authorizeChild, currentUser } from '@/lib/course/admin'
 import { completeStage, recordAnswer, validLesson } from '@/lib/course/record'
 import { reward, rewardSurprise } from '@/lib/shop/wallet'
+import { coursePlatformGame, gameRow } from '@/lib/course/platformGames'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,6 +27,13 @@ export async function POST(req: NextRequest) {
   }
 
   if (event === 'GAME_OVER') {
+    // משחק של הקורס שנפתח במתיקה — מוודאים שיש לו שורה ב-games (progress מצביע עליה)
+    const fromCourse = typeof gameId === 'string' ? coursePlatformGame(gameId) : null
+    if (fromCourse) {
+      const { error: e } = await supabase.from('games').upsert(gameRow(fromCourse), { onConflict: 'id' })
+      if (e) console.error('[SDK] course game row error:', e)
+    }
+
     const { error } = await supabase
       .from('progress')
       .upsert(
@@ -47,9 +55,9 @@ export async function POST(req: NextRequest) {
     }
 
     // מטבעות: סכום קבוע לפי content/shop/shop.json (הכוכבים הם רק ציון). משחק מתוך הקורס כבר שולם בסימון השלב.
-    if (inCourse === false) await payCoins(childId, gameId, data)
+    const paid = inCourse === false ? await payCoins(childId, gameId, data) : inCourse
 
-    return NextResponse.json({ ok: true, coins: inCourse === false ? undefined : inCourse })
+    return NextResponse.json({ ok: true, coins: typeof paid === 'number' ? paid : undefined })
   }
 
   if (event === 'ANSWER' && data?.correct === false) {
@@ -75,7 +83,7 @@ export async function POST(req: NextRequest) {
 }
 
 /** מטבעות על משחק באפליקציה. הורה מחובר — רק לילד שלו; ילד בלי חשבון (כניסה בקוד משפחה) — מותר, עם תקרה יומית. */
-async function payCoins(childId: string, gameId: string, data: { stars?: number; correctAnswers?: number } | undefined) {
+async function payCoins(childId: string, gameId: string, data: { stars?: number; correctAnswers?: number } | undefined): Promise<number | undefined> {
   const { data: child } = await supabase.from('children').select('coins, parent_id').eq('id', childId).maybeSingle()
   if (!child) return
   const user = await currentUser().catch(() => null)
@@ -83,13 +91,14 @@ async function payCoins(childId: string, gameId: string, data: { stars?: number;
 
   const stars = Number(data?.stars ?? 0), collected = Number(data?.correctAnswers ?? 0)
   const isSurprise = gameId === 'surprise-coins-001'
-  if (!isSurprise && stars < 1) return
+  if (!isSurprise && stars < 1) return 0
   const paid = isSurprise ? await rewardSurprise(childId, collected) : await reward(childId, 'platformGame', `game:${gameId}`)
-  if (paid !== null) return
+  if (paid !== null) return paid
 
   // הארנק עוד לא מותקן (המיגרציה לא רצה) — כמו קודם
   const coins = isSurprise ? collected : stars === 3 ? 10 : stars === 2 ? 7 : 3
   if (coins > 0) await supabase.from('children').update({ coins: (child.coins ?? 0) + coins }).eq('id', childId)
+  return coins
 }
 
 /** false = האירוע לא שייך לקורס. אחרת: נרשם בו, והמספר = כמה מטבעות נוספו */

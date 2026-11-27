@@ -364,6 +364,13 @@ MathPlatformSDK.emit('GAME_OVER', { score, maxScore, stars, correctAnswers, tota
 - `next.config.ts`: `turbopackUseSystemTlsCerts: true` — בלי זה הורדת Google Fonts נכשלת ב-build מקומי.
 - שרת ה-preview (`.claude/launch.json` בתיקיית האב) רץ עם `NODE_OPTIONS=--use-system-ca` — בלי זה הקריאות ל-Supabase נכשלות בשגיאת תעודה.
 
+### משחקי הקורס במתיקה (אוטומטי)
+- כל עמוד `/practices/…` שמופיע בקורס (שלב 2 / 3 / 4) הוא גם משחק במתיקה, בכיתה של הקורס (`grade`): `lib/course/platformGames.ts`. מזהה `kidodo-<שם הקובץ>`, שם ״התנסות <מפתח>״ (שלב 2) / ״משחק <מפתח>״ (שלב 3/4).
+- לוח הילד (`app/child/[id]/page.tsx`, בלי מסלול של הורה) מוסיף אותם תמיד, בסדר השיעורים. `/games/kidodo-…` (`app/games/[gameId]/page.tsx`) ← העמוד במסך מלא עם `?gameId=…&childId=…`.
+- `kidodo-practice.js` במצב מתיקה: `complete()` ← GAME_OVER ב-`/api/sdk/event` (progress + מטבעות, כוכבים = `extra.stars` או 3), ״המשך״/יציאה ← `/child/<id>`. ה-route מוסיף את שורת `games` אם חסרה; `npm run sync-games` (עכשיו `tsx`) מוסיף את כולם מראש (בשביל המסלול של ההורה).
+- לא צריך לעשות כלום במשחק חדש — רק להכניס אותו לקורס.
+- לוח הילד תמיד מציג כפתור לקורס: רשום ← ״חזרה לקורס״ (השיעור הנוכחי), לא רשום ← ״לקורס kidodo״ (`/course`).
+
 ### התנסויות כעמוד מלא (שלב 2)
 - `"interactive": { "page": "/practices/<name>.html" }` ← `GameStage kind="interactive"` פותח את העמוד עם `childId, courseId, lessonId`.
 - מקור: `practices/<name>.html` (JSX + Babel בדפדפן). `npm run build-practices` ← `public/practices/<name>.html` (מקומפל, בלי Babel). commit לשניהם.

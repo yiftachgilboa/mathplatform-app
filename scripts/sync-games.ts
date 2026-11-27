@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { createClient } from '@supabase/supabase-js'
+import { coursePlatformGames, gameRow } from '../lib/course/platformGames'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SECRET_KEY
@@ -43,6 +44,12 @@ const records = gameDirs.map(dir => {
     url: `/games/${raw.id}`,
   }
 })
+
+// + every course practice / game (/practices/…) as a platform game in the course's grade
+const courseRecords = coursePlatformGames().map(gameRow)
+records.push(...(courseRecords as typeof records))
+console.log(`+ ${courseRecords.length} course games: ${courseRecords.map(r => r.id).join(', ')}
+`)
 
 async function main() {
   // is_visible is intentionally excluded from records — new rows get DEFAULT true,

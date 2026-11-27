@@ -17,6 +17,11 @@
  *   KidodoPractice.onResume(fn)      — fn() when the child is back after a pause and no sentence was cut (say the instruction again)
  * Opened alone (no params), nothing is saved, and next/exit go to /course.
  *
+ * On MATHPLATFORM (מתיקה): /practices/<name>.html?childId=…&gameId=kidodo-<name> (from /games/kidodo-<name>).
+ * Every course game is also a platform game (lib/course/platformGames.ts). complete() saves a GAME_OVER
+ * (stars = extra.stars, or 3) through /api/sdk/event — progress + coins like any platform game —
+ * and next/exit go back to the child's board (/child/<id>). Nothing to change in a game for this.
+ *
  * Embedded: the course normally shows the practice inside its stage, in an
  * <iframe> (small, with an enlarge button). Then next/exit/complete do not
  * navigate – they tell the course page through postMessage({ kidodo: … }).
@@ -331,6 +336,7 @@
   var STAGE = Number(p.get('courseStage')) || 2
   var ctx = { childId: p.get('childId'), courseId: p.get('courseId'), lessonId: p.get('lessonId') }
   var inCourse = !!(ctx.childId && ctx.courseId && ctx.lessonId)
+  var platformGame = !inCourse && ctx.childId && p.get('gameId')   // opened from MATHPLATFORM
   var embedded = false
   try { embedded = window.parent !== window && window.parent.location.origin === location.origin } catch (e) {}
 
@@ -349,7 +355,24 @@
     return safe
   }
 
+  /* MATHPLATFORM: the result goes to the platform's progress (and coins), like an SDK game */
+  function platformOver(extra) {
+    var x = extra || {}
+    var stars = Number(x.stars) || 3
+    var body = JSON.stringify({
+      event: 'GAME_OVER', childId: ctx.childId, gameId: platformGame, timestamp: new Date().toISOString(),
+      data: { stars: stars, score: Number(x.correct != null ? x.correct : x.firstTry) || 0,
+        correctAnswers: Number(x.correct != null ? x.correct : x.firstTry) || 0, totalQuestions: Number(x.answers != null ? x.answers : x.rounds) || 0 },
+    })
+    var req = fetch('/api/sdk/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body, keepalive: true })
+      .then(function (r) { return r.ok ? r.json().catch(function () { return true }) : false }).catch(function () { return false })
+    var safe = Promise.race([req, new Promise(function (res) { setTimeout(function () { res(false) }, 2500) })])
+    safe.full = req
+    return safe
+  }
+
   function courseUrl(stage) {
+    if (platformGame) return '/child/' + encodeURIComponent(ctx.childId)
     if (!inCourse) return '/course'
     return '/course/' + encodeURIComponent(ctx.courseId) + '/' + encodeURIComponent(ctx.lessonId) +
       '?child=' + encodeURIComponent(ctx.childId) + '&stage=' + stage
@@ -394,11 +417,12 @@
 
   window.KidodoPractice = {
     inCourse: inCourse,
+    platform: !!platformGame,
     embedded: embedded,
     ctx: ctx,
     answer: function (correct) { post('/api/course/answer', { correct: !!correct }) },
     complete: function (extra) {
-      var r = post('/api/course/progress', extra)
+      var r = platformGame ? platformOver(extra) : post('/api/course/progress', extra)
       earned = (r.full || r).then(function (j) { return j && typeof j.coins === 'number' ? j.coins : reward() })
       if (embedded) r.then(function () { tell('complete') })
       return r
