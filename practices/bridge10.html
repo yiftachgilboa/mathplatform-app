@@ -45,7 +45,7 @@ header{display:flex;justify-content:center;align-items:center;flex:none;margin-i
 @keyframes bump{30%{transform:scale(1.25,.85)}60%{transform:scale(.9,1.15)}}
 
 /* board: the whole lower screen. Ground + river at the bottom, edge to edge; planks lie anywhere above */
-.board{position:relative;flex:1;min-height:0;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+.board{position:relative;flex:1;min-height:0;overflow:hidden;overflow:clip;touch-action:none;user-select:none;-webkit-user-select:none}
 .board>*{position:absolute}
 .world{will-change:transform;z-index:1}
 /* the page is RTL; the world is drawn in px from the left (cliff graphics overflow their box), so it must be LTR */
@@ -1085,14 +1085,14 @@ function App(){
   const touched=rounds[ri]&&(planks.length!==rounds[ri].planks.length||planks.some(p=>p.segs.length>1));
   const showMeasure=screen==='play'&&rounds[ri]&&!(bridge&&bridge.state==='fit')&&walkDur===0&&!built.some(b=>b.i===ri);
   const Board=(
-    <div className="board" ref={boardRef} onPointerDown={boardDown} onPointerMove={boardMove} onPointerUp={boardUp} onPointerCancel={boardUp}
+    <div className="board" ref={boardRef} onScroll={e=>{e.currentTarget.scrollLeft=0;e.currentTarget.scrollTop=0}} onPointerDown={boardDown} onPointerMove={boardMove} onPointerUp={boardUp} onPointerCancel={boardUp}
       style={screen==='start'?{visibility:'hidden'}:null}>
       {/* the world: river, land, bridges, coins. It slides left while the hero walks on the spot */}
       <div className="world" style={{left:0,top:0,width:worldW,height:H,transform:`translateX(${-offset}px)`,transition:walkDur?`transform ${walkDur}s linear`:'none'}}>
         {rounds.map((r,i)=><div key={'pit'+i} style={{left:E[i]-14,top:groundY+2,width:r.gap*U+28,height:H-groundY-2}}><Pit type={r.type} w={r.gap*U+28} h={Math.max(10,H-groundY-2)} seed={world.seed%997+i+1}/></div>)}
         {cliffs.map((c,k)=><div key={k} style={{left:c.x0,top:groundY,width:c.x1-c.x0,height:groundH}}><Cliff w={c.x1-c.x0} h={groundH} seed={world.seed+k+1} edgeL={c.l} edgeR={c.r} pal={palOf(k)}/></div>)}
         {decor.filter(d=>d.tall).map(d=><div key={d.key} style={{left:d.x,top:groundY+2-d.h,zIndex:1}}><Decor spec={d.spec} h={d.h} seed={Math.abs(d.x>>3)}/></div>)}
-        {rounds.length>0&&<button ref={bigChestRef} className={'wchest'+(endStage==='chest'?' idle':'')} aria-label="לפתוח את תיבת האוצר"
+        {rounds.length>0&&<button ref={bigChestRef} className={'wchest'+(endStage==='chest'?' idle':'')} aria-label="לפתוח את תיבת האוצר" tabIndex={-1}
           style={{left:E[ROUNDS]+2,top:groundY-Math.round(cs*.8)+6,width:cs}} onPointerDown={e=>e.stopPropagation()} onClick={()=>{if(screen==='end')tapChest()}}>
           <Chest key={'big'+taps} open={lidOpen} bump={taps>0} s={cs}/></button>}
         {built.map(b=><div key={b.i} style={{left:E[b.i],top:groundY-13,zIndex:2}}><ThinBridge p={b.p} U={U}/></div>)}
