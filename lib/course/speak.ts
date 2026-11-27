@@ -1,7 +1,10 @@
 /**
  * הקראה בעברית של הדמות בעמוד הקורס (המשחקים מקריאים דרך public/practices/kidodo-practice.js).
  * קודם קול הענן (/api/tts, Azure — אותו קול בכל מכשיר), ואם אין — קול הדפדפן. בלי שניהם הבועה נשארת טקסט בלבד.
+ * מספרים נאמרים במילים (spokenNumbers) — קול הדפדפן מדלג על ספרות.
  */
+import { spokenNumbers } from './hebrewNumbers'
+
 function hebrewVoice(): SpeechSynthesisVoice | undefined {
   const he = window.speechSynthesis?.getVoices().filter(v => /^(he|iw)/i.test(v.lang)) ?? []
   return he.find(v => /hila|carmit|female|woman/i.test(v.name)) ?? he.find(v => !/avri|asaf|male/i.test(v.name)) ?? he[0]
@@ -36,6 +39,7 @@ export function canSpeak() {
  * hide: מה שלא נשלח לענן (שם הילד) — נמחק מהמשפט שבענן, וקול הדפדפן אומר אותו.
  */
 export function speak(text: string, onEnd: () => void, hide?: string): (() => void) | null {
+  text = spokenNumbers(text)
   try {
     if (!canSpeak()) return null
     const voice = hebrewVoice()

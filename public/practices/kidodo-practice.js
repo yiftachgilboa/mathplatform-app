@@ -252,12 +252,35 @@
     window.addEventListener(type, function () { if (!paused) cloud.unlock() }, { capture: true, once: true })
   })
 
+  /* numbers as Hebrew words: the device's Hebrew voice skips digits. Same as lib/course/hebrewNumbers.ts — change both */
+  var spokenNumbers = (function () {
+    var UM = ['', 'אחד', 'שניים', 'שלושה', 'ארבעה', 'חמישה', 'שישה', 'שבעה', 'שמונה', 'תשעה']
+    var UF = ['', 'אחת', 'שתיים', 'שלוש', 'ארבע', 'חמש', 'שש', 'שבע', 'שמונה', 'תשע']
+    var TM = ['עשרה', 'אחד עשר', 'שנים עשר', 'שלושה עשר', 'ארבעה עשר', 'חמישה עשר', 'שישה עשר', 'שבעה עשר', 'שמונה עשר', 'תשעה עשר']
+    var TF = ['עשר', 'אחת עשרה', 'שתים עשרה', 'שלוש עשרה', 'ארבע עשרה', 'חמש עשרה', 'שש עשרה', 'שבע עשרה', 'שמונה עשרה', 'תשע עשרה']
+    var TENS = ['', '', 'עשרים', 'שלושים', 'ארבעים', 'חמישים', 'שישים', 'שבעים', 'שמונים', 'תשעים']
+    function b100(n, m) { var u = m ? UM : UF; if (n < 10) return u[n]; if (n < 20) return (m ? TM : TF)[n - 10]; var r = n % 10; return TENS[Math.floor(n / 10)] + (r ? ' ו' + u[r] : '') }
+    function num(n, m) {
+      if (n === 0) return 'אפס'
+      var h = Math.floor(n / 100), rest = n % 100
+      var head = h === 0 ? '' : h === 1 ? 'מאה' : h === 2 ? 'מאתיים' : UF[h] + ' מאות'
+      if (!rest) return head
+      var tail = b100(rest, m)
+      return !head ? tail : tail.indexOf(' ') >= 0 ? head + ' ' + tail : head + ' ו' + tail
+    }
+    return function (text) {
+      return String(text).replace(/(\d+)\s*%/g, '$1 אחוז')
+        .replace(/(^|[^\dא-ת])([בלמהוכש]?)[־-]?(\d{1,3})(?!\d)(\s*(?:אחוז))?/g, function (_m, pre, letter, n, pct) { return pre + letter + num(Number(n), !!pct) + (pct || '') })
+    }
+  })()
+
   /* speech: while paused nothing is said; what was cut, or asked for meanwhile, is said on Play */
   var synth = window.speechSynthesis, S = null, live = [], held = []
   if (synth) {
     var real = { speak: synth.speak.bind(synth), cancel: synth.cancel.bind(synth) }
     S = { speak: function (u) { if (!cloud.take(u)) real.speak(u) }, cancel: function () { cloud.cancel(); real.cancel() } }
     var speak = function (u) {
+      try { if (u && /\d/.test(u.text) && !u.kidodoNum) { u.text = spokenNumbers(u.text); u.kidodoNum = true } } catch (e) {}
       if (paused) { held.push(u); return }
       var off = function () { live = live.filter(function (x) { return x !== u }) }
       live.push(u)

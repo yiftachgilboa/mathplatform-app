@@ -175,7 +175,7 @@ export default function CourseClient({ course, childId, childName, avatar, initi
   const here = `${lesson.id}-${stage}`
   const [runningAt, setRunningAt] = useState<string | null>(null)   // השלב שמשחק או סרטון רץ בו עכשיו
   const busy = runningAt === here
-  const guide = useGuide({ enabled: !!shop, course, state, lessonIdx, stage, name: childName, covered, busy, pending })
+  const guide = useGuide({ enabled: !!shop, course, childId, state, lessonIdx, stage, name: childName, covered, busy, pending })
   const onRunning = (on: boolean) => { setRunningAt(on ? here : null); if (on) guide.close() }
 
   // נגיעה בדמות: קופצת ומסבירה שוב

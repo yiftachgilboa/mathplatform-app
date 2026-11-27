@@ -18,8 +18,8 @@ const REMIND_AFTER = 60_000   // בלי נגיעה, בלי משחק פתוח: ת
  * נפתחת בכניסה, במעבר שיעור או שלב, בסיום שלב, בחזרה מהחנות, בנגיעה בדמות, ופעם אחת כשהילד תקוע.
  * נסגרת כשהדמות מסיימת לדבר, אחרי זמן קריאה כשהקול מושתק, לבד אחרי 30 שניות אם לא הוקראה, בנגיעה בשלב, וכשמשחק או סרטון מתחילים (busy).
  */
-export function useGuide({ enabled, course, state, lessonIdx, stage, name, covered, busy, pending }: {
-  enabled: boolean; course: Course; state: CourseState; lessonIdx: number; stage: number; name: string; covered: boolean; busy: boolean
+export function useGuide({ enabled, course, childId, state, lessonIdx, stage, name, covered, busy, pending }: {
+  enabled: boolean; course: Course; childId: string; state: CourseState; lessonIdx: number; stage: number; name: string; covered: boolean; busy: boolean
   /** רענון של מצב הילד מהשרת שעוד בדרך */
   pending: React.RefObject<Promise<void> | null>
 }) {
@@ -56,8 +56,14 @@ export function useGuide({ enabled, course, state, lessonIdx, stage, name, cover
       if (mine !== turn.current) return           // בינתיים נסגר או הוחלף
     }
     const l = live.current
-    setMsg(m => ({ text: guideText(l.course, l.state, l.lessonIdx, l.stage, l.name, ev), id: (m?.id ?? 0) + 1 }))
-  }, [enabled, quiet, pending])
+    // הסברים (המשולש הכחול, 90 אחוז…) נאמרים פעם אחת לכל ילד — זוכרים במכשיר מה כבר נאמר
+    const tipsKey = `kidodo-guide-tips:${childId}`
+    let seen: string[] = []
+    try { seen = JSON.parse(localStorage.getItem(tipsKey) ?? '[]') } catch {}
+    const { text, tips } = guideText(l.course, l.state, l.lessonIdx, l.stage, l.name, ev, new Set(seen))
+    if (tips.length) try { localStorage.setItem(tipsKey, JSON.stringify([...seen, ...tips])) } catch {}
+    setMsg(m => ({ text, id: (m?.id ?? 0) + 1 }))
+  }, [enabled, quiet, pending, childId])
 
   /** שלב הושלם: השבח נאמר במעבר לשלב הבא */
   const noteDone = useCallback((s: number) => { justDone.current = s }, [])
