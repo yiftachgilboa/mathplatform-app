@@ -5,6 +5,7 @@ import { currentLessonIndex, isAchieved, meterValue, PRACTICE_STAGE, type Course
 import CourseHeader from '@/components/course/CourseHeader'
 import LessonMenu, { type LessonState } from '@/components/course/LessonMenu'
 import StageStepper from '@/components/course/StageStepper'
+import GuideHand from '@/components/course/GuideHand'
 import StageNav from '@/components/course/StageNav'
 import VideoStage from '@/components/course/VideoStage'
 import InteractiveVideoStage from '@/components/course/InteractiveVideoStage'
@@ -290,7 +291,8 @@ export default function CourseClient({ course, childId, childName, avatar, initi
   const toNext = (s: number) => { const n = nextOf(s); refresh(); if (n) setStage(n); else guide.show({ type: 'done', stage: s }) }
 
   const goal = Math.round(course.mastery.practice.accuracy * 100)
-  const meters = course.lessons.map(l => meterValue(state, l.id))
+  // הבר מראה התקדמות לסיום השיעור: היעד (90% דיוק) = בר מלא. 70% דיוק ← 70/90 מהבר
+  const meters = course.lessons.map(l => Math.min(100, Math.round(meterValue(state, l.id) / goal * 100)))
   const st = lesson.stages
   const tint = lesson.tint
 
@@ -303,7 +305,7 @@ export default function CourseClient({ course, childId, childName, avatar, initi
         {heroProps && <HeroCard {...heroProps} />}
         <LessonMenu lessons={course.lessons} states={lessonStates} selected={lessonIdx} label={ui.lessonsNav} title={ui.menuTitle}
           meters={meters} achieved={achieved}
-          goal={goal} meterLabel={ui.meter} doneLabel={ui.lessonDone}
+          goal={100} meterLabel={ui.meter} doneLabel={ui.lessonDone}
           titleOf={l => fill(ui.lessonTitle, { key: l.key })} numberOf={n => fill(ui.lessonNumber, { n: String(n) })}
           onPick={i => go(i)} onReset={resetLesson} />
         </div>
@@ -349,6 +351,7 @@ export default function CourseClient({ course, childId, childName, avatar, initi
           </StageNav>
         </main>
       </div>
+      {guide.point && <GuideHand key={JSON.stringify(guide.point) + guide.id} point={guide.point} />}
 
       {shopOpen && shop && <Shop shop={shop} onAction={onShop} onClose={closeShop} />}
 

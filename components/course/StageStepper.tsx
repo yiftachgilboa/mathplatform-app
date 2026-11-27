@@ -7,7 +7,7 @@ export default function StageStepper({ labels, stages, stage, done, label, onPic
     <div className="c-tabs c-strip" role="tablist" aria-label={label}>
       {stages.map((s, i) => (
         <div className="seg" key={s}>
-          <button type="button" role="tab" aria-selected={s === stage} data-done={done.includes(s)}
+          <button type="button" role="tab" aria-selected={s === stage} data-done={done.includes(s)} data-stage={s}
             className="press c-tab" onClick={() => onPick(s)}>{labels[s - 1]}</button>
           {i < stages.length - 1 && <span className="line" aria-hidden />}
         </div>

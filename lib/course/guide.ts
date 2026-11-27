@@ -13,6 +13,9 @@ export type GuideEvent =
   | { type: 'testFail' }
   | { type: 'remind' }                   // תזכורת, נגיעה בדמות, או חזרה מהחנות
 
+/** על מה היד מצביעה: שלב בשורת השלבים, או שיעור בתפריט */
+export type GuidePoint = { stage: number } | { lesson: number }
+
 export type TipKey = 'play' | 'interactive' | 'practice' | 'goal' | 'test' | 'enrichment' | 'shop'
 
 const hasContent = (l: Lesson) => !!l.stages.video?.src || availableStages(l).some(s => s > 1)
@@ -38,7 +41,7 @@ function pick(list: string[] | string): string {
  * הטקסט לבועה, וההסברים שנאמרו בו (useGuide זוכר אותם, כדי שלא יחזרו).
  * seen = הסברים שהילד כבר שמע.
  */
-export function guideText(course: Course, state: CourseState, lessonIdx: number, stage: number, name: string, ev: GuideEvent, seen: ReadonlySet<string> = new Set()): { text: string; tips: TipKey[] } {
+export function guideText(course: Course, state: CourseState, lessonIdx: number, stage: number, name: string, ev: GuideEvent, seen: ReadonlySet<string> = new Set()): { text: string; tips: TipKey[]; point: GuidePoint | null } {
   const g = course.ui.guide
   const lesson = course.lessons[lessonIdx]
   const stages = availableStages(lesson)
@@ -59,7 +62,11 @@ export function guideText(course: Course, state: CourseState, lessonIdx: number,
   }
   const say = (t: string[] | string, more: Record<string, string | number> = {}) => fill(pick(t), { ...vars, ...more })
   const label = (s: number) => course.ui.stages[s - 1]
-  const goTo = (s: number) => say(g.goTo, { stage: label(s) })
+  // ממליצים ללחוץ על משהו ← היד מצביעה עליו
+  let point: GuidePoint | null = null
+  const toStage = (s: number) => { if (s !== stage) point = { stage: s } }
+  const toLesson = (i: number) => { if (i >= 0 && i !== lessonIdx) point = { lesson: i } }
+  const goTo = (s: number) => { toStage(s); return say(g.goTo, { stage: label(s) }) }
   const next = stages.find(s => s > stage)
   const key = (s: number) => STAGE_KEYS[s - 1]
 
@@ -82,21 +89,22 @@ export function guideText(course: Course, state: CourseState, lessonIdx: number,
 
   // מה עושים עכשיו בשלב הזה (חוזר בכל פעם — קצר)
   const todo = () => {
-    if (empty) return cur < 0 ? say(g.emptyCurrent) : say(g.empty)
+    if (empty) { if (cur >= 0) toLesson(cur); return cur < 0 ? say(g.emptyCurrent) : say(g.empty) }
     if (stage === 1 && !hasVideo) return next ? `${say(g.videoSoon)} ${goTo(next)}` : say(g.videoSoon)
     if (achieved && stage === PRACTICE_STAGE) return say(g.practiceAgain)
     return join(say(g.todo[key(stage)]), stageTip(stage))
   }
-  /** כמה אחוז (חוזר בכל פעם — חשוב) */
-  const status = () => (!measured || achieved ? '' : say(pct < 60 ? g.statusLow : g.statusMid))
+  /** כמה מהשיעור עברנו (חוזר בכל פעם — חשוב). בלי אחוזים: היעד הוא לסיים את השיעור, והבר מלא ביעד */
+  const progress = Math.min(1, pct / goal)
+  const status = () => (!measured || achieved ? '' : say(progress < .5 ? g.statusStart : progress < .8 ? g.statusHalf : g.statusNear))
   const praise = (s: number) => say(g.praise[key(s)])
-  const mastered = () => say(cur < 0 ? g.achieved : cur < lessonIdx ? g.achievedBack : g.achievedNext)
+  const mastered = () => { if (cur >= 0) toLesson(cur); return say(cur < 0 ? g.achieved : cur < lessonIdx ? g.achievedBack : g.achievedNext) }
   // כל השלבים נעשו ועוד אין שליטה: לאן חוזרים
   const improve = () => {
     const back = stages.includes(PRACTICE_STAGE) ? PRACTICE_STAGE : hasVideo ? 1 : stages.find(s => s > 1) ?? 1
     if (!measured) return back === stage && back !== 1 ? say(g.again) : goTo(back)
     const where = { stage: label(back) }
-    if (pct < 60) return join(status(), hasVideo ? say(g.videoAgain, where) : say(g.slowly, where))
+    if (progress < .65) { toStage(hasVideo ? 1 : back); return join(status(), hasVideo ? say(g.videoAgain, where) : say(g.slowly, where)) }
     return join(status(), back === stage ? say(g.again) : goTo(back))
   }
   /** אחרי שלב שהושלם — לאן ממשיכים (אחרי התנסות: ״עכשיו שהבנתם, בואו נתרגל״) */
@@ -112,7 +120,7 @@ export function guideText(course: Course, state: CourseState, lessonIdx: number,
       if (empty) return out(hi, todo())
       if (achieved) return out(hi, mastered())
       // שיעור חדש, ולפניו שיעור שעוד לא הושג: לא התחיל / לא סיים ← לסיים קודם. סיים בלי 90% ← מתחילים, ואפשר לחזק
-      if (lessonIdx > cur && !started) return out(hi, say(curDone ? g.aheadDone : g.ahead), curDone ? todo() : '')
+      if (lessonIdx > cur && !started) { if (!curDone) toLesson(cur); return out(hi, say(curDone ? g.aheadDone : g.ahead), curDone ? todo() : '') }
       // בכניסה: באיזה שיעור (מתחילים / ממשיכים). בבחירת שיעור: רק אם מתחילים — הילד יודע איפה הוא
       const where = ev.type === 'hello' ? say(started ? g.helloResume : g.helloStart) : started ? '' : say(g.start)
       return out(hi, where, finished(lesson, state) ? improve() : join(status(), todo()))
@@ -127,7 +135,7 @@ export function guideText(course: Course, state: CourseState, lessonIdx: number,
       return out(done.includes(stage) && next ? goTo(next) : todo())
   }
 
-  function out(...parts: string[]) { return { text: join(...parts), tips } }
+  function out(...parts: string[]) { return { text: join(...parts), tips, point } }
 }
 
 function join(...parts: string[]) { return parts.filter(Boolean).join(' ') }

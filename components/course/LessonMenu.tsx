@@ -4,7 +4,7 @@ import type { Lesson } from '@/lib/course/content'
 
 export type LessonState = 'done' | 'cur' | 'future'
 
-/** צבע רמזור לבר: אדום ב-0, כתום באמצע, ירוק מלא ביעד (90%) — מעבר הדרגתי */
+/** צבע רמזור לבר: אדום ב-0, כתום באמצע, ירוק כשהבר מלא (= היעד, 90% דיוק) — מעבר הדרגתי */
 function meterColor(value: number, goal: number) {
   const t = Math.max(0, Math.min(1, value / goal))
   return `hsl(${Math.round(t * 130)} 72% 47%)`
@@ -63,7 +63,7 @@ export default function LessonMenu({ lessons, states, selected, label, title, me
         )
         return (
           <button key={l.id} ref={el => { btnRefs.current[i] = el }} type="button" className="press c-lesson"
-            data-state={states[i]} data-sel={sel} aria-current={sel ? 'page' : undefined}
+            data-state={states[i]} data-sel={sel} data-lesson={i} aria-current={sel ? 'page' : undefined}
             aria-label={achieved[i] ? `${sel ? titleOf(l) : l.key} — ${doneLabel}` : undefined}
             onClick={() => onPick(i)} onDoubleClick={() => onReset?.(i)} style={{ '--tint': l.tint } as React.CSSProperties}>
             {status}

@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Course } from '@/lib/course/content'
 import type { CourseState } from '@/lib/course/progress'
-import { guideText, type GuideEvent } from '@/lib/course/guide'
+import { guideText, type GuideEvent, type GuidePoint } from '@/lib/course/guide'
 import { canSpeak, speak } from '@/lib/course/speak'
 
 const SETTLE = 600            // מחכים רגע אחרי מעבר, שהמסך יתייצב (וגם הכתובת בטעינה)
@@ -25,6 +25,8 @@ export function useGuide({ enabled, course, childId, state, lessonIdx, stage, na
 }) {
   const [msg, setMsg] = useState<{ text: string; id: number } | null>(null)
   const [talking, setTalking] = useState(false)
+  /** על מה היד מצביעה (ההמלצה של הבועה). נשאר אחרי שהבועה נסגרת, עד הנגיעה הבאה בעמוד */
+  const [point, setPoint] = useState<GuidePoint | null>(null)
   const [muted, setMuted] = useState(false)
   const mutedRef = useRef(false)
   useEffect(() => {
@@ -60,9 +62,10 @@ export function useGuide({ enabled, course, childId, state, lessonIdx, stage, na
     const tipsKey = `kidodo-guide-tips:${childId}`
     let seen: string[] = []
     try { seen = JSON.parse(localStorage.getItem(tipsKey) ?? '[]') } catch {}
-    const { text, tips } = guideText(l.course, l.state, l.lessonIdx, l.stage, l.name, ev, new Set(seen))
+    const { text, tips, point: p } = guideText(l.course, l.state, l.lessonIdx, l.stage, l.name, ev, new Set(seen))
     if (tips.length) try { localStorage.setItem(tipsKey, JSON.stringify([...seen, ...tips])) } catch {}
     setMsg(m => ({ text, id: (m?.id ?? 0) + 1 }))
+    setPoint(p)
   }, [enabled, quiet, pending, childId])
 
   /** שלב הושלם: השבח נאמר במעבר לשלב הבא */
@@ -160,5 +163,14 @@ export function useGuide({ enabled, course, childId, state, lessonIdx, stage, na
     return off
   }, [enabled, covered, busy, open, lessonIdx, stage, show])
 
-  return { text: msg?.text ?? null, id: msg?.id ?? 0, talking, muted, show, close, noteDone, toggleMute }
+  // היד נעלמת בנגיעה הבאה (הילד לחץ — על ההמלצה או על משהו אחר), או כשמסך מכסה את הקורס / משחק רץ
+  useEffect(() => {
+    if (!point) return
+    if (covered || busy) { setPoint(null); return }   // eslint-disable-line react-hooks/set-state-in-effect
+    const off = () => setPoint(null)
+    const t = setTimeout(() => window.addEventListener('pointerdown', off, { once: true }), 300)
+    return () => { clearTimeout(t); window.removeEventListener('pointerdown', off) }
+  }, [point, covered, busy])
+
+  return { text: msg?.text ?? null, id: msg?.id ?? 0, talking, muted, point, show, close, noteDone, toggleMute }
 }
