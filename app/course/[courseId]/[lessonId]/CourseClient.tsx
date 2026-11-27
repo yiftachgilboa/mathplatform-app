@@ -189,7 +189,7 @@ export default function CourseClient({ course, childId, childName, avatar, initi
   const idleAct = useIdleAct(!!shop && !covered && !busy && !guide.talking)
   const heroProps = shop && {
     shop, act: moodAct ?? poke ?? idleAct, talking: guide.talking, calm: (busy && !moodAct) || covered, onShop: openShop, onHero,
-    bubble: guide.text && <GuideBubble key={guide.id} text={guide.text} talking={guide.talking} sayLabel={ui.guide.say} closeLabel={ui.guide.close} onSay={guide.toggleSay} onClose={guide.close} />,
+    bubble: guide.text && <GuideBubble key={guide.id} text={guide.text} muted={guide.muted} muteLabel={ui.guide.mute} unmuteLabel={ui.guide.unmute} onMute={guide.toggleMute} />,
   }
 
   function markDone(s: number) {

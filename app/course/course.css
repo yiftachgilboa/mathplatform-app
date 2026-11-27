@@ -200,15 +200,13 @@
 
 /* בועת ההוראות של הדמות: טלפון — מתחת לכותרת, מחשב — לצד הדמות, מעל השלב */
 .c-header[data-strip]{position:relative;z-index:30}
-.c-bubble{position:absolute;top:calc(100% + 10px);right:12px;left:12px;z-index:30;background:#fff;border:2px solid #BFE8EC;border-radius:22px;padding:14px 16px 14px 60px;min-height:106px;
+.c-bubble{position:absolute;top:calc(100% + 10px);right:12px;left:12px;z-index:30;background:#fff;border:2px solid #BFE8EC;border-radius:22px;padding:14px 16px 14px 60px;min-height:72px;
   display:flex;align-items:center;text-align:right;filter:drop-shadow(0 6px 12px rgba(22,62,107,.14));animation:bubbleUp .3s cubic-bezier(.2,.9,.3,1.2);transform-origin:calc(100% - 30px) 0}
 .c-bubble::after{content:'';position:absolute;width:22px;height:22px;background:linear-gradient(45deg,transparent 50%,#fff 50%);border:2px solid transparent;border-top-color:#BFE8EC;border-right-color:#BFE8EC;top:-13px;right:20px;transform:rotate(-45deg)}
 .c-bubble p{position:relative;z-index:1;margin:0;font-size:17px;line-height:1.4;text-wrap:pretty}
 .c-tail{display:none}
-.c-bubble .x{position:absolute;z-index:2;top:4px;left:8px;width:44px;height:44px;border:0;padding:0;border-radius:50%;background:none;color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer}
-.c-bubble .x:hover{color:var(--ink);background:var(--future)}
-.c-bubble .say{position:absolute;bottom:8px;left:8px;width:44px;height:44px;border:0;padding:0;border-radius:50%;background:var(--light);color:#23866E;display:flex;align-items:center;justify-content:center}
-.c-bubble .say[data-on]{background:var(--success);color:#fff}
+.c-bubble .say{position:absolute;top:0;bottom:0;margin:auto 0;left:8px;width:44px;height:44px;border:0;padding:0;border-radius:50%;background:var(--light);color:#23866E;display:flex;align-items:center;justify-content:center}
+.c-bubble .say[data-muted]{background:var(--future);color:var(--muted)}
 @keyframes bubbleUp{from{opacity:0;transform:translateY(-8px) scale(.94)}}
 @keyframes bubbleSide{from{opacity:0;transform:translateX(12px) scale(.94)}}
 @media (prefers-reduced-motion:reduce){.c-bubble{animation:none}}

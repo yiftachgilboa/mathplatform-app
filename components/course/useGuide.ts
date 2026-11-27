@@ -8,13 +8,15 @@ import { canSpeak, speak } from '@/lib/course/speak'
 const SETTLE = 600            // מחכים רגע אחרי מעבר, שהמסך יתייצב (וגם הכתובת בטעינה)
 const CLOSE_AFTER = 30_000    // בועה שלא הוקראה (הדפדפן לא הרשה קול) נסגרת לבד
 const CLOSE_SAID = 1_200      // הדמות סיימה לדבר → הבועה נסגרת אחרי רגע
+const MUTE_KEY = 'kidodo-guide-muted'   // ההשתקה נשמרת במכשיר עד שמשחררים אותה
+const readTime = (text: string) => Math.max(5_000, text.length * 90)   // מושתק: זמן קריאה ואז נסגרת
 const EVENTS = ['pointerdown', 'pointermove', 'keydown'] as const
 const REMIND_AFTER = 60_000   // בלי נגיעה, בלי משחק פתוח: תזכורת אחת לכל שלב
 
 /**
  * בועת ההוראות של הדמות: מה כתוב בה, מתי היא נפתחת ומתי היא מדברת.
  * נפתחת בכניסה, במעבר שיעור או שלב, בסיום שלב, בחזרה מהחנות, בנגיעה בדמות, ופעם אחת כשהילד תקוע.
- * נסגרת כשהדמות מסיימת לדבר, ב-X, לבד אחרי 30 שניות אם לא הוקראה, בנגיעה בשלב, וכשמשחק או סרטון מתחילים (busy).
+ * נסגרת כשהדמות מסיימת לדבר, אחרי זמן קריאה כשהקול מושתק, לבד אחרי 30 שניות אם לא הוקראה, בנגיעה בשלב, וכשמשחק או סרטון מתחילים (busy).
  */
 export function useGuide({ enabled, course, state, lessonIdx, stage, name, covered, busy, pending }: {
   enabled: boolean; course: Course; state: CourseState; lessonIdx: number; stage: number; name: string; covered: boolean; busy: boolean
@@ -23,6 +25,15 @@ export function useGuide({ enabled, course, state, lessonIdx, stage, name, cover
 }) {
   const [msg, setMsg] = useState<{ text: string; id: number } | null>(null)
   const [talking, setTalking] = useState(false)
+  const [muted, setMuted] = useState(false)
+  const mutedRef = useRef(false)
+  useEffect(() => {
+    let m = false
+    try { m = localStorage.getItem(MUTE_KEY) === '1' } catch {}
+    mutedRef.current = m
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- נקרא מהמכשיר אחרי הטעינה
+    setMuted(m)
+  }, [])
   const live = useRef({ course, state, lessonIdx, stage, name })
   useEffect(() => { live.current = { course, state, lessonIdx, stage, name } })
   const stopRef = useRef<(() => void) | null>(null)
@@ -52,6 +63,7 @@ export function useGuide({ enabled, course, state, lessonIdx, stage, name, cover
   const noteDone = useCallback((s: number) => { justDone.current = s }, [])
 
   const say = useCallback((text: string) => {
+    if (mutedRef.current) return false
     const mine = turn.current
     // onEnd = ההקראה נגמרה מעצמה (לא הושתקה) → הבועה נסגרת, אם לא נפתחה בינתיים אחרת
     const stop = speak(text, () => {
@@ -63,8 +75,13 @@ export function useGuide({ enabled, course, state, lessonIdx, stage, name, cover
     setTalking(true)
     return true
   }, [close])
-  const toggleSay = useCallback(() => {
-    if (stopRef.current) quiet()
+  /** רמקול: משתיק (נשאר מושתק בכל העמודים עד שמשחררים) / משחרר ומקריא את הבועה */
+  const toggleMute = useCallback(() => {
+    const m = !mutedRef.current
+    mutedRef.current = m
+    setMuted(m)
+    try { if (m) localStorage.setItem(MUTE_KEY, '1'); else localStorage.removeItem(MUTE_KEY) } catch {}
+    if (m) quiet()
     else if (msg) say(msg.text)
   }, [msg, quiet, say])
 
@@ -111,12 +128,12 @@ export function useGuide({ enabled, course, state, lessonIdx, stage, name, cover
     return () => { document.removeEventListener('visibilitychange', onHide); stopRef.current?.() }
   }, [quiet])
 
-  // לא הוקראה (או הושתקה): נסגרת לבד אחרי 30 שניות
+  // מושתק: נסגרת אחרי זמן קריאה. לא הוקראה (הדפדפן לא הרשה קול): נסגרת לבד אחרי 30 שניות
   useEffect(() => {
     if (!msg || talking) return
-    const t = setTimeout(close, CLOSE_AFTER)
+    const t = setTimeout(close, muted ? readTime(msg.text) : CLOSE_AFTER)
     return () => clearTimeout(t)
-  }, [msg, talking, close])
+  }, [msg, talking, muted, close])
 
   // תזכורת אחת כשלא קורה כלום
   const open = !!msg
@@ -137,5 +154,5 @@ export function useGuide({ enabled, course, state, lessonIdx, stage, name, cover
     return off
   }, [enabled, covered, busy, open, lessonIdx, stage, show])
 
-  return { text: msg?.text ?? null, id: msg?.id ?? 0, talking, show, close, noteDone, toggleSay }
+  return { text: msg?.text ?? null, id: msg?.id ?? 0, talking, muted, show, close, noteDone, toggleMute }
 }

@@ -103,12 +103,13 @@ function useTail(ref: React.RefObject<HTMLDivElement | null>) {
   return tail
 }
 
-/** בועת ההוראות: מה עושים עכשיו, לילד ולמי שעוזר לו. רמקול = להקריא / להשתיק, X = לסגור */
-export function GuideBubble({ text, talking, sayLabel, closeLabel, onSay, onClose }: {
-  text: string; talking: boolean; sayLabel: string; closeLabel: string; onSay: () => void; onClose: () => void
+/** בועת ההוראות: מה עושים עכשיו, לילד ולמי שעוזר לו. רמקול = להשתיק / לשחרר (בלי X — הבועה נסגרת לבד) */
+export function GuideBubble({ text, muted, muteLabel, unmuteLabel, onMute }: {
+  text: string; muted: boolean; muteLabel: string; unmuteLabel: string; onMute: () => void
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const tail = useTail(ref)
+  const label = muted ? unmuteLabel : muteLabel
   return (
     <div ref={ref} className="c-bubble" role="status">
       {tail && (
@@ -118,13 +119,11 @@ export function GuideBubble({ text, talking, sayLabel, closeLabel, onSay, onClos
         </svg>
       )}
       <p>{text}</p>
-      <button type="button" className="press say" data-on={talking || undefined} aria-label={sayLabel} title={sayLabel} aria-pressed={talking} onClick={onSay}>
+      <button type="button" className="press say" data-muted={muted || undefined} aria-label={label} title={label} aria-pressed={muted} onClick={onMute}>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z" fill="currentColor" /><path d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11" />
+          <path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z" fill="currentColor" />
+          {muted ? <path d="M3 3l18 18" strokeWidth="2.4" /> : <path d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11" />}
         </svg>
-      </button>
-      <button type="button" className="x" aria-label={closeLabel} title={closeLabel} onClick={onClose}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6L6 18" /></svg>
       </button>
     </div>
   )
