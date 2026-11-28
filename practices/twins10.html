@@ -285,12 +285,14 @@ function flyCoin(fromEl,toEl){
 }
 
 /* ---------- art: the kidodo Soft Low-Poly library ---------- */
-/* a phone held upright: the spider world, and a spider that comes down on a thread instead of the walking monster.
+/* a phone held upright: a spider that comes down on a thread instead of the walking monster.
    Decided by the device (not by the frame: in the course the game starts small and landscape, then grows). ?spider=1 / 0 to test */
 const SPIDER=/[?&]spider=1/.test(location.search)||(!/[?&]spider=0/.test(location.search)&&!!window.matchMedia&&matchMedia('(pointer: coarse)').matches
   &&(screen.orientation&&screen.orientation.type?/portrait/.test(screen.orientation.type):innerHeight>innerWidth));
-LP.useTheme(SPIDER?'spider':'day');
-if(SPIDER)document.body.style.background='#2a1640';
+/* the spider world (purple-orange) on every screen; ?world=nature = the old nature world */
+const WEB=!/[?&]world=nature/.test(location.search);
+LP.useTheme(WEB?'spider':'day');
+if(WEB)document.body.style.background='#2a1640';
 const A_OBJ=.3, A_W=.3, SA=Math.sin(A_W), CA=Math.cos(A_W), GTOP=12, FEET=7;
 function lpMarkup(obj,a){const cam=LP.camera({a});return LP.draw(obj,cam)+LP.face(obj,cam)}
 function lpBox(objs,a,pad=.04,padB=pad){const cam=LP.camera({a});let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
@@ -375,17 +377,17 @@ const HandIcon=()=>(<svg width="44" height="62" viewBox="0 0 44 62" style={{disp
   <polygon points="7,47 36,45 37,60 8,62" fill="#3D6FE0"/><polygon points="22,46 36,45 37,60 23,61" fill="#2D57C2"/></svg>);
 
 /* the background, the land, the things on it (the library: meadow scene, floating ground, biomes) */
-const LowPolyBG=React.memo(function LowPolyBG(){const html=useMemo(()=>SPIDER?LP.scenes.spider():LP.scenes.meadow(),[]);
+const LowPolyBG=React.memo(function LowPolyBG(){const html=useMemo(()=>WEB?LP.scenes.spider():LP.scenes.meadow(),[]);
   return <svg className="bg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" dangerouslySetInnerHTML={{__html:html}}/>});
 const Cliff=React.memo(function Cliff({w,h,seed,edgeL,edgeR,pal}){
   const hh=h*.78;
   const html=useMemo(()=>LP.draw(LP.make.ground({w,h:hh/CA,depth:GTOP/SA,seed,edgeL,edgeR,float:true,top:pal.top,lip:pal.lip,side:pal.side}),LP.camera({a:A_W,ox:12,oy:6+GTOP})),[w,hh,seed,edgeL,edgeR,pal]);
   return <svg width={w+24} height={h+24} viewBox={`0 0 ${w+24} ${h+24}`} style={{display:'block',margin:'-6px 0 0 -12px',overflow:'visible'}} dangerouslySetInnerHTML={{__html:html}}/>});
-const BIOMES=SPIDER?['webwood','crystal','ember']:['meadow','hills','desert','rocky','forest','ice'];
+const BIOMES=WEB?['webwood','crystal','ember']:['meadow','hills','desert','rocky','forest','ice'];
 const PAL_BY=Object.fromEntries(BIOMES.map(n=>[n,LP.biome(n)])), PAL0=PAL_BY[BIOMES[0]];
 /* the biomes of one game, one per stretch of land: nature in a new order with the ice (and the chest) last; the spider world
    cycles its three, with the crystals last */
-function worldBiomes(n){if(!SPIDER)return [...shuffle(BIOMES.slice(0,-1)).slice(0,n),'ice'];const b=shuffle(BIOMES);return [...Array.from({length:n},(_,k)=>b[k%b.length]),'crystal']}
+function worldBiomes(n){if(!WEB)return [...shuffle(BIOMES.slice(0,-1)).slice(0,n),'ice'];const b=shuffle(BIOMES);return [...Array.from({length:n},(_,k)=>b[k%b.length]),'crystal']}
 /* a web on a bare tree (flat lines from the library) */
 const TreeWeb=React.memo(function TreeWeb({r,seed}){const html=useMemo(()=>LP.flat.web({r,seed,opacity:.6}),[r,seed]);
   return <svg width={r*2} height={r*2} viewBox={`${-r} ${-r} ${r*2} ${r*2}`} style={{position:'absolute',overflow:'visible',pointerEvents:'none'}} dangerouslySetInnerHTML={{__html:html}}/>});
