@@ -102,7 +102,9 @@ export default function CourseClient({ course, childId, childName, avatar, initi
     onShop({ action: 'start' })
   }, [firstTime, onShop])
 
-  const openShop = useCallback(() => setShopOpen(true), [])
+  // אחרי סיום משחק (שלב 2/3/4) כפתור החנות פועם עד שנכנסים לחנות
+  const [shopCall, setShopCall] = useState(false)
+  const openShop = useCallback(() => { setShopOpen(true); setShopCall(false) }, [])
   const closeShop = useCallback(() => { setShopOpen(false); setHappy(n => n + 1) }, [])
 
   const lesson = course.lessons[lessonIdx]
@@ -189,7 +191,7 @@ export default function CourseClient({ course, childId, childName, avatar, initi
   const onHero = () => { setPoke({ pose: 'jump', expression: 'joy', ms: 1000 }); guide.show({ type: 'remind' }) }
   const idleAct = useIdleAct(!!shop && !covered && !busy && !guide.talking)
   const heroProps = shop && {
-    shop, act: moodAct ?? poke ?? idleAct, talking: guide.talking, calm: (busy && !moodAct) || covered, onShop: openShop, onHero,
+    shop, act: moodAct ?? poke ?? idleAct, talking: guide.talking, calm: (busy && !moodAct) || covered, onShop: openShop, onHero, call: shopCall,
     bubble: guide.text && <GuideBubble key={guide.id} text={guide.text} muted={guide.muted} muteLabel={ui.guide.mute} unmuteLabel={ui.guide.unmute} onMute={guide.toggleMute} />,
   }
 
@@ -318,7 +320,7 @@ export default function CourseClient({ course, childId, childName, avatar, initi
             )}
             {stage === 2 && (practiceSrc ? (
               <PracticeStage src={practiceSrc} enlargeLabel={ui.enlarge} shrinkLabel={ui.shrink} startLabel={ui.letsStart} tint={tint} paused={covered} onRunning={onRunning}
-                onComplete={() => markDone(2)} onNext={() => toNext(2)} />
+                onComplete={() => { markDone(2); setShopCall(true) }} onNext={() => toNext(2)} />
             ) : st.interactive?.cues?.length ? (
               <InteractiveVideoStage src={mediaUrl(st.interactive.src)} cues={st.interactive.cues} playLabel={ui.playVideo} retryLabel={ui.retry}
                 onAnswer={c => sendAnswer(2, c)} onComplete={() => completeStage(2, true)} />
@@ -327,13 +329,13 @@ export default function CourseClient({ course, childId, childName, avatar, initi
             ))}
             {stage === 3 && (practiceGameSrc ? (
               <PracticeStage key={'g3' + lesson.id} src={practiceGameSrc} enlargeLabel={ui.enlarge} shrinkLabel={ui.shrink} startLabel={ui.letsStart} tint={tint} paused={covered} onRunning={onRunning}
-                onComplete={() => gameDone(3)} onNext={() => toNext(3)} />
+                onComplete={() => { gameDone(3); setShopCall(true) }} onNext={() => toNext(3)} />
             ) : (
               <GameStage kind="practice" tint={tint} label="" soonLabel={ui.comingSoon} available={false} onPlay={() => {}} />
             ))}
             {stage === 4 && (enrichmentGameSrc ? (
               <PracticeStage key={'g4' + lesson.id} src={enrichmentGameSrc} enlargeLabel={ui.enlarge} shrinkLabel={ui.shrink} startLabel={ui.letsStart} tint={tint} paused={covered} onRunning={onRunning}
-                onComplete={() => gameDone(4)} onNext={() => toNext(4)} />
+                onComplete={() => { gameDone(4); setShopCall(true) }} onNext={() => toNext(4)} />
             ) : (
               <GameStage kind="enrichment" tint={tint} label="" soonLabel={ui.comingSoon} available={false} onPlay={() => {}} />
             ))}

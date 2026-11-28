@@ -190,6 +190,10 @@
 .c-herobtn{border:0;background:none;padding:0;flex:none}
 .course .c-shopbtn{display:flex;align-items:center;justify-content:center;border-radius:999px;padding:0 14px;background:#E9DFFF;border:1px solid #D3C2F5;color:#7656B4}
 .course .c-shopbtn:hover{background:#DDCFFC}
+/* after a game: the shop button breathes (2%) until the shop is opened */
+.course .c-shopbtn.call{animation:shopCall 1.3s ease-in-out infinite}
+@keyframes shopCall{50%{transform:scale(1.02)}}
+@media(prefers-reduced-motion:reduce){.course .c-shopbtn.call{animation:none}}
 .c-herocard{display:none}
 .c-herostrip{display:flex;align-items:center;gap:10px;min-width:0}
 .c-herostrip .c-herobtn{width:54px;height:64px;margin-bottom:-12px;position:relative;z-index:2}

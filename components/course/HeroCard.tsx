@@ -29,10 +29,12 @@ type HeroProps = {
   onHero: () => void
   /** בועת ההוראות */
   bubble?: React.ReactNode
+  /** אחרי סיום משחק: כפתור החנות גדל וקטן ב־2% (מזמין לבזבז את המטבעות) */
+  call?: boolean
 }
 
 /** מחשב: כרטיס הדמות מעל תפריט השיעורים — דמות, מטבעות, כפתור חנות (באותו גודל) ובר לקופסה הבאה */
-export function HeroCard({ shop, act, talking, calm, onShop, onHero, bubble }: HeroProps) {
+export function HeroCard({ shop, act, talking, calm, onShop, onHero, bubble, call }: HeroProps) {
   const left = Math.max(0, boxPrice - shop.coins)
   return (
     <div className="c-herocard">
@@ -40,7 +42,7 @@ export function HeroCard({ shop, act, talking, calm, onShop, onHero, bubble }: H
       {bubble}
       <div className="info">
         <CoinPill coins={shop.coins} id="c-coins-desk" />
-        <ShopButton onClick={onShop} />
+        <ShopButton onClick={onShop} call={call} />
       </div>
       {boxPrice > 0 && (
         <div className="goal">
@@ -52,18 +54,18 @@ export function HeroCard({ shop, act, talking, calm, onShop, onHero, bubble }: H
   )
 }
 
-function ShopButton({ onClick }: { onClick: () => void }) {
-  return <button type="button" className="press c-shopbtn" onClick={onClick} aria-label={SHOP_UI.shop} title={SHOP_UI.shop}><StoreIcon size={30} /></button>
+function ShopButton({ onClick, call }: { onClick: () => void; call?: boolean }) {
+  return <button type="button" className={'press c-shopbtn' + (call ? ' call' : '')} onClick={onClick} aria-label={SHOP_UI.shop} title={SHOP_UI.shop}><StoreIcon size={30} /></button>
 }
 
 /** טלפון: אותו דבר בשורת הכותרת */
-export function HeroStrip({ shop, act, talking, calm, onShop, onHero, bubble }: HeroProps) {
+export function HeroStrip({ shop, act, talking, calm, onShop, onHero, bubble, call }: HeroProps) {
   return (
     <div className="c-herostrip">
       <button type="button" className="press c-herobtn" onClick={onHero} aria-label={SHOP_UI.myHero}><LiveHero look={shop.look} act={act} talking={talking} calm={calm} className="c-hero" /></button>
       {bubble}
       <CoinPill coins={shop.coins} id="c-coins-phone" />
-      <ShopButton onClick={onShop} />
+      <ShopButton onClick={onShop} call={call} />
     </div>
   )
 }

@@ -31,7 +31,7 @@ header{display:flex;align-items:center;flex:none;margin-inline-start:auto}
 .pbar{width:64px;height:16px;border-radius:8px;background:rgba(23,111,190,.16);overflow:hidden}
 .pfill{height:100%;border-radius:9px;background:linear-gradient(180deg,#FFD95A 0 50%,#FFC531 50%);transition:width .8s cubic-bezier(.3,1.4,.5,1)}
 .pcount{position:absolute;inset-inline-start:-6px;top:50%;margin-top:-17px;min-width:34px;height:34px;padding:0 6px;border-radius:17px;background:#fff;color:#9B6A00;font-weight:500;font-size:16px;line-height:34px;text-align:center;box-shadow:0 3px 0 rgba(23,111,190,.2)}
-.pcount.bump,.chest.bump,.score.bump{animation:bump .5s}
+.pcount.bump,.chest.bump{animation:bump .5s}
 @keyframes bump{30%{transform:scale(1.25,.85)}60%{transform:scale(.9,1.15)}}
 @media(min-width:700px){.treasure{gap:10px;padding:4px 14px}.pbar{width:130px;height:18px;border-radius:9px}}
 .talk{display:flex;align-items:center;gap:10px;flex:1 1 auto;min-width:0}
@@ -69,11 +69,8 @@ header{display:flex;align-items:center;flex:none;margin-inline-start:auto}
 .blk.dragging svg{filter:brightness(1.1) drop-shadow(0 6px 6px rgba(23,80,130,.3))}
 .ten{position:absolute;z-index:40;pointer-events:none;font-weight:500;color:#fff;text-shadow:0 0 12px rgba(255,255,255,.9),0 3px 0 rgba(23,80,130,.25);animation:ten 1.15s ease-out forwards;transform:translate(-50%,-50%)}
 @keyframes ten{0%{transform:translate(-50%,-50%) scale(.5);opacity:0}18%{transform:translate(-50%,-60%) scale(1.15);opacity:1}55%{opacity:1}100%{transform:translate(-50%,-110%) scale(1.35);opacity:0}}
-.pts{position:absolute;z-index:41;pointer-events:none;font-weight:500;font-size:20px;color:#fff;text-shadow:0 2px 0 rgba(155,106,0,.7);animation:pts .9s ease-out forwards;transform:translate(-50%,-50%)}
-@keyframes pts{from{transform:translate(-50%,-30%);opacity:1}to{transform:translate(-50%,-160%);opacity:0}}
 .combo{position:absolute;z-index:42;pointer-events:none;font-weight:500;color:#fff;background:linear-gradient(180deg,#FF8270 0 50%,#FF6450 50%);padding:4px 16px;border-radius:16px;box-shadow:0 4px 0 rgba(160,40,20,.3);animation:combo 1.1s cubic-bezier(.3,1.5,.5,1) forwards;transform:translate(-50%,-50%);white-space:nowrap}
 @keyframes combo{0%{transform:translate(-50%,-50%) scale(0) rotate(-12deg)}25%{transform:translate(-50%,-50%) scale(1.15) rotate(3deg)}70%{transform:translate(-50%,-60%) scale(1);opacity:1}100%{transform:translate(-50%,-90%) scale(.9);opacity:0}}
-.score{position:absolute;top:60px;left:70px;z-index:7;pointer-events:none;display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.9);border-radius:16px;padding:3px 12px 3px 8px;font-weight:500;font-size:17px;color:#7656B4;box-shadow:0 3px 0 rgba(23,111,190,.18)}
 .coin2{z-index:2;pointer-events:none;animation:coinIn .5s cubic-bezier(.3,1.6,.5,1) both}
 .coin2 span{animation:bob 1.4s ease-in-out infinite alternate}
 @keyframes coinIn{from{transform:scale(0)}}
@@ -94,7 +91,6 @@ header{display:flex;align-items:center;flex:none;margin-inline-start:auto}
 @keyframes starIn{from{transform:scale(0) rotate(-40deg);opacity:0}}
 .rise{animation:rise .5s ease-out both}
 @keyframes rise{from{transform:translateY(24px);opacity:0}}
-.endscore{display:flex;align-items:center;gap:8px;font-weight:500;font-size:26px;color:#7656B4;background:rgba(255,255,255,.9);border-radius:22px;padding:4px 18px 4px 12px}
 .endbtns{position:absolute;left:0;right:0;bottom:max(22px,5dvh);display:flex;justify-content:center;gap:clamp(56px,22vw,220px)}
 .endbtn{width:112px;height:64px;display:flex;align-items:center;justify-content:center;clip-path:polygon(16px 0,calc(100% - 16px) 0,100% 50%,calc(100% - 16px) 100%,16px 100%,0 50%);transition:transform .12s}
 .endbtn:active{transform:scale(.93)}
@@ -121,8 +117,9 @@ const log=(ev,data)=>console.log('[kidodo]',ev,data||'');
 const KP=window.KidodoPractice||{inCourse:false,answer(){},complete:()=>Promise.resolve(),next(){location.reload()},exit(){history.back()}};
 
 /* ---------- the board: 6 columns × 10 rows (row 0 = on the ground). All parameters here ---------- */
-const COLS=6, ROWS=10;
-const LEVELS=[{h:4,n:12},{h:6,n:20},{h:8,n:28},{h:10,n:36}];   // after the tutorial: 4 piles, each one higher
+const PCOLS=6, ROWS=5;   // the pile stands in 6 columns, up to 5 rows (big rocks, easy to drag)
+let GC=6;                // columns you can drag in: from the pile to the right edge of the screen (set by the layout)
+const LEVELS=[{h:2,n:6},{h:3,n:10},{h:4,n:14},{h:5,n:18}];   // after the tutorial: 4 piles, each one higher
 const TUT=[{v:3,c:1},{v:4,c:2},{v:6,c:4},{v:7,c:5}];               // the tutorial: 4 rocks, 2 different pairs (drag the 6 to the 4)
 const PAIRS=[[1,9],[2,8],[3,7],[4,6],[5,5]];
 const DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
@@ -144,19 +141,13 @@ for(let v=1;v<=9;v++){const b=NUMC[v],k=12,cx=47,cy=44;
 function pairVals(n){const out=[];let bag=[];while(out.length<n){if(!bag.length)bag=shuffle(PAIRS);const [a,b]=bag.pop();out.push(a,b)}return out}
 const key=(c,r)=>c+','+r;
 const occMap=(list,skip)=>{const o={};list.forEach(b=>{if(b.id!==skip)o[key(b.c,b.r)]=b});return o};
-/* the shortest drag that brings a rock next to its twin: a path through empty cells (straight lines, turns at cell centres) */
-function findMove(list){
-  let best=null;
-  for(const b of list){
-    const occ=occMap(list,b.id), seen={[key(b.c,b.r)]:null}, q=[[b.c,b.r]];
-    for(let h=0;h<q.length;h++){const [c,r]=q[h];
-      if(h>0){const tw=DIRS.map(([dc,dr])=>occ[key(c+dc,r+dr)]).find(o=>o&&o.v+b.v===10);
-        if(tw){const path=[];let k=key(c,r);while(k){const [x,y]=k.split(',').map(Number);path.unshift([x,y]);k=seen[k]}
-          if(!best||path.length<best.path.length)best={id:b.id,v:b.v,path,twin:tw.id};break}}
-      for(const [dc,dr] of DIRS){const x=c+dc,y=r+dr,k=key(x,y);if(x<0||x>=COLS||y<0||y>=ROWS||occ[k]||k in seen)continue;seen[k]=key(c,r);q.push([x,y])}}
-  }
-  return best;
-}
+/* a hint: the two twins that are closest, and a straight path (one turn at most) that brings one next to the other */
+function findMove(list){let best=null;
+  for(const a of list)for(const b of list){if(a===b||a.v+b.v!==10)continue;
+    for(const [dc,dr] of DIRS){const c=b.c+dc,r=b.r+dr;if(c<0||c>=GC||r<0||r>=ROWS||(c===a.c&&r===a.r))continue;
+      const d=Math.abs(c-a.c)+Math.abs(r-a.r);
+      if(!best||d<best.d)best={d,id:a.id,v:a.v,path:[[a.c,a.r],...(a.c!==c&&a.r!==r?[[c,a.r]]:[]),[c,r]]}}}
+  return best}
 /* twins that touch (each rock in one pair at most) */
 function findPairs(list){const occ=occMap(list),used={},out=[];
   [...list].sort((a,b)=>a.r-b.r||a.c-b.c).forEach(b=>{if(used[b.id])return;
@@ -164,15 +155,15 @@ function findPairs(list){const occ=occMap(list),used={},out=[];
   return out}
 /* gravity: every column falls together → {list, falls: id → rows fallen} */
 function gravity(list){const falls={},out=[];
-  for(let c=0;c<COLS;c++){list.filter(b=>b.c===c).sort((a,b)=>a.r-b.r).forEach((b,i)=>{if(b.r!==i)falls[b.id]=b.r-i;out.push({...b,r:i})})}
+  for(let c=0;c<GC;c++){list.filter(b=>b.c===c).sort((a,b)=>a.r-b.r).forEach((b,i)=>{if(b.r!==i)falls[b.id]=b.r-i;out.push({...b,r:i})})}
   return {list:out,falls}}
 let idN=0;
-/* a pile: column heights up to h, numbers placed so that no twins touch at the start, and at least one move exists */
+/* a pile: column heights up to h, numbers placed so that no twins touch at the start */
 function genPile(vals,h){
   const n=vals.length;let last=null;
   for(let tries=0;tries<80;tries++){
-    const hs=Array(COLS).fill(0);hs[rand(0,COLS-1)]=Math.min(h,n);let left=n-Math.min(h,n);
-    while(left>0){const c=rand(0,COLS-1);if(hs[c]<h){hs[c]++;left--}}
+    const hs=Array(PCOLS).fill(0);hs[rand(0,PCOLS-1)]=Math.min(h,n);let left=n-Math.min(h,n);
+    while(left>0){const c=rand(0,PCOLS-1);if(hs[c]<h){hs[c]++;left--}}
     const cells=[];hs.forEach((k,c)=>{for(let r=0;r<k;r++)cells.push([c,r])});
     const at={};cells.forEach(([c,r],i)=>at[key(c,r)]=i);
     const vs=shuffle(vals);
@@ -182,7 +173,7 @@ function genPile(vals,h){
       const b0=bad(i)+bad(j);[vs[i],vs[j]]=[vs[j],vs[i]];const b1=bad(i)+bad(j);
       if(b1>b0||(b1===b0&&Math.random()<.6))[vs[i],vs[j]]=[vs[j],vs[i]];else{T=0;for(let k=0;k<n;k++)T+=bad(k)}}
     const list=cells.map(([c,r],i)=>({id:'b'+(++idN),v:vs[i],c,r}));last=list;
-    if(T===0&&findMove(list))return list;
+    if(T===0)return list;
   }
   return last;
 }
@@ -236,6 +227,7 @@ const sfx={
   splash(){noise(.7,{type:'lowpass',f:3200,f2:300,vol:.35})},
   win(){[523,659,784,1047].forEach((f,j)=>tone(f,.2,'triangle',.12,null,j*.11))},
   coin(){tone(988,.08,'square',.05);tone(1319,.25,'square',.05,null,.08)},
+  swap(){tone(480,.05,'sine',.04,620)},
   step(i){tone(i%2?330:294,.05,'triangle',.05)},
   jackpot(){tone(330,.12,'square',.05);tone(660,.1,'square',.05,null,.07);for(let i=0;i<7;i++){const f=1600+Math.random()*900;tone(f,.09,'triangle',.08,null,.14+i*.07);tone(f*1.5,.12,'sine',.06,null,.19+i*.07)}},
 };
@@ -267,6 +259,19 @@ function coinBurst(el,n=9){
     for(let k=0;k<=10;k++){const t=T*k/10;frames.push({transform:`translate(${x0+vx*t-s/2}px,${y0+vy*t+.5*g*t*t-s/2}px)`,opacity:k===0?0:1})}
     const a=c.animate(frames,{duration:T*1000,delay:i*18,easing:'linear',fill:'both'});a.onfinish=()=>{c.remove();liveCoins--};
   }
+}
+/* a coin from a point on the screen into the chest */
+let liveFly=0;
+function flyCoinTo(x0,y0,toEl,delay=0){
+  return new Promise(res=>{if(!toEl||liveFly>24){res();return}
+    const b=toEl.getBoundingClientRect(),g=document.createElement('div');g.className='flycoin';g.innerHTML=COIN_SVG;
+    const x1=b.left+b.width/2,y1=b.top+b.height/2;g.style.left=x0+'px';g.style.top=y0+'px';document.body.appendChild(g);liveFly++;
+    const an=g.animate([{transform:'translate(0,0) scale(.4)',opacity:0},{transform:'translate(0,-30px) scale(1.3)',opacity:1,offset:.2},
+      {transform:`translate(${(x1-x0)*.45}px,${Math.min(y1,y0)-y0-60}px) scale(1.15) rotate(160deg)`,offset:.6},
+      {transform:`translate(${x1-x0}px,${y1-y0}px) scale(.7) rotate(360deg)`}],{duration:1050,delay,easing:'cubic-bezier(.4,0,.3,1)',fill:'backwards'});
+    let fin=0;const done=()=>{if(fin)return;fin=1;g.remove();liveFly--;res()};
+    an.onfinish=done;setTimeout(done,delay+1250);   // the coin is counted even if the animation never ends (a hidden page)
+  });
 }
 function flyCoin(fromEl,toEl){
   return new Promise(res=>{if(!fromEl||!toEl){res();return}
@@ -348,7 +353,6 @@ const StarIcon=({on})=>(<svg width="100%" height="100%" viewBox="0 0 100 96">
   <polygon points="50,52 29,58 20,94 50,74" fill={on?'#F2B21B':'#CDD3DC'}/></svg>);
 const SpeakerIcon=({on})=>(<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
   <path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/>{on?<><path d="M16 9a4 4 0 0 1 0 6"/><path d="M18.5 6.5a7.5 7.5 0 0 1 0 11"/></>:<><path d="M16 9l5 6"/><path d="M21 9l-5 6"/></>}</svg>);
-const Spark=({s=18})=>(<svg width={s} height={s} viewBox="0 0 24 24"><polygon points="12,1 15,9 23,12 15,15 12,23 9,15 1,12 9,9" fill="#8E5CF0"/><polygon points="12,1 15,9 12,12 9,9" fill="#B79BF5"/></svg>);
 const HandIcon=()=>(<svg width="44" height="62" viewBox="0 0 44 62" style={{display:'block'}}>
   <polygon points="10,4 14,0 18,4 18,28 10,28" fill="#FFDDB8"/><polygon points="14,0 18,4 18,28 14,28" fill="#F6C99A"/>
   <polygon points="18,16 25,15 26,28 18,28" fill="#F6C99A"/><polygon points="26,18 32,18 33,30 26,30" fill="#EBB585"/>
@@ -410,10 +414,8 @@ function App(){
   const [hero,setHero]=useState({walk:false,vis:false,cheer:false,win:false});
   const [scared,setScared]=useState(false);
   const [worldI,setWorldI]=useState(0),[walkDur,setWalkDur]=useState(0);
-  const [coinShow,setCoinShow]=useState(-1),[coinTaken,setCoinTaken]=useState(-1);
   const [caption,setCaption]=useState(''),[capN,setCapN]=useState(0),[talking,setTalking]=useState(false);
   const [progress,setProgress]=useState(0),[bumpN,setBumpN]=useState(0),[coins,setCoins]=useState(0);
-  const [score,setScore]=useState(0),[scoreN,setScoreN]=useState(0);
   const [sound,setSound]=useState(true),[quake,setQuake]=useState(false),[jolt,setJolt]=useState(0);
   const [lidOpen,setLidOpen]=useState(false),[leaving,setLeaving]=useState(false);
   const [endStage,setEndStageS]=useState(null),endRef=useRef(null),setEndStage=v=>{endRef.current=v;setEndStageS(v)};
@@ -434,11 +436,12 @@ function App(){
   const groundH=Math.round(Math.max(92,Math.min(180,H*.2))),groundY=H-groundH,baseY=groundY+FEET;
   const hs=Math.round(Math.max(56,Math.min(92,H*.14))),hw=Math.round(hs*HERO_AR);
   const TOPR=74;   // room for the top row (alien, bubble, chest)
-  const cell=Math.max(28,Math.floor(Math.min((W-hw-34)/COLS,(baseY-TOPR)/ROWS,62)));
-  const gx=Math.round(Math.max(hw+22,Math.min(W/2-COLS*cell/2,W-COLS*cell-6)));   // the 6 × 10 area (left edge)
+  const cell=Math.max(30,Math.floor(Math.min((W-hw-16)/PCOLS,(baseY-TOPR)/ROWS,96)));
+  const gx=Math.round(Math.max(hw+8,Math.min(W/2-PCOLS*cell/2,W-PCOLS*cell-6)));   // the drag area (left edge)
+  GC=Math.max(PCOLS,Math.floor((W-6-gx)/cell));                                     // it reaches the right edge of the screen
   const heroX=gx-hw-4;
   const D=Math.round(Math.max(hw+170,W*.7));                                       // the land between two piles
-  const P=[];for(let i=0;i<=rounds.length;i++)P[i]=gx+i*(COLS*cell+D);            // world x of pile i (P[last] = the chest)
+  const P=[];for(let i=0;i<=rounds.length;i++)P[i]=gx+i*(GC*cell+D);            // world x of pile i (P[last] = the chest)
   const offset=(P[worldI]||gx)-gx;
   const cs=Math.round(Math.max(84,Math.min(140,W*.3,groundY*.34)));
   const mh=hs*2,mw=Math.round(mh*MON_VB[2]/MON_VB[3]);
@@ -449,6 +452,7 @@ function App(){
   useLayoutEffect(()=>{const p=pend.current;if(!p)return;pend.current=null;
     Object.entries(p).forEach(([id,f])=>{const el=blkEls.current[id];if(!el)return;el.style.transform='';
       const dx=f.dx*cell,dy=f.dy*cell,dur=f.dur;
+      if(f.swap){el.animate([{transform:`translate(${dx}px,${-dy}px)`},{transform:'translate(0,0)'}],{duration:dur,easing:'cubic-bezier(.3,.7,.4,1)'});return}
       el.animate([{transform:`translate(${dx}px,${-dy}px)`,easing:'cubic-bezier(.45,0,.9,.55)'},{transform:'translate(0,0) scale(1,1)',offset:.84},
         {transform:'translate(0,0) scale(1.07,.9)',offset:.92},{transform:'translate(0,0)'}],{duration:dur,delay:f.delay||0,fill:'backwards'});
       if(f.land)setTimeout(sfx.land,(f.delay||0)+dur*.84)})},[blocks]);
@@ -484,7 +488,7 @@ function App(){
       if(g&&el){const working=m.active&&R.current.phase==='play';
         if(m.retreat){m.elapsed=Math.max(0,m.elapsed-dt*m.dur/.9);if(m.elapsed===0)m.retreat=false}
         else if(working){m.elapsed+=dt;
-          if(now>m.nextGrowl){sfx.growl(.5+.6*Math.min(1,m.elapsed/m.dur));m.nextGrowl=now+5000+Math.random()*4000}
+          if(now>m.nextGrowl&&isFinite(m.dur)){sfx.growl(.5+.6*Math.min(1,m.elapsed/m.dur));m.nextGrowl=now+5000+Math.random()*4000}
           if(m.elapsed>=m.dur){m.active=false;if(caughtRef.current)caughtRef.current()}}
         const pr=Math.min(1,m.elapsed/m.dur),sx=-g.mw-14,tx=g.heroX-g.mw*.93+6,x=sx+(tx-sx)*pr;
         const near=working&&pr>.7;if(near!==scaredRef.current){scaredRef.current=near;setScared(near)}
@@ -497,7 +501,7 @@ function App(){
   /* ---------- where the characters look ---------- */
   const mid=(el,fy=.5)=>{const r=el&&el.getBoundingClientRect();return r&&r.width?[r.left+r.width/2,r.top+r.height*fy]:null};
   const pileMid=()=>{const b=boardRef.current&&boardRef.current.getBoundingClientRect();if(!b)return null;const g=R.current.geo,l=R.current.blocks||[];
-    const top=l.length?Math.max(...l.map(x=>x.r)):0;return [b.left+g.gx+COLS*g.cell/2,b.top+g.baseY-(top+1)*g.cell*.6]};
+    const top=l.length?Math.max(...l.map(x=>x.r)):0;return [b.left+g.gx+PCOLS*g.cell/2,b.top+g.baseY-(top+1)*g.cell*.6]};
   function heroInput(el){
     const now=performance.now(),c=now%5200,lk=p=>p?LP.lookAt(el,p[0],p[1]):null;let look=null,pose='stand',rot=0,expression='happy',mood='calm';
     if(hero.win){pose='cheer';expression='joy'}
@@ -523,7 +527,7 @@ function App(){
   function showHint(){
     if(R.current.phase!=='play'||busy.current||dragRef.current){armHint(4000);return}
     const m=findMove(R.current.blocks||[]),g=R.current.geo;
-    if(!m){quiet('אפשר להזיז סלע הצידה, כדי לפנות דרך לתאום שלו.');return}
+    if(!m)return;
     setDemo({v:m.v,pts:m.path.map(([c,r])=>[g.gx+(c+.5)*g.cell,g.baseY-(r+.5)*g.cell])});
     if(!hintSaid.current&&!R.current.round.tut){hintSaid.current=true;quiet('רמז: לכל סלע יש תאום. ביחד הם 10.')}
   }
@@ -537,7 +541,7 @@ function App(){
     const rs=[...(tut?[{tut:true,h:1,n:4}]:[]),...LEVELS.map(l=>({...l}))];
     setWorld({seed:rand(1,99999),biomes:[...shuffle(BIOMES.slice(0,-1)).slice(0,rs.length),'ice']});
     stats.current={caught:0,pairs:0,combos:0,best:0};hintSaid.current=false;
-    setRounds(rs);R.current.rounds=rs;setWorldI(0);setWalkDur(0);setCoinShow(-1);setCoinTaken(-1);setProgress(0);setScore(0);setBlocks([]);
+    setRounds(rs);R.current.rounds=rs;setWorldI(0);setWalkDur(0);setProgress(0);setCoins(0);setBlocks([]);
     {const m=mon.current;m.active=false;m.retreat=false;m.elapsed=0}
     setScreen('play');
     await sleep(250);
@@ -565,8 +569,11 @@ function App(){
       await say('סלעים חוסמים לנו את הדרך! כדי לעבור, מפוצצים אותם: גוררים סלע ומצמידים אותו לסלע שמשלים איתו ל־10. הם תאומי עשר!');
       return;
     }
-    const m=mon.current, realI=i-(R.current.rounds[0].tut?1:0);
-    m.dur=m.rate?Math.max(30,Math.min(200,m.rate*1.3*list.length)):20+2.4*list.length;
+    // the monster's time = the child's own pace (seconds per pair) + 20%, for the pairs on this board.
+    // No pace yet (the first board ever): it waits until the child finds two pairs (see popPairs)
+    const m=mon.current, realI=i-(R.current.rounds[0].tut?1:0), pace=learned.current.pace;
+    r.t0=performance.now();r.finds=[];r.pairs=list.length/2;
+    m.dur=pace?pace*1.2*r.pairs:Infinity;
     m.elapsed=0;m.retreat=false;m.active=true;m.nextGrowl=performance.now()+6000;
     if(realI===0){
       if(!learned.current.monster){learn('monster');await say('זהירות, מפלצת! מפוצצים את כל הסלעים לפני שהיא מגיעה. גוררים כל סלע אל התאום שלו, שביחד הם 10.')}
@@ -575,84 +582,94 @@ function App(){
     if(alive())armHint(12000);
   }
 
-  /* ---------- drag: a rock moves along rows and columns through empty cells (no diagonal), only inside the 6 × 10 area ---------- */
+  /* ---------- drag: a rock follows the finger along a row or a column (no diagonal), smoothly. It can pass other rocks:
+     they swap places. It stays inside the area (from the pile to the right edge of the screen, 5 rows) ---------- */
   const cellXY=e=>{const bb=boardRef.current.getBoundingClientRect(),g=R.current.geo;return {x:(e.clientX-bb.left-g.gx)/g.cell-.5,y:(g.baseY-(e.clientY-bb.top))/g.cell-.5}};
-  const isInt=v=>Math.abs(v-Math.round(v))<1e-6;
-  function slide(d,tx,ty){
-    const occ=occMap(R.current.blocks,d.id),free=(c,r)=>c>=0&&c<COLS&&r>=0&&r<ROWS&&!occ[key(c,r)];
-    tx=Math.max(0,Math.min(COLS-1,tx));ty=Math.max(0,Math.min(ROWS-1,ty));
-    const contact=()=>{if(!isInt(d.x)||!isInt(d.y)||(d.x===d.c0&&d.y===d.r0))return null;
-      for(const [dc,dr] of DIRS){const o=occ[key(d.x+dc,d.y+dr)];if(o&&o.v+d.v===10)return o}return null};
-    const mv=(ax,goal)=>{const cur=d[ax];if(Math.abs(goal-cur)<1e-6)return false;const dir=goal>cur?1:-1;let lim;
-      if(isInt(cur)){const n=Math.round(cur)+dir;if(!(ax==='x'?free(n,Math.round(d.y)):free(Math.round(d.x),n)))return false;lim=n}
-      else lim=dir>0?Math.ceil(cur):Math.floor(cur);
-      const t=dir>0?Math.min(goal,lim):Math.max(goal,lim);if(Math.abs(t-cur)<1e-6)return false;d[ax]=isInt(t)?Math.round(t):t;return true};
-    for(let k=0;k<80;k++){const ax=Math.abs(tx-d.x),ay=Math.abs(ty-d.y);let moved;
-      if(!isInt(d.x))moved=mv('x',ax>=ay?tx:Math.round(d.x));
-      else if(!isInt(d.y))moved=mv('y',ay>=ax?ty:Math.round(d.y));
-      else{const a1=ax>=ay?'x':'y',a2=a1==='x'?'y':'x',t1=a1==='x'?tx:ty,t2=a2==='x'?tx:ty;
-        moved=mv(a1,t1)||(Math.abs(t2-d[a2])>.45&&mv(a2,t2))}
-      if(!moved)break;const hit=contact();if(hit)return hit}
+  const twinNear=(c,r,v,skip)=>{for(const [dc,dr] of DIRS){const o=R.current.blocks.find(b=>b.id!==skip&&b.c===c+dc&&b.r===r+dr);if(o&&o.v+v===10)return o}return null};
+  function dragTo(d,tx,ty){
+    tx=Math.max(0,Math.min(GC-1,tx));ty=Math.max(0,Math.min(ROWS-1,ty));
+    // on a row or on a column: near a cell's centre it may turn, between centres it keeps its line
+    const nx=Math.round(d.x),ny=Math.round(d.y),SN=.34;
+    const horiz=Math.abs(d.x-nx)<SN&&Math.abs(d.y-ny)<SN?Math.abs(tx-d.x)>=Math.abs(ty-d.y):Math.abs(d.y-ny)<Math.abs(d.x-nx);
+    if(horiz){d.y=ny;d.x=tx}else{d.x=nx;d.y=ty}
+    // every cell it enters: the rock that was there moves into the cell it left; touching its twin = pop
+    const goal=[Math.round(d.x),Math.round(d.y)];
+    while(d.cell[0]!==goal[0]||d.cell[1]!==goal[1]){
+      const [c,r]=d.cell,nc=goal[0]!==c?[c+Math.sign(goal[0]-c),r]:[c,r+Math.sign(goal[1]-r)];
+      const o=R.current.blocks.find(b=>b.id!==d.id&&b.c===nc[0]&&b.r===nc[1]);
+      if(o){pend.current={...(pend.current||{}),[o.id]:{dx:nc[0]-c,dy:nc[1]-r,dur:150,swap:true}};setBlocks(R.current.blocks.map(b=>b.id===o.id?{...b,c,r}:b));sfx.swap()}
+      d.cell=nc;sfx.tick();
+      const tw=twinNear(nc[0],nc[1],d.v,d.id);if(tw){d.x=nc[0];d.y=nc[1];return tw}
+    }
     return null;
   }
+  // what is drawn follows the finger with a little easing: no jumps when the rock turns or snaps to its line
+  function dragLoop(){const d=dragRef.current;if(!d)return;const el=blkEls.current[d.id],cell=R.current.geo.cell;
+    d.vx+=(d.x-d.vx)*.42;d.vy+=(d.y-d.vy)*.42;
+    if(el)el.style.transform=`translate(${((d.vx-d.c0)*cell).toFixed(1)}px,${(-(d.vy-d.r0)*cell).toFixed(1)}px)`;
+    d.raf=requestAnimationFrame(dragLoop)}
   function blkDown(e,b){
     if(R.current.phase!=='play'||busy.current||dragRef.current)return;
     e.stopPropagation();e.preventDefault();audio();touched();
     const q=cellXY(e);
-    dragRef.current={id:b.id,v:b.v,x:b.c,y:b.r,c0:b.c,r0:b.r,ox:q.x-b.c,oy:q.y-b.r,cellK:key(b.c,b.r),pid:e.pointerId};
+    dragRef.current={id:b.id,v:b.v,x:b.c,y:b.r,vx:b.c,vy:b.r,c0:b.c,r0:b.r,cell:[b.c,b.r],ox:q.x-b.c,oy:q.y-b.r,pid:e.pointerId};
     dragPt.current=[e.clientX,e.clientY];
     try{e.currentTarget.setPointerCapture(e.pointerId)}catch(_){}
-    setDrag(b.id);sfx.pick();
+    setDrag(b.id);sfx.pick();dragLoop();
     if(R.current.round.tut&&finRef.current&&learned.current.pop)hush();   // a child who already knows does not wait for the talk
   }
   function blkMove(e){
     const d=dragRef.current;if(!d||e.pointerId!==d.pid)return;e.stopPropagation();
     dragPt.current=[e.clientX,e.clientY];
-    const q=cellXY(e),hit=slide(d,q.x-d.ox,q.y-d.oy),el=blkEls.current[d.id],cell=R.current.geo.cell;
-    if(el)el.style.transform=`translate(${((d.x-d.c0)*cell).toFixed(1)}px,${(-(d.y-d.r0)*cell).toFixed(1)}px)`;
-    const k=key(Math.round(d.x),Math.round(d.y));if(k!==d.cellK){d.cellK=k;sfx.tick()}
+    const q=cellXY(e),hit=dragTo(d,q.x-d.ox,q.y-d.oy);
     if(hit)endDrag(hit);
   }
   function blkUp(e){const d=dragRef.current;if(!d||e.pointerId!==d.pid)return;e.stopPropagation();endDrag(null)}
   async function endDrag(hit){
-    const d=dragRef.current;dragRef.current=null;dragPt.current=null;setDrag(null);if(!d)return;
+    const d=dragRef.current;dragRef.current=null;dragPt.current=null;setDrag(null);if(!d)return;cancelAnimationFrame(d.raf);
     const alive=newFlow();busy.current=true;clearTimeout(hintT.current);
-    if(hit){   // the twins met: the rock sits next to its twin and both pop
-      const moved=R.current.blocks.map(b=>b.id===d.id?{...b,c:d.x,r:d.y}:b);R.current.blocks=moved;
+    const [c,r]=d.cell,moved=R.current.blocks.map(b=>b.id===d.id?{...b,c,r}:b);
+    if(hit){   // the twins met: both pop
+      R.current.blocks=moved;
       await popPairs([[moved.find(b=>b.id===d.id),hit]],1,alive,true);
       if(!alive())return;
       await chain(2,alive);
-    }else{
-      const c=Math.round(d.x),r=Math.round(d.y);
-      if(c===d.c0&&r===d.r0&&Math.abs(d.x-c)<.01&&Math.abs(d.y-r)<.01){const el=blkEls.current[d.id];if(el)el.style.transform='';busy.current=false;sfx.drop();armHint(12000);return}
-      const moved=R.current.blocks.map(b=>b.id===d.id?{...b,c,r}:b);
-      await fallTo(moved,{[d.id]:{dx:d.x-c,dy:d.y-r}},alive);if(!alive())return;
+    }else{     // let go: it settles from where it is drawn, then everything falls
+      sfx.drop();
+      await fallTo(moved,{[d.id]:{dx:d.vx-c,dy:d.vy-r}},alive);if(!alive())return;
       await chain(1,alive);
     }
     if(!alive())return;
     busy.current=false;
     if(!R.current.blocks.length)cleared();else armHint(R.current.round.tut?7000:12000);
   }
-  /* twins that touch after a fall pop too: every step of the chain is a combo with more points */
+  /* twins that touch after a fall pop too: every step of the chain is a combo (more coins) */
   async function chain(level,alive){
     for(;;){const pairs=findPairs(R.current.blocks);if(!pairs.length)return;
       await popPairs(pairs,level,alive,level===1);if(!alive())return;level++}
   }
   async function popPairs(pairs,level,alive,byChild){
     const ids=new Set(pairs.flat().map(b=>b.id)),g=R.current.geo,bb=boardRef.current.getBoundingClientRect(),first=R.current.ri===0;
-    const pts=10*level,adds=[];
+    const adds=[],coinsFrom=[];
     pairs.forEach(([a,b])=>{
       [a,b].forEach(x=>burst(bb.left+g.gx+(x.c+.5)*g.cell,bb.top+g.baseY-(x.r+.5)*g.cell,[NUMC[x.v],mix(NUMC[x.v],.5),'#fff'],13));
       const mx=g.gx+((a.c+b.c)/2+.5)*g.cell,my=g.baseY-((a.r+b.r)/2+.5)*g.cell;
       if(first)adds.push({id:++fxId.current,k:'ten',x:mx,y:my});                 // the first pile only: a white 10 that fades away
-      adds.push({id:++fxId.current,k:'pts',x:mx,y:my-(first?g.cell*.9:0),t:'+'+pts});
+      coinsFrom.push([bb.left+mx,bb.top+my]);
     });
-    if(byChild)KP.answer(true);
-    if(level>=2){const [a]=pairs[0];adds.push({id:++fxId.current,k:'combo',x:Math.max(70,Math.min(g.W-70,g.gx+COLS*g.cell/2)),y:Math.max(30,g.baseY-(a.r+2.4)*g.cell),t:'קומבו ×'+level});
+    if(byChild){KP.answer(true);
+      const r=R.current.round,m=mon.current;
+      if(r.finds&&!r.tut){r.finds.push(performance.now());
+        // the first board ever: after two pairs, average them, +20% → the monster's time for the whole board
+        if(!isFinite(m.dur)&&r.finds.length>=2){const avg=(r.finds[1]-r.t0)/2/1000;m.dur=Math.max(6,avg*1.2*r.pairs);m.nextGrowl=performance.now()+2500;log('monster_pace',{avg:+avg.toFixed(1),dur:Math.round(m.dur)})}}}
+    if(level>=2){const [a]=pairs[0],lx=Math.max(70,Math.min(g.W-70,g.gx+PCOLS*g.cell/2)),ly=Math.max(30,g.baseY-(a.r+2.4)*g.cell);
+      adds.push({id:++fxId.current,k:'combo',x:lx,y:ly,t:'קומבו ×'+level});
+      for(let k=1;k<level;k++)coinsFrom.push([bb.left+lx,bb.top+ly]);   // a combo: one more coin for every step of the chain
       stats.current.combos++;sfx.combo(level)}
+    coinsFrom.forEach(([x,y],k)=>flyCoinTo(x,y,chestRef.current,k*110).then(()=>{setCoins(c=>c+1);setBumpN(b=>b+1);sfx.coin()}));
     stats.current.pairs+=pairs.length;stats.current.best=Math.max(stats.current.best,level);
     sfx.pop(level);
-    setFxs(f=>[...f.slice(-14),...adds]);setScore(s=>s+pts*pairs.length);setScoreN(n=>n+1);
+    setFxs(f=>[...f.slice(-14),...adds]);
     log('pop',{pairs:pairs.map(([a,b])=>a.v+'+'+b.v),level});
     const rest=R.current.blocks.filter(b=>!ids.has(b.id));setBlocks(rest);
     if(byChild&&!learned.current.pop){learn('pop');setDemo(null);if(R.current.round.tut){hush();const [a,b]=pairs[0];say(`בּוּם! ${a.v} ו־${b.v} זה 10.`)}}
@@ -664,19 +681,19 @@ function App(){
   function cleared(){
     const alive=newFlow(),i=R.current.ri,r=R.current.round,last=i===R.current.rounds.length-1;
     R.current.phase='busy';clearTimeout(hintT.current);setDemo(null);
-    {const m=mon.current;if(m.active&&!r.tut)m.rate=m.elapsed/Math.max(1,r.n0);m.active=false;m.retreat=true}
+    {const m=mon.current;m.active=false;m.retreat=true}
     if(r.tut)learn('tut');
-    sfx.win();setCoinShow(i);
+    else{   // the overall pace: all the time on boards / all their pairs (remembered on this device, per child)
+      const L=learned.current,t=(performance.now()-r.t0)/1000;L.tot={t:((L.tot&&L.tot.t)||0)+t,p:((L.tot&&L.tot.p)||0)+r.pairs};
+      L.pace=Math.max(2,Math.min(60,L.tot.t/L.tot.p));learn();log('pace',{board:Math.round(t),pace:+L.pace.toFixed(1)})}
+    sfx.win();setProgress(i+1);
     (async()=>{
       setHero(h=>({...h,cheer:true}));
       await say(r.tut?'הדרך פנויה! קדימה!':last?'פיניתם את כל הדרך!':'הדרך פנויה!',{voice:i===0||last});if(!alive())return;
       setHero(h=>({...h,cheer:false}));
-      const g=R.current.geo,dist=COLS*g.cell+D,dur=Math.max(2.2,Math.min(3.6,dist/240)),speed=dist/dur;
+      const g=R.current.geo,dist=GC*g.cell+D,dur=Math.max(2.2,Math.min(3.6,dist/240));
       setWalkDur(dur);setWorldI(i+1);setHero(h=>({...h,walk:true}));
       const steps=Math.floor(dur/.135);for(let k=0;k<steps;k++)setTimeout(()=>{if(alive())sfx.step(k)},k*135);
-      setTimeout(async()=>{if(!alive())return;sfx.coin();setCoinTaken(i);await flyCoin(coinRef.current,chestRef.current);
-        const n=R.current.rounds.length;setProgress(i+1);setBumpN(b=>b+1);setCoins(Math.round((i+1)/n*(KP.reward?KP.reward():10)))},
-        Math.max(200,(g.gx+COLS*g.cell/2-(g.heroX+hw*.6))/speed*1000));
       await sleep(dur*1000+60);if(!alive())return;
       setWalkDur(0);setHero(h=>({...h,walk:false}));
       if(!last){await sleep(250);if(alive())playRound(i+1);return}
@@ -704,7 +721,7 @@ function App(){
       list.forEach(b=>{p[b.id]={dx:0,dy:ROWS+3,dur:fallDur(ROWS+3),delay:b.c*60+b.r*70,land:true}});pend.current=p;setBlocks(list);
       await sleep(900);if(!alive())return;R.current.phase='play';armHint(12000)},700);
     say('אוי! המפלצת הגיעה. הסלעים התפזרו, ננסה שוב.').then(()=>{if(!alive()||R.current.phase!=='play')return;
-      const m=mon.current;m.dur=m.dur*2;m.elapsed=0;m.retreat=false;m.active=true;m.nextGrowl=performance.now()+6000});
+      const m=mon.current;m.dur=m.dur*2;/* half the speed */m.elapsed=0;m.retreat=false;m.active=true;m.nextGrowl=performance.now()+6000});
   }
   caughtRef.current=caught;
 
@@ -716,7 +733,7 @@ function App(){
     setTimeout(()=>{clearInterval(iv);setEndStage('done');finish()},3200);
   }
   const doneReq=useRef(null);
-  function finish(){if(!doneReq.current)doneReq.current=KP.complete({rounds:R.current.rounds.length,score,stars:starCount(stats.current.caught),caught:stats.current.caught,pairs:stats.current.pairs,combos:stats.current.combos,bestCombo:stats.current.best});return doneReq.current}
+  function finish(){if(!doneReq.current)doneReq.current=KP.complete({rounds:R.current.rounds.length,coins,stars:starCount(stats.current.caught),caught:stats.current.caught,pairs:stats.current.pairs,combos:stats.current.combos,bestCombo:stats.current.best});return doneReq.current}
   async function goNext(){if(leaving)return;setLeaving(true);hush();await finish();KP.next()}
   function restart(){doneReq.current=null;hush();clearTimeout(hintT.current);setDemo(null);setEndStage(null);setLidOpen(false);setCoins(0);setBumpN(0);
     setHero({walk:false,vis:false,cheer:false,win:false});scaredRef.current=false;setScared(false);start()}
@@ -746,7 +763,7 @@ function App(){
   const strips=[];if(n){let x0=-W*2;for(let k=0;k<=n;k++){const x1=k<n?P[k+1]-D/2:P[n]+W*3;strips.push({k,x0,x1});x0=x1}}
   const decor=[];
   strips.forEach(s=>{const rr=rng(world.seed*7+s.k*13+5),th=(PAL_BY[world.biomes[Math.min(s.k,world.biomes.length-1)]]||PAL_BY.meadow).decor;
-    const keepOut=[[P[s.k]-hw-50,P[s.k]+COLS*cell+30]];   // never behind the pile or the hero (the background does not compete)
+    const keepOut=[[P[s.k]-hw-50,P[s.k]+GC*cell+30]];   // never behind the pile or the hero (the background does not compete)
     for(let j=0,t=0;j<3&&t<20;t++){const x=Math.round(s.x0+40+rr()*(s.x1-s.x0-80));if(keepOut.some(([a,b])=>x>a-60&&x<b))continue;
       const spec=th[Math.floor(rr()*th.length)];decor.push({key:s.k+'-'+j,spec,h:Math.round(hs*spec.size*(.8+rr()*.4)),x,tall:spec.tall});j++}});
   const pal=k=>PAL_BY[world.biomes[Math.min(k,world.biomes.length-1)]]||PAL_BY.meadow;
@@ -756,8 +773,6 @@ function App(){
     <div className="world" style={wstyle}>
       {strips.map(s=><div key={'g'+s.k} style={{left:s.x0,top:groundY,width:s.x1-s.x0,height:groundH}}><Cliff w={Math.round(s.x1-s.x0)} h={groundH} seed={world.seed+s.k+1} edgeL={s.k===0} edgeR={s.k===n} pal={pal(s.k)}/></div>)}
       {decor.filter(d=>d.tall).map(d=><div key={d.key} style={{left:d.x,top:groundY+2-d.h}}><Decor spec={d.spec} h={d.h} seed={Math.abs(d.x>>3)}/></div>)}
-      {rounds.map((r,i)=>coinShow>=i&&coinTaken<i&&<div key={'coin'+i} className="coin2" ref={i===coinShow?coinRef:null}
-        style={{left:P[i]+COLS*cell/2-hs*.25,top:groundY-Math.round(hs*.5)-10}}><Coin s={Math.round(hs*.5)}/></div>)}
       {n>0&&<button ref={bigChestRef} className={'wchest'+(endStage==='chest'?' idle':'')} aria-label="לפתוח את תיבת האוצר" tabIndex={-1}
         style={{left:P[n],top:groundY-Math.round(cs*CHEST_VB[3]/CHEST_VB[2])+8,width:cs}} onClick={()=>{if(screen==='end')tapChest()}}>
         <Chest open={lidOpen} s={cs}/></button>}
@@ -773,9 +788,7 @@ function App(){
         onDown={e=>blkDown(e,b)} onMove={blkMove} onUp={blkUp}/>)}
     </div>
     {fxs.map(f=>f.k==='ten'?<div key={f.id} className="ten" style={{left:f.x,top:f.y,fontSize:Math.round(cell*1.25)}} onAnimationEnd={()=>setFxs(l=>l.filter(x=>x.id!==f.id))}>10</div>
-      :f.k==='pts'?<div key={f.id} className="pts" dir="ltr" style={{left:f.x,top:f.y}} onAnimationEnd={()=>setFxs(l=>l.filter(x=>x.id!==f.id))}>{f.t}</div>
       :<div key={f.id} className="combo" style={{left:f.x,top:f.y,fontSize:Math.round(Math.max(20,cell*.55))}} onAnimationEnd={()=>setFxs(l=>l.filter(x=>x.id!==f.id))}>{f.t}</div>)}
-    {screen==='play'&&<div className={'score'+(scoreN?' bump':'')} key={'s'+scoreN}><Spark/><span dir="ltr">{score}</span></div>}
     {demo&&!demo.tap&&<HandDemo key={JSON.stringify(demo.pts)} pts={demo.pts} cell={cell} v={demo.v}/>}
     {demo&&demo.tap&&<TapHand x={demo.x} y={demo.y}/>}
   </div>);
@@ -784,7 +797,6 @@ function App(){
   if(endStage==='done'){const stars=starCount(stats.current.caught);
     overlay=(<div className="center endscreen" style={{justifyContent:'flex-start',paddingTop:'max(60px,11dvh)'}}>
       <div className="stars" dir="ltr">{[0,1,2].map(i=><div key={i} className="star" style={{animationDelay:.15+i*.35+'s'}}><StarIcon on={i<stars}/></div>)}</div>
-      <div className="endscore rise" style={{animationDelay:'1s'}}><Spark s={24}/><span dir="ltr">{score}</span></div>
       <div className="rise" style={{animationDelay:'1.1s'}}><div ref={KP.coinBadge}/></div>
       <div className="endbtns rise" style={{animationDelay:'1.3s'}}>
         <button className="endbtn again" onClick={restart} aria-label="להתחיל מחדש" title="להתחיל מחדש">
