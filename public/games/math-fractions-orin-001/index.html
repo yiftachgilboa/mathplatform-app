@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#242344">
+<title>אורין ודלתות האור</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#22213d;color:#fff8ee;font:16px system-ui,sans-serif}main{isolation:isolate;min-height:100vh;min-height:100svh;display:flex;flex-direction:column;padding:max(20px,env(safe-area-inset-top)) clamp(14px,4vw,56px) max(24px,env(safe-area-inset-bottom))}header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;text-shadow:0 2px 10px #221738}h1,h2,p{margin:0}h1{font-size:clamp(21px,4vw,34px)}#count{color:#ffdb9e;font-weight:800}#progress{display:flex;gap:5px;margin-bottom:16px}#progress i{flex:1;height:4px;border-radius:8px;background:#534e70}#progress .done{background:#ffce87}#progress .current{background:#bcabed}
+.layout{display:flex;flex:1;align-items:center}
+.scene{position:fixed;z-index:-1;inset:0;overflow:hidden;background:linear-gradient(#4e457b,#a78ab7 46%,#e7aab8 74%,#ffdab1)}
+canvas{width:100%;height:100%;position:absolute;inset:0}
+.scene::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(#1e183f55,transparent 25%)}
+.card{width:min(37vw,470px);background:#27233f;border-radius:26px;padding:clamp(20px,3vw,36px);box-shadow:0 12px 44px #30204461;display:flex;flex-direction:column;gap:15px}
+h2{font-size:clamp(23px,3vw,30px);line-height:1.16}#story{line-height:1.55;font-size:clamp(17px,2vw,20px)}#topic{color:#f4c990;font-size:14px;font-weight:750}.choices{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;direction:ltr}button{font:inherit;cursor:pointer;border:0;border-radius:13px;padding:10px;color:inherit;background:#4b456e;min-height:44px;font-weight:740}button:hover{filter:brightness(1.15)}button:focus-visible{outline:3px solid #ffd194;outline-offset:3px}.choice{font-size:22px;display:flex;align-items:center;justify-content:center;gap:6px;min-height:66px}.choice.wrong{opacity:.42}.choice.right{background:#367766}button:disabled{cursor:default}.f{display:inline-grid;vertical-align:middle;text-align:center;line-height:1.05;direction:ltr;min-width:1.05em;padding:0 .08em}.f b:first-child{border-bottom:1.5px solid;padding-bottom:.12em}.f b:last-child{padding-top:.12em}.math{direction:ltr;unicode-bidi:isolate;white-space:nowrap}.actions{display:flex;gap:8px;justify-content:space-between;align-items:center}.next{background:#ffd18d;color:#302644;padding-inline:18px}#feedback{line-height:1.55;color:#f8d6a7;font-size:15px}#feedback:empty{display:none}[hidden]{display:none!important}
+.top{display:flex;align-items:center;gap:10px}#exit{width:44px;height:44px;padding:0;border-radius:50%;background:#3b3660;font-size:18px}#stars{font-size:34px;letter-spacing:4px;direction:ltr;text-align:center;color:#ffd18d}#stars:empty{display:none}.actions .back{background:#4b456e}
+@media(max-width:740px){
+ main{padding-top:max(12px,env(safe-area-inset-top))}
+ .layout{display:block;padding-top:clamp(200px,39svh,445px)}
+ .card{width:min(100%,510px);margin-inline:auto;gap:12px}
+ .choice{min-height:55px}
+ #progress{margin-bottom:10px}
+}
+</style>
+<main>
+<header><h1>אורין ודלתות האור</h1><span class="top"><span id="count" dir="ltr"></span><button id="exit" type="button" aria-label="יציאה">✕</button></span></header>
+<div id="progress" aria-hidden="true"></div>
+<div class="scene"><canvas id="world" aria-hidden="true"></canvas></div>
+<div class="layout">
+<section class="card" aria-labelledby="title">
+<p id="topic"></p><h2 id="title" tabindex="-1"></h2><p id="story"></p>
+<div class="choices" id="choices" aria-label="תשובות אפשריות"></div>
+<p id="stars" role="img"></p>
+<p id="feedback" role="status"></p>
+<div class="actions"><button id="hint" type="button">רמז</button><button class="back" id="again" type="button" hidden>לשחק שוב</button><button class="next" id="next" type="button" hidden>לדלת הבאה ←</button></div>
+</section>
+</div>
+</main>
+<script>
+const f=(n,d)=>'<span class="f"><b>'+n+'</b><b>'+d+'</b></span>';
+const m=s=>'<span class="math">'+s+'</span>';
+const q=(n,d)=>m(f(n,d));
+const mix=(w,n,d)=>w+' '+f(n,d);
+const questions=[
+ ['גשר הפנס','חיבור שברים','כדי להדליק את הפנס שבקצה הגשר, אורין מוזגת לתוכו '+q(1,2)+' כוס שמן מהבקבוק הוורוד ועוד '+q(1,4)+' כוס מהבקבוק הזהוב. כמה כוסות שמן יהיו בפנס?',[f(2,6),f(3,4),f(1,4)],1,'כמה רבעים יש בחצי כוס?','חצי כוס היא שני רבעים. עם עוד רבע מקבלים שלושת רבעי כוס.'],
+ ['טחנות הרוח','כפל שבר במספר שלם','לכל אחת משלוש טחנות הרוח דרושים '+q(2,5)+' מטרים של סרט כחול. כמה מטרים של סרט צריכה אורין כדי להפעיל את שלוש הטחנות?',[mix(1,1,5),f(3,5),f(6,8)],0,'חברי שלוש פעמים שתי חמישיות.','שלוש פעמים שתי חמישיות הן שש חמישיות. חמש מהן הן מטר שלם, ונשארת חמישית מטר.'],
+ ['מעיין הזכוכית','הוצאת שלמים','אורין אספה '+q(7,3)+' כוסות מים מהמעיין. כמה כוסות שלמות אפשר למלא וכמה יישאר? בחרי את המספר המעורב המתאים.',[mix(2,2,3),mix(1,2,3),mix(2,1,3)],2,'כל שלושה שלישים ממלאים כוס אחת.','שישה שלישים ממלאים שתי כוסות. נשאר שליש כוס.'],
+ ['סירת הירח','חיבור שברים','הסירה של אורין שטה '+q(2,3)+' מטר עד האבן הסגולה, ואז עוד '+q(1,6)+' מטר עד דלת הגן. כמה מטרים שטה הסירה בסך הכול?',[f(3,9),f(5,6),f(3,6)],1,'כמה שישיות הן שני שלישים?','שני שלישים הם ארבע שישיות. עם עוד שישית מקבלים חמש שישיות.']
+];
+const el=id=>document.getElementById(id);
+const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)');
+const walkDuration=1700;
+// מתיקה: SDK (תשובות, כוכבים ומטבעות לפי השרת), התקדמות נשמרת לכל ילד, ״המשך״ חוזר ללוח הילד
+const GAME_ID='math-fractions-orin-001';
+const childId=new URLSearchParams(location.search).get('childId')||'guest';
+const storeKey='orin-four-doors-'+childId;
+const sdk=()=>window.MathPlatformSDK;
+const sdkScript=document.createElement('script');
+sdkScript.src='/sdk/mathplatform-sdk-v1.js';
+sdkScript.onload=()=>sdk()?.emit('GAME_STARTED',{gameId:GAME_ID});
+document.head.append(sdkScript);
+// כוכבים לפי תשובות נכונות בניסיון הראשון (כמו בשאר המשחקים: 3⭐=+10, 2⭐=+7, 1⭐=+3)
+const calcStars=n=>n/questions.length>=.9?3:n/questions.length>=.6?2:1;
+let stage=0,opened=false,walkStarted=0,sceneStarted=performance.now(),firstTry=0,attempt=1,stars=0;
+try{const saved=JSON.parse(localStorage.getItem(storeKey)||'null');if(saved&&Number.isInteger(saved.stage)&&saved.stage>=0&&saved.stage<questions.length){stage=saved.stage;firstTry=Math.min(Number(saved.firstTry)||0,stage)}}catch{}
+function save(){try{if(stage<questions.length)localStorage.setItem(storeKey,JSON.stringify({stage,firstTry}));else localStorage.removeItem(storeKey)}catch{}}
+function leave(){if(history.length>1)history.back();else location.href='/'}
+el('exit').onclick=leave;
+el('again').onclick=()=>{stage=0;firstTry=0;attempt=1;stars=0;opened=false;sceneStarted=performance.now();save();sdk()?.emit('GAME_STARTED',{gameId:GAME_ID});render();el('title').focus()};
+function render(){
+ const done=stage===questions.length;
+ const [place,topic,story,answers,correct,hint,explanation]=questions[Math.min(stage,questions.length-1)];
+ el('count').textContent=(stage+Number(opened))+' / '+questions.length+' ✦';
+ el('progress').innerHTML=questions.map((_,i)=>'<i class="'+(i<stage||i===stage&&opened?'done':i===stage?'current':'')+'"></i>').join('');
+ el('topic').textContent=done?'גן השחר':topic;
+ el('title').textContent=done?'האור חזר לגן!':place;
+ el('story').innerHTML=done?'ארבעת האורות שאורין הביאה העירו את הגן. בין הפרחים נפתח שביל, וגוזל הדודו מצא את הדרך הביתה.':story;
+ el('stars').textContent=done?'★'.repeat(stars)+'☆'.repeat(3-stars):'';
+ el('stars').setAttribute('aria-label',done?stars+' כוכבים מתוך 3':'');
+ el('feedback').textContent='';
+ el('choices').replaceChildren();
+ el('hint').hidden=done;
+ el('again').hidden=!done;
+ el('next').hidden=!done;
+ el('next').textContent=done?'המשך ▶':stage===questions.length-1?'לגן השחר ←':'לדלת הבאה ←';
+ el('hint').onclick=()=>{if(!opened)el('feedback').textContent=hint};
+ if(done)return;
+ answers.forEach((answer,i)=>{
+  const button=document.createElement('button');
+  button.className='choice';button.innerHTML=answer;
+  const fraction=button.querySelector('.f');const whole=button.firstChild;
+  button.setAttribute('aria-label',(whole.nodeType===3?whole.textContent.trim()+' ו־':'')+fraction.children[0].textContent+' חלקי '+fraction.children[1].textContent);
+  const asText=html=>{const d=document.createElement('div');d.innerHTML=html;const fr=d.querySelector('.f');const w=d.firstChild.nodeType===3?d.firstChild.textContent.trim()+' ':'';return w+fr.children[0].textContent+'/'+fr.children[1].textContent};
+  button.onclick=()=>{
+   if(opened)return;
+   sdk()?.emit('ANSWER',{correct:i===correct,questionId:'q-'+(stage+1),questionType:topic,correctAnswer:asText(answers[correct]),childAnswer:asText(answer),attemptNumber:attempt});
+   if(i!==correct){attempt++;button.classList.add('wrong');button.disabled=true;el('feedback').textContent='נסי שוב. '+hint;return}
+   if(attempt===1)firstTry++;
+   opened=true;walkStarted=performance.now();button.classList.add('right');
+   el('count').textContent=(stage+1)+' / '+questions.length+' ✦';
+   el('progress').children[stage].className='done';
+   el('feedback').textContent='הדלת נפתחה! '+explanation;
+   for(const choice of el('choices').children)choice.disabled=true;
+   el('hint').hidden=true;
+   const showNext=()=>{el('next').hidden=false;el('next').focus({preventScroll:true})};
+   if(reduceMotion.matches)showNext();
+   else setTimeout(showNext,walkDuration);
+  };
+  el('choices').append(button);
+ });
+}
+el('next').onclick=()=>{
+ if(stage===questions.length)return leave();
+ if(!opened)return;
+ stage++;attempt=1;
+ if(stage===questions.length){
+  stars=calcStars(firstTry);
+  sdk()?.emit('GAME_OVER',{score:Math.round(firstTry/questions.length*100),maxScore:100,stars,correctAnswers:firstTry,totalQuestions:questions.length});
+ }
+ opened=false;sceneStarted=performance.now();save();render();el('title').focus();
+};
+const canvas=el('world'),ctx=canvas.getContext('2d');
+const worlds=[
+ {stone:['#ffc69e','#ca7795','#946792'],sky:['#4d3c72','#d29cae','#ffdbad']},
+ {stone:['#cae1b2','#75a997','#657fa0'],sky:['#30577d','#8dc3bf','#ecdfb3']},
+ {stone:['#b9e2e1','#6fabc0','#686da3'],sky:['#383566','#818fc7','#cbd6ed']},
+ {stone:['#c9b7ed','#917bbd','#625488'],sky:['#25254e','#575388','#c7a7cd']},
+ {stone:['#e9ebb1','#84af90','#7784a2'],sky:['#1c1e42','#67557f','#c98caa']}
+];
+function poly(color,...points){
+ ctx.fillStyle=color;ctx.beginPath();
+ points.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));
+ ctx.closePath();ctx.fill();
+}
+function oval(color,x,y,rx,ry){ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);ctx.fill()}
+function block(x,y,w,d,h,colors){
+ const [top,left,right]=colors;
+ poly(left,[x-w,y],[x,y+d],[x,y+d+h],[x-w,y+h]);
+ poly(right,[x,y+d],[x+w,y],[x+w,y+h],[x,y+d+h]);
+ poly(top,[x-w,y],[x,y-d],[x+w,y],[x,y+d]);
+}
+function tree(x,y,h){
+ poly('#55668c',[x,y-5],[x+4,y-3],[x+4,y+13],[x,y+12]);
+ poly('#527e85',[x,y-h],[x-17,y-3],[x,y+4]);
+ poly('#8ab39d',[x,y-h],[x+15,y-3],[x,y+4]);
+}
+const route=[[149,254],[172,241],[195,228],[218,215],[241,202],[264,190],[286,178],[321,171]];
+function walkPose(time){
+ const fraction=opened?(reduceMotion.matches?1:Math.max(0,Math.min(1,(time-walkStarted)/walkDuration))):0;
+ const progress=fraction*(route.length-1);
+ const step=Math.min(route.length-2,Math.floor(progress));
+ const portion=progress-step;
+ const [x,y]=route[step], [nextX,nextY]=route[step+1];
+ return {
+  x:x+(nextX-x)*portion,
+  y:y+(nextY-y)*portion,
+  stride:fraction>0&&fraction<1?Math.sin((time-walkStarted)/54):0,
+  opacity:Math.min(1,(1-fraction)*8)
+ };
+}
+const clamp=value=>Math.max(0,Math.min(1,value));
+function star(x,y,r,color){
+ poly(color,[x,y-r],[x+r*.22,y-r*.22],[x+r,y],[x+r*.22,y+r*.22],
+  [x,y+r],[x-r*.22,y+r*.22],[x-r,y],[x-r*.22,y-r*.22]);
+}
+function glow(x,y,r,color,alpha){
+ const light=ctx.createRadialGradient(x,y,0,x,y,r);
+ light.addColorStop(0,color);light.addColorStop(1,'transparent');
+ ctx.save();ctx.globalAlpha=alpha;oval(light,x,y,r,r);ctx.restore();
+}
+function lantern(x,y,on,time){
+ if(on)glow(x,y,32,'#ffd378',.55+.17*Math.sin(time/190));
+ poly('#65446c',[x-13,y-4],[x+13,y-4],[x+13,y],[x-13,y]);
+ poly(on?'#ffe7a2':'#b77781',[x-9,y-25],[x+9,y-25],[x+9,y-4],[x-9,y-4]);
+ if(on)star(x,y-15,5,'#fff8d5');
+ poly('#65446c',[x,y-36],[x+14,y-25],[x-14,y-25]);
+}
+function bottle(x,y,color,quarters){
+ oval('#352a522b',x,y,15,4);
+ poly('#ffe9df',[x-12,y],[x-12,y-25],[x-5,y-34],[x-5,y-42],[x+5,y-42],[x+5,y-34],[x+12,y-25],[x+12,y]);
+ poly(color,[x-10,y-2],[x-10,y-2-quarters*6],[x+10,y-2-quarters*6],[x+10,y-2]);
+ for(let i=1;i<=3;i++)poly('#62517888',[x-9,y-i*6-2],[x+9,y-i*6-2],[x+9,y-i*6-1],[x-9,y-i*6-1]);
+}
+function windmill(x,y,size,phase){
+ ctx.save();ctx.translate(x,y);ctx.scale(size,size);
+ poly('#566b82',[-11,0],[-6,-45],[6,-45],[11,0]);
+ poly('#8fb0ad',[0,0],[0,-45],[6,-45],[11,0]);
+ ctx.translate(0,-44);ctx.rotate(phase);
+ for(let i=0;i<4;i++){
+  poly('#f0f4da',[0,0],[5,-33],[15,-33],[7,-8]);
+  poly('#61b5cc',[4,-20],[5,-32],[15,-32],[11,-20]);
+  ctx.rotate(Math.PI/2);
+ }
+ oval('#ffdc9d',0,0,4,4);ctx.restore();
+}
+function cup(x,y,fill){
+ poly('#e8f6f4',[x-13,y-23],[x+13,y-23],[x+9,y],[x-9,y]);
+ const halfWidth=9+3*fill;
+ poly('#5cbbd6',[x-9,y-2],[x+9,y-2],[x+halfWidth,y-2-fill*19],[x-halfWidth,y-2-fill*19]);
+ oval('#d5eff0',x,y-23,13,3);
+}
+function bird(x,y,size,color,wing){
+ ctx.save();ctx.translate(x,y);ctx.scale(size,size);
+ poly(color,[-12,-4],[-5,-12],[5,-13],[11,-6],[8,0],[-6,1]);
+ poly('#ffcb83',[8,-10],[17,-7],[8,-4]);
+ oval(color,7,-11,5,6);oval('#3b395a',8,-12,1,1);
+ poly('#f6dba3',[-7,-5],[-15,-8-wing*8],[2,-10],[-1,-4]);
+ ctx.restore();
+}
+function puzzleScenery(time,light){
+ if(stage===0){
+  bottle(78,268,'#cf618c',2);bottle(104,274,'#d59634',1);
+  lantern(367,186,light,time);
+  for(let i=0;i<5;i++){
+   const x=369+Math.sin(time/700+i*2)*22,y=116+Math.cos(time/600+i*2)*17;
+   star(x,y,2.5,'#ffedab');
+  }
+ }else if(stage===1){
+  windmill(68,265,.92,time/(light?300:1200));
+  windmill(230,189,.82,time/(light?320:1260)+1);
+  windmill(406,218,1.17,time/(light?330:1380)+2);
+  for(let i=0;i<4;i++){
+   const x=32+(time/24+i*106)%448,y=100+i*14+Math.sin(time/950+i)*9;
+   poly('#dbf4dd88',[x-16,y],[x+10,y-2],[x+19,y],[x+4,y+2]);
+  }
+ }else if(stage===2){
+  oval('#65b2cc',412,247,63,21);oval('#9fe4ec',412,243,57,17);
+  for(let i=0;i<3;i++){
+   const spread=7+(time/43+i*16)%46;oval('#e8fdff80',413,242,spread,spread*.26);
+  }
+  for(let i=0;i<7;i++){
+   const x=365+i*14,y=220+Math.sin(time/390+i)*6;
+   poly('#4e9aba',[x,y-8],[x-5,y],[x,y+5],[x+5,y]);
+   poly('#c3f6fd',[x,y-8],[x-5,y],[x,y+2]);
+  }
+  for(let i=0;i<3;i++)cup(64+i*27,271,light?[1,1,1/3][i]:0);
+ }else{
+  oval('#70639e',396,252,74,23);oval('#a496d1',396,247,66,19);
+  const drift=Math.sin(time/600)*7;
+  const x=399+drift+(light?21:0),y=247+Math.sin(time/350)*2;
+  for(let i=0;i<4;i++)oval('#ece0ff72',x-i*13,y+7+i%2,12,1.2);
+  poly('#fcba95',[x-23,y],[x+24,y],[x+13,y+9],[x-12,y+9]);
+  poly('#fff3cc',[x-1,y-26],[x-1,y-2],[x+18,y-2]);
+  poly('#8154b0',[346,244],[351,231],[359,237],[362,247],[353,250]);
+  bird(449,224,.58,'#b583b6',Math.sin(time/190));
+ }
+}
+function garden(time,elapsed){
+ const colors=worlds[questions.length].stone;
+ block(256,243,217,65,59,colors);
+ block(260,201,142,44,28,['#a2c3a0','#76a799','#73919f']);
+ block(255,161,79,29,22,['#d2d8a7','#9eaf98','#86959d']);
+ for(let i=0;i<4;i++){
+  const x=148+i*70,y=204+Math.abs(i-1.5)*22;
+  const rise=clamp((elapsed-520-i*280)/950);
+  lantern(x,y,rise>.08,time);
+  if(rise>0)star(x+Math.sin(time/480+i)*8,y-22-rise*104,5+rise*3,'#fff3af');
+ }
+ for(let i=0;i<28;i++){
+  const x=65+i*61%385,y=225+i*19%54;
+  const bloom=clamp((elapsed-850-i%9*140)/560);
+  if(bloom===0)continue;
+  const stem=7+i%4*3,sway=Math.sin(time/490+i)*2;
+  poly('#477d6d',[x-1,y],[x+sway,y-stem],[x+2,y]);
+  const petal=['#fbbb98','#e8a1b6','#ffe39c','#ead3f0'][i%4];
+  for(let j=0;j<5;j++){
+   const angle=j*Math.PI*2/5;
+   oval(petal,x+sway+Math.cos(angle)*4*bloom,y-stem+Math.sin(angle)*4*bloom,3.3*bloom,3.3*bloom);
+  }
+  oval('#fff2af',x+sway,y-stem,2.3*bloom,2.3*bloom);
+ }
+ tree(94,238,56);tree(410,231,63);
+ for(let i=0;i<6;i++){
+  const reveal=clamp((elapsed-1300-i*95)/330);
+  if(reveal===0)continue;
+  const x=225+i*17,y=239+Math.sin(i*.53)*7;
+  oval('#f8e5ad',x,y,7*reveal,3*reveal);
+ }
+ const reunion=clamp((elapsed-1450)/1250);
+ bird(226+reunion*76,234-Math.abs(Math.sin(reunion*16))*6*(1-reunion),.7,'#b583b6',Math.sin(time/130));
+ ctx.save();ctx.translate(325,232);ctx.scale(-1,1);
+ bird(0,0,1.25,'#786797',Math.sin(time/225)*.35);ctx.restore();
+ if(reunion>.9)star(310,197,6+3*Math.sin(time/170),'#fff2aa');
+ drawGirl({x:162,y:238,stride:0,opacity:1},time);
+ for(let i=0;i<13;i++){
+  const rise=clamp((elapsed-1600-i*95)/1500);
+  if(rise>0&&rise<1)star(57+i*31+Math.sin(rise*5+i)*11,285-rise*180,3,'#fff7ca');
+ }
+}
+function drawGirl(pose,time){
+ const girlX=pose.x,girlY=pose.y-Math.abs(pose.stride)*3;
+ ctx.save();ctx.globalAlpha=pose.opacity;
+ oval('#51406152',girlX,pose.y+2,16,5);
+ poly('#4d385c',[girlX-8,girlY-7],[girlX-4,girlY-7],[girlX-3+pose.stride*6,girlY+2],[girlX-8+pose.stride*6,girlY+2]);
+ poly('#4d385c',[girlX+3,girlY-7],[girlX+7,girlY-7],[girlX+8-pose.stride*6,girlY+2],[girlX+3-pose.stride*6,girlY+2]);
+ poly('#fbf0dd',[girlX-6,girlY-29],[girlX+7,girlY-29],[girlX+14,girlY-2],[girlX-15,girlY-2]);
+ poly('#e7a48e',[girlX,girlY-29],[girlX+7,girlY-29],[girlX+14,girlY-2],[girlX+3,girlY-2]);
+ oval('#efb089',girlX+3,girlY-35,7,8);
+ poly('#382e54',[girlX-14,girlY-32],[girlX-10,girlY-49],[girlX+5,girlY-47],[girlX+12,girlY-39],[girlX-2,girlY-37],[girlX-7,girlY-26]);
+ const flutter=Math.sin(time/190)*4;
+ poly('#bf537c',[girlX-1,girlY-27],[girlX-10,girlY-24],[girlX-22,girlY-20+flutter],[girlX-12,girlY-29]);
+ ctx.restore();
+}
+function draw(time){
+ const {width,height}=canvas.getBoundingClientRect(),dpi=Math.min(devicePixelRatio||1,2);
+ const cw=Math.round(width*dpi),ch=Math.round(height*dpi);
+ if(canvas.width!==cw||canvas.height!==ch){canvas.width=cw;canvas.height=ch}
+ ctx.setTransform(dpi,0,0,dpi,0,0);ctx.clearRect(0,0,width,height);
+ const compact=width<=740;
+ const skyHeight=compact?Math.max(210,Math.min(height*.39,445)):height;
+ const artWidth=compact?width:width*.63;
+ const scale=Math.min(artWidth/478,skyHeight/(compact?235:322));
+ ctx.translate(artWidth/2,compact?54+skyHeight/2:height*.53);
+ ctx.scale(scale,scale);ctx.translate(-258,compact?-173:-185);
+ const motion=reduceMotion.matches?0:time;
+ const elapsed=reduceMotion.matches?4000:Math.max(0,time-sceneStarted);
+ const {stone:colors,sky}=worlds[stage];
+ const done=stage===questions.length,light=opened;
+ const visibleLeft=258-artWidth/2/scale, visibleRight=visibleLeft+width/scale;
+ const visibleTop=(compact?173:185)-(compact?54+skyHeight/2:height*.53)/scale;
+ const visibleBottom=visibleTop+height/scale;
+ const backdrop=ctx.createLinearGradient(0,visibleTop,0,visibleBottom);
+ sky.forEach((color,i)=>backdrop.addColorStop(i/2,color));
+ ctx.fillStyle=backdrop;ctx.fillRect(visibleLeft-1,visibleTop-1,width/scale+2,height/scale+2);
+ if(done){
+  const dawn=clamp((elapsed-400)/1950);
+  const sunrise=ctx.createLinearGradient(0,visibleTop,0,visibleBottom);
+  sunrise.addColorStop(0,'#67588c');sunrise.addColorStop(.54,'#d99fb2');sunrise.addColorStop(1,'#ffdeae');
+  ctx.save();ctx.globalAlpha=dawn;
+  ctx.fillStyle=sunrise;ctx.fillRect(visibleLeft-1,visibleTop-1,width/scale+2,height/scale+2);
+  ctx.restore();
+  const sunY=244-dawn*145;
+  glow(288,sunY,113,'#ffe2a2',dawn*.8);
+  oval('#ffe9b6',288,sunY,41,41);
+ }
+ for(let i=0;i<24;i++){
+  const x=visibleLeft+(i*0.618%1)*(visibleRight-visibleLeft);
+  const y=visibleTop+(i*0.381%1)*(visibleBottom-visibleTop);
+  oval(i%2?'#fff7eb24':'#fff7eb44',x+Math.sin(motion/3000+i)*9,y,20+i%5*9,3+i%4);
+ }
+ if(done){garden(motion,elapsed);requestAnimationFrame(draw);return}
+ oval(stage===3?'#ebe2ff':'#ffe0ae',366,83,stage===3?36:43,stage===3?36:43);
+ for(let i=0;i<8;i++){const x=(i*93+Math.sin(motion/4000+i)*12)%565-20,y=57+i*34;oval('#fff4e52c',x,y,58,5)}
+ for(let i=0;i<43;i++){const x=(i*73)%560-15,y=(i*41)%375;oval(i%3?'#fff7db78':'#fff6cb',x+Math.sin(motion/1700+i)*5,y,1.4,1.4)}
+ block(100,269,67,25,46,colors);tree(61,270,43);
+ block(386,245,105,39,55,colors);tree(443,235,59);tree(424,253,38);
+ for(let i=0;i<6;i++)block(126+i*23,267-i*13,31,12,17,colors);
+ block(322,188,106,43,52,colors);
+ block(321,170,66,27,18,colors);
+ if(stage!==1){tree(250,180,45);tree(389,178,54)}
+ puzzleScenery(motion,light);
+ const x=321,y=171;
+ poly(colors[2],[x+36,y],[x+57,y-11],[x+57,y-108],[x+36,y-122]);
+ ctx.beginPath();ctx.moveTo(x-38,y);ctx.lineTo(x-38,y-85);ctx.arc(x,y-85,38,Math.PI,0);ctx.lineTo(x+38,y);ctx.closePath();ctx.fillStyle=colors[0];ctx.fill();
+ ctx.beginPath();ctx.moveTo(x-26,y);ctx.lineTo(x-26,y-84);ctx.arc(x,y-84,26,Math.PI,0);ctx.lineTo(x+26,y);ctx.closePath();
+ ctx.fillStyle=light?'#fff2ac':'#51466a';ctx.fill();
+ if(light){
+  for(let i=0;i<21;i++){const a=i*2.399,timeStep=(motion/28+i*9)%108;oval('#fff6c6',x+Math.cos(a)*timeStep,y-48+Math.sin(a)*timeStep,2,2)}
+ }else{
+  poly('#d4a6cf',[x,y-70],[x+8,y-56],[x,y-42],[x-8,y-56]);
+ }
+ drawGirl(walkPose(time),motion);
+ requestAnimationFrame(draw);
+}
+render();requestAnimationFrame(draw);
+</script>
+</html>
