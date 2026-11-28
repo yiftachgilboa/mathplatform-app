@@ -105,7 +105,7 @@
       mountain: M(['#232750', '#353b6c', '#4c5288', '#6c72a4'], .05), water: M(['#152a58', '#234a80', '#3f74a8', '#7fb0d0'], .05),
     }),
   };
-  // spider world (twins game, portrait phones — waiting for approval): dusk between purple and orange. Plum moss on dark
+  // spider world (twins game, portrait phones — approved 28.11.2026): dusk between purple and orange. Plum moss on dark
   // violet earth, purple hills in a warm fog, an orange sun; glowing orange toadstools and violet crystals are its own things
   themes.spider = {
     sky: ['#2a1640', '#7c3a78', '#f2914c'], fog: '#9c4f78', sun: '#ffcf80', glow: '#ff9a4a', shadow: '#16081f',
@@ -876,7 +876,7 @@
     return obj;
   };
 
-  // spider monster (twins game, portrait phones — waiting for approval): the monster's colors (purple fur, green-yellow belly
+  // spider monster (twins game, portrait phones — approved 28.11.2026): the monster's colors (purple fur, green-yellow belly
   // and plates, horn fangs). A big front head with three yellow eyes and angry brows; the abdomen above and behind it, where
   // the thread is tied (it comes down head first). Eight legs bent up at the knee, wriggling (t). roar 0..1 spreads the fangs
   // and opens the mouth. obj.top = the point where the thread is tied (for the game's line).
@@ -923,7 +923,7 @@
     return obj;
   };
   Object.assign(make, {
-    // glowing toadstools (the spider world — waiting for approval): two or three pale stalks with round orange caps
+    // glowing toadstools (the spider world — approved 28.11.2026): two or three pale stalks with round orange caps
     toadstool(o) {
       const S = o.size || 50, seed = o.seed || 1, rand = rng(seed * 101), cap = o.mat || mat.glowcap || mat.mushroom, meshes = [];
       const n = 2 + Math.floor(rand() * 2);
@@ -2006,7 +2006,7 @@
         ['officeTower', 925, { size: 260, seed: 4, mat: 'violet', windows: 'windowLight', top: 'helipad' }]], 800, .3);
       return svg;
     },
-    // spider world backdrop (twins game, portrait phones — waiting for approval): LP.useTheme('spider') first. Dusk between
+    // spider world backdrop (twins game, portrait phones — approved 28.11.2026): LP.useTheme('spider') first. Dusk between
     // purple and orange: a big low faceted sun, purple ridges running to the bottom in a warm fog, bare trees on the hills, webs in the
     // top corners, long clouds, glowing spores. The middle third (x 380–820) is what a portrait phone sees.
     spider(o) {
@@ -2070,7 +2070,7 @@
     rocky:  { top: 'leafTeal', side: 'stone', decor: [['tree', { kind: 'bare' }, 2, 1], ['rock', {}, .16], ['stump', {}, .3]] },
     forest: { top: 'pine', side: 'trunk', decor: [['pine', {}, 2.4, 1], ['tree', { kind: 'round', detail: 0, mat: 'leafTeal' }, 2.1, 1], ['stump', {}, .3], ['log', {}, .28], ['bush', { mat: 'pine' }, .42]] },
     ice:    { top: 'snow', lip: 'snow', side: ['ice', 'stone'], decor: [['pine', { mat: 'ice' }, 2.2, 1], ['rock', { mat: 'ice' }, .15], ['bush', { mat: 'snow' }, .36]] },
-    // the spider world (LP.useTheme('spider') first — waiting for approval)
+    // the spider world (LP.useTheme('spider') first — approved 28.11.2026)
     webwood: { top: ['spider', 'grass'], lip: ['spider', 'grassSide'], side: ['spider', 'earth'], decor: [['tree', { kind: 'bare', web: true }, 2.1, 1], ['toadstool', { mat: ['spider', 'glowcap'] }, .32], ['stump', {}, .3], ['rock', { mat: ['spider', 'stone'] }, .14]] },
     crystal: { top: ['spider', 'leafTeal'], lip: ['spider', 'grassSide'], side: ['spider', 'stone'], decor: [['rock', { mat: ['spider', 'crystal'], h: 1.7 }, .8, 1], ['toadstool', { mat: ['spider', 'glowcap'] }, .32], ['rock', { mat: ['spider', 'stone'] }, .15]] },
     ember:   { top: ['spider', 'autumn'], lip: ['spider', 'leafYellow'], side: ['spider', 'earth'], decor: [['tree', { kind: 'bare', web: true }, 2, 1], ['toadstool', { mat: ['spider', 'glowcap'] }, .3], ['log', {}, .28]] },
