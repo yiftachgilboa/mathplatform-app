@@ -931,7 +931,7 @@ function App(){
     clearNudges();hush();clearTimeout(teachTimer.current);setDemo(null);dragRef.current=null;setDrag(null);setHot(false);
     setPhase('busy');R.current.phase='busy';setQuake(true);setTimeout(()=>setQuake(false),700);sfx.roar();mon.current.roarUntil=performance.now()+1200;
     {const hr=heroRef.current&&heroRef.current.getBoundingClientRect();
-      if(hr){const cx=hr.left+hr.width/2, cy=hr.top+hr.height*.55, cols=['#ef5c55','#cf3535','#f2bb92','#4776c0','#5e4130','#ffd23f'];
+      if(hr){const cx=hr.left+hr.width/2, cy=hr.top+hr.height*.55, cols=LP.heroColors(LOOK);   // the clothes the hero wears now
         burst(cx,cy,cols,26,1.4);burst(cx,cy-hr.height*.25,cols,16,1.1);sfx.splash()}
       scaredRef.current=false;setScared(false);setHero(h=>({...h,vis:false}));
       later(alive,1300,()=>setHero(h=>({...h,vis:true})))}

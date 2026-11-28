@@ -2095,6 +2095,13 @@
       glasses: L.glasses, hat: L.hat && L.hat.kind ? { kind: L.hat.kind, mat: dye(L.hat.color || '#ef5c55') } : undefined }, o));
   }
 
+  // the colours the hero wears now (look from the shop) — for particles when the hero bursts, and anything else that should match
+  function heroColors(look) {
+    const L = look || {}, c = (k, d) => (L[k] && L[k].color) || d, shirt = c('shirt', '#ef5c55');
+    return [shirt, shade(shirt, .78), '#f2bb92', c('pants', '#4776c0'), c('hair', '#5e4130'), c('shoes', '#3f444c')]
+      .concat(L.hat && L.hat.kind ? [L.hat.color || '#ef5c55'] : [], L.glasses && L.glasses.kind ? [L.glasses.color || '#33373b'] : []);
+  }
+
   // ---------- living characters (the elevator game, 24.11.2026): for every character in every game ----------
   // a character is never frozen, also while nothing happens: it looks where something happens, blinks, its brows play, it
   // makes faces and small acts while waiting. One mind per character:
@@ -2180,7 +2187,7 @@
     return [c((x - r.left - r.width / 2) / 110), c((y - r.top - r.height * .4) / 100)];
   }
 
-  const LP = { mind, perform, lookAt, hero, dye, flat, scenes, biomes, biome, rng, camera, poses, face, project, facets, polys, draw, bounds, hull, castShadow, outline, material, mat, themes, useTheme, make, Mesh, icosphere, cone, cylinder, limb, ring, stitch, fan, hex2rgb, rgb2hex };
+  const LP = { mind, perform, lookAt, hero, heroColors, dye, flat, scenes, biomes, biome, rng, camera, poses, face, project, facets, polys, draw, bounds, hull, castShadow, outline, material, mat, themes, useTheme, make, Mesh, icosphere, cone, cylinder, limb, ring, stitch, fan, hex2rgb, rgb2hex };
   root.LP = LP;
   useTheme('day');
 })(typeof window !== 'undefined' ? window : globalThis);

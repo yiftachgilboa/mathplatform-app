@@ -95,10 +95,13 @@ header{display:flex;align-items:center;flex:none;margin-inline-start:auto}
 .rise{animation:rise .5s ease-out both}
 @keyframes rise{from{transform:translateY(24px);opacity:0}}
 .endbtns{position:absolute;left:0;right:0;bottom:max(22px,5dvh);display:flex;justify-content:center;gap:clamp(56px,22vw,220px)}
-.endbtn{width:112px;height:64px;display:flex;align-items:center;justify-content:center;clip-path:polygon(16px 0,calc(100% - 16px) 0,100% 50%,calc(100% - 16px) 100%,16px 100%,0 50%);transition:transform .12s}
-.endbtn:active{transform:scale(.93)}
-.endbtn.next{background:linear-gradient(180deg,#2f8f62 0 50%,#237a52 50%)}
-.endbtn.again{background:linear-gradient(180deg,#2f5f9e 0 50%,#244f88 50%)}
+/* end buttons: bevelled tiles like the rocks, a white icon on the face */
+.tilebtn{position:relative;width:92px;height:92px;padding:0;background:none;transition:transform .12s;filter:drop-shadow(0 6px 0 rgba(20,10,40,.28))}
+.tilebtn svg.t{position:absolute;inset:0;width:100%;height:100%;display:block}
+.tilebtn i{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.tilebtn:active{transform:scale(.93)}
+.tilebtn:disabled{opacity:.6}
+.endcoins{display:flex;align-items:center;gap:10px;font-weight:500;font-size:36px;line-height:1;color:#9B6A00;background:rgba(255,255,255,.94);border-radius:28px;padding:6px 22px 6px 10px;box-shadow:0 4px 0 rgba(0,0,0,.16)}
 .coinp{position:fixed;left:0;top:0;pointer-events:none;z-index:1001;will-change:transform,opacity;line-height:0}
 .flycoin{position:fixed;width:30px;height:30px;margin:-15px 0 0 -15px;z-index:1000;pointer-events:none}
 .pt{position:fixed;pointer-events:none;z-index:999;will-change:transform,opacity}
@@ -120,10 +123,15 @@ const log=(ev,data)=>console.log('[kidodo]',ev,data||'');
 const KP=window.KidodoPractice||{inCourse:false,answer(){},complete:()=>Promise.resolve(),next(){location.reload()},exit(){history.back()}};
 
 /* ---------- the board: 6 columns × 10 rows (row 0 = on the ground). All parameters here ---------- */
-const PCOLS=6, ROWS=5;   // the pile stands in 6 columns, up to 5 rows (big rocks, easy to drag)
+/* a phone (touch, small screen — by the device, so it stays the same when the course enlarges the game): rocks twice as big
+   (4× the area) so the finger never hides them, on a board of 3 columns × 4 rows. Elsewhere 6 × 5. ?phone=1 / 0 to test */
+const PHONE=/[?&]phone=1/.test(location.search)||(!/[?&]phone=0/.test(location.search)&&!!window.matchMedia&&matchMedia('(pointer: coarse)').matches&&Math.min(screen.width,screen.height)<600);
+const PCOLS=PHONE?3:6, ROWS=PHONE?4:5, CELL_MAX=PHONE?124:96;   // the pile's columns and rows, the biggest rock
 let GC=6;                // columns you can drag in: from the pile to the right edge of the screen (set by the layout)
-const LEVELS=[{h:2,n:6},{h:3,n:10},{h:4,n:14},{h:5,n:18}];   // after the tutorial: 4 piles, each one higher
-const TUT=[{v:3,c:1},{v:4,c:2},{v:6,c:4},{v:7,c:5}];               // the tutorial: 4 rocks, 2 different pairs (drag the 6 to the 4)
+const LEVELS=PHONE?[2,3,4,4].map(h=>({h,n:Math.max(4,Math.round(PCOLS*h*.6/2)*2)})):[{h:2,n:6},{h:3,n:10},{h:4,n:14},{h:5,n:18}];   // after the tutorial: 4 piles, each one higher
+// the tutorial: 4 rocks, 2 different pairs; the hand drags the 6 to the 4
+const TUT=PCOLS>=6?[{v:3,c:1,r:0},{v:4,c:2,r:0},{v:6,c:4,r:0},{v:7,c:5,r:0}]:[{v:3,c:0,r:0},{v:4,c:1,r:0},{v:7,c:2,r:0},{v:6,c:0,r:1}];
+const TUT_DEMO=PCOLS>=6?[[4,0],[3,0]]:[[0,1],[1,1]];
 const PAIRS=[[1,9],[2,8],[3,7],[4,6],[5,5]];
 const DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
 /* every number has its own colour (the kidodo palette and its relatives) */
@@ -131,13 +139,13 @@ const NUMC={1:'#EF5C55',2:'#F79A2E',3:'#FFC531',4:'#8CC63F',5:'#1FB5A2',6:'#4FB3
 const mix=(hex,t)=>{const n=parseInt(hex.slice(1),16),c=[n>>16,n>>8&255,n&255].map(v=>Math.round(t>0?v+(255-v)*t:v*(1+t)));return '#'+c.map(v=>v.toString(16).padStart(2,'0')).join('')};
 /* a rock: a bevelled tile lit from the top-left (the art library's light). An outer octagon, a straight centred inner face
    (big enough for the number), and eight bevels between them, each shaded by the way it faces */
-const BLOCK_SVG={};
-{const oct=(a,b,k)=>[[a+k,a],[b-k,a],[b,a+k],[b,b-k],[b-k,b],[a+k,b],[a,b-k],[a,a+k]];
-  const O=oct(0,100,12), I=oct(19,81,7), SH=[.32,.22,-.14,-.22,-.27,-.06,.14,.24];   // top, top-right, right, bottom-right, bottom, bottom-left, left, top-left
-  const P=a=>a.map(p=>p.join(',')).join(' ');
-  for(let v=1;v<=9;v++){const b=NUMC[v];let g='';
-    for(let i=0;i<8;i++){const j=(i+1)%8;g+=`<polygon points="${P([O[i],O[j],I[j],I[i]])}" fill="${mix(b,SH[i])}" stroke="${mix(b,SH[i])}" stroke-width=".6"/>`}
-    BLOCK_SVG[v]=`<svg viewBox="0 0 100 100" preserveAspectRatio="none">${g}<polygon points="${P(I)}" fill="${b}"/><polygon points="${P([I[0],I[1],[I[1][0]-4,I[1][1]+5],[I[0][0]+4,I[0][1]+5]])}" fill="${mix(b,.12)}"/></svg>`}}
+const TILE_O=(()=>{const oct=(a,b,k)=>[[a+k,a],[b-k,a],[b,a+k],[b,b-k],[b-k,b],[a+k,b],[a,b-k],[a,a+k]];return [oct(0,100,12),oct(19,81,7)]})();
+const TILE_SH=[.32,.22,-.14,-.22,-.27,-.06,.14,.24];   // top, top-right, right, bottom-right, bottom, bottom-left, left, top-left
+function tileSvg(b,cls){const [O,I]=TILE_O,P=a=>a.map(p=>p.join(',')).join(' ');let g='';
+  for(let i=0;i<8;i++){const j=(i+1)%8;g+=`<polygon points="${P([O[i],O[j],I[j],I[i]])}" fill="${mix(b,TILE_SH[i])}" stroke="${mix(b,TILE_SH[i])}" stroke-width=".6"/>`}
+  return `<svg${cls?` class="${cls}"`:''} viewBox="0 0 100 100" preserveAspectRatio="none">${g}<polygon points="${P(I)}" fill="${b}"/><polygon points="${P([I[0],I[1],[I[1][0]-4,I[1][1]+5],[I[0][0]+4,I[0][1]+5]])}" fill="${mix(b,.12)}"/></svg>`}
+const BLOCK_SVG={};for(let v=1;v<=9;v++)BLOCK_SVG[v]=tileSvg(NUMC[v]);
+const MON_COLS=['#7a42a8','#52287a','#a874d1','#b2cf3a','#86a822','#e6d9b8'];   // the monster / spider, for its particles
 
 /* the numbers of a pile: n/2 pairs, every kind of pair before any repeats */
 function pairVals(n){const out=[];let bag=[];while(out.length<n){if(!bag.length)bag=shuffle(PAIRS);const [a,b]=bag.pop();out.push(a,b)}return out}
@@ -230,6 +238,7 @@ const sfx={
   win(){[523,659,784,1047].forEach((f,j)=>tone(f,.2,'triangle',.12,null,j*.11))},
   coin(){tone(988,.08,'square',.05);tone(1319,.25,'square',.05,null,.08)},
   swap(){tone(480,.05,'sine',.04,620)},
+  boom(){noise(.45,{type:'lowpass',f:2200,f2:200,vol:.4});tone(160,.3,'sine',.16,50);[0,1,2].forEach(i=>tone(note(PENTA[4+i*2]),.25,'triangle',.06,null,.12+i*.07))},
   step(i){tone(i%2?330:294,.05,'triangle',.05)},
   jackpot(){tone(330,.12,'square',.05);tone(660,.1,'square',.05,null,.07);for(let i=0;i<7;i++){const f=1600+Math.random()*900;tone(f,.09,'triangle',.08,null,.14+i*.07);tone(f*1.5,.12,'sine',.06,null,.19+i*.07)}},
 };
@@ -456,7 +465,7 @@ function App(){
   const groundH=Math.round(Math.max(92,Math.min(180,H*.2))),groundY=H-groundH,baseY=groundY+FEET;
   const hs=Math.round(Math.max(56,Math.min(92,H*.14))),hw=Math.round(hs*HERO_AR);
   const TOPR=74;   // room for the top row (alien, bubble, chest)
-  const cell=Math.max(30,Math.floor(Math.min((W-hw-16)/PCOLS,(baseY-TOPR)/ROWS,96)));
+  const cell=Math.max(30,Math.floor(Math.min((W-hw-16)/PCOLS,(baseY-TOPR)/ROWS,CELL_MAX)));
   const gx=Math.round(Math.max(hw+8,Math.min(W/2-PCOLS*cell/2,W-PCOLS*cell-6)));   // the drag area (left edge)
   GC=Math.max(PCOLS,Math.floor((W-6-gx)/cell));                                     // it reaches the right edge of the screen
   const heroX=gx-hw-4;
@@ -574,9 +583,10 @@ function App(){
   async function playRound(i,first){
     const alive=newFlow(),r=R.current.rounds[i];
     setDemo(null);setRi(i);R.current.ri=i;R.current.round=r;R.current.phase='busy';busy.current=false;
+    if(monRef.current)monRef.current.style.visibility='';   // it burst at the end of the last pile: back, out of sight
     if(first){await sleep(700);if(!alive())return;setHero({walk:false,vis:true,cheer:false,win:false});sfx.thud();await sleep(500);if(!alive())return}
     // the rocks fall onto the path, column by column
-    const list=r.tut?TUT.map(t=>({id:'b'+(++idN),v:t.v,c:t.c,r:0})):genPile(pairVals(r.n),r.h);
+    const list=r.tut?TUT.map(t=>({id:'b'+(++idN),v:t.v,c:t.c,r:t.r})):genPile(pairVals(r.n),r.h);
     r.n0=list.length;
     const p={};list.forEach(b=>{p[b.id]={dx:0,dy:ROWS+3,dur:fallDur(ROWS+3),delay:b.c*70+b.r*90+Math.random()*60,land:true}});
     pend.current=p;setBlocks(list);
@@ -587,8 +597,8 @@ function App(){
     log('round_start',{round:i,tut:!!r.tut,rocks:list.length,h:r.h});
     if(r.tut){
       // the alien explains while the hand shows it; the first pop by the child stops it
-      const g=R.current.geo,six=list.find(b=>b.v===6);
-      setDemo({v:6,pts:[[g.gx+(4.5)*g.cell,g.baseY-.5*g.cell],[g.gx+3.5*g.cell,g.baseY-.5*g.cell]]});
+      const g=R.current.geo;
+      setDemo({v:6,pts:TUT_DEMO.map(([c,r])=>[g.gx+(c+.5)*g.cell,g.baseY-(r+.5)*g.cell])});
       await say('סלעים חוסמים לנו את הדרך! כדי לעבור, מפוצצים אותם: גוררים סלע ומצמידים אותו לסלע שמשלים איתו ל־10. הם תאומי עשר!');
       return;
     }
@@ -704,7 +714,14 @@ function App(){
   function cleared(){
     const alive=newFlow(),i=R.current.ri,r=R.current.round,last=i===R.current.rounds.length-1;
     R.current.phase='busy';clearTimeout(hintT.current);setDemo(null);
-    {const m=mon.current;m.active=false;m.retreat=true}
+    // the monster (and its thread) burst into particles, like the hero does when it is caught
+    {const m=mon.current,el=monRef.current,bd=boardRef.current&&boardRef.current.getBoundingClientRect();
+      if(el&&bd&&m.elapsed>.2){const rc=el.getBoundingClientRect(),cx=rc.left+rc.width/2,cy=rc.top+rc.height*.55;
+        if(rc.bottom>bd.top+20&&rc.right>bd.left+10&&rc.left<bd.right){
+          burst(cx,cy,MON_COLS,26);burst(cx,rc.top+rc.height*.3,MON_COLS,14);sfx.boom();
+          if(SPIDER){const tx=rc.left+SP_TOP[0]*rc.width,ty=rc.top+SP_TOP[1]*rc.height;for(let k=0;k<9;k++){const y=bd.top+(ty-bd.top)*k/8;if(y>bd.top)burst(tx,y,['#fff','#ffe6f6'],3)}}
+          el.style.visibility='hidden'}}
+      m.active=false;m.retreat=false;m.elapsed=0}
     if(r.tut)learn('tut');
     else{   // the overall pace: all the time on boards / all their pairs (remembered on this device, per child)
       const L=learned.current,t=(performance.now()-r.t0)/1000;L.tot={t:((L.tot&&L.tot.t)||0)+t,p:((L.tot&&L.tot.p)||0)+r.pairs};
@@ -735,7 +752,7 @@ function App(){
     if(dragRef.current){const el=blkEls.current[dragRef.current.id];if(el)el.style.transform='';dragRef.current=null;dragPt.current=null;setDrag(null)}
     R.current.phase='busy';busy.current=false;setQuake(true);setTimeout(()=>setQuake(false),700);sfx.roar();mon.current.roarUntil=performance.now()+1200;
     const hr=heroRef.current&&heroRef.current.getBoundingClientRect();
-    if(hr){const cols=['#ef5c55','#cf3535','#f2bb92','#4776c0','#5e4130','#ffd23f'];burst(hr.left+hr.width/2,hr.top+hr.height*.55,cols,22);sfx.splash()}
+    if(hr){const cols=LP.heroColors(LOOK);burst(hr.left+hr.width/2,hr.top+hr.height*.55,cols,22);sfx.splash()}
     scaredRef.current=false;setScared(false);setHero(h=>({...h,vis:false}));setTimeout(()=>{if(alive())setHero(h=>({...h,vis:true}))},1300);
     stats.current.caught++;KP.answer(false);log('caught',{round:R.current.ri,secs:Math.round(mon.current.dur)});
     // the rocks that are left scatter into a new pile; the monster comes back slower
@@ -823,12 +840,13 @@ function App(){
   if(endStage==='done'){const stars=starCount(stats.current.caught);
     overlay=(<div className="center endscreen" style={{justifyContent:'flex-start',paddingTop:'max(60px,11dvh)'}}>
       <div className="stars" dir="ltr">{[0,1,2].map(i=><div key={i} className="star" style={{animationDelay:.15+i*.35+'s'}}><StarIcon on={i<stars}/></div>)}</div>
-      <div className="rise" style={{animationDelay:'1.1s'}}><div ref={KP.coinBadge}/></div>
+      {/* the coins this game collected (what the course pays: complete({coins})), the library's coin, no words */}
+      <div className="rise" style={{animationDelay:'1.1s'}}><div className="endcoins" dir="ltr" aria-label={coins+' מטבעות'}><Coin s={44}/><span>+{coins}</span></div></div>
       <div className="endbtns rise" style={{animationDelay:'1.3s'}}>
-        <button className="endbtn again" onClick={restart} aria-label="להתחיל מחדש" title="להתחיל מחדש">
-          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v5h5"/></svg></button>
-        <button className="endbtn next" onClick={goNext} disabled={leaving} aria-label="המשך" title="המשך">
-          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12H4M10 6l-6 6 6 6"/></svg></button>
+        <TileBtn color="#3D6FE0" onClick={restart} label="להתחיל מחדש">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v5h5"/></svg></TileBtn>
+        <TileBtn color="#2fa36b" onClick={goNext} disabled={leaving} label="המשך">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12H4M10 6l-6 6 6 6"/></svg></TileBtn>
       </div></div>);
   }
   return(<>
@@ -839,6 +857,9 @@ function App(){
       {Board}{overlay}
     </div></>);
 }
+/* an end button: a bevelled tile like the rocks, the icon on its face */
+function TileBtn({color,label,onClick,disabled,children}){const svg=useMemo(()=>tileSvg(color,'t'),[color]);
+  return <button className="tilebtn" onClick={onClick} disabled={disabled} aria-label={label} title={label}><span dangerouslySetInnerHTML={{__html:svg}}/><i>{children}</i></button>}
 function TapHand({x,y}){
   const ref=useRef(null);
   useEffect(()=>{const a=ref.current.animate([{transform:`translate(${x-14}px,${y+18}px)`,opacity:1},{transform:`translate(${x-14}px,${y}px) scale(.92)`,opacity:1,offset:.45},
