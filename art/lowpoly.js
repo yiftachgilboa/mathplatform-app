@@ -105,6 +105,22 @@
       mountain: M(['#232750', '#353b6c', '#4c5288', '#6c72a4'], .05), water: M(['#152a58', '#234a80', '#3f74a8', '#7fb0d0'], .05),
     }),
   };
+  // spider world (twins game, portrait phones — waiting for approval): dusk between purple and orange. Plum moss on dark
+  // violet earth, purple hills in a warm fog, an orange sun; glowing orange toadstools and violet crystals are its own things
+  themes.spider = {
+    sky: ['#2a1640', '#7c3a78', '#f2914c'], fog: '#9c4f78', sun: '#ffcf80', glow: '#ff9a4a', shadow: '#16081f',
+    mat: Object.assign({}, themes.day.mat, {
+      grass: M(['#4a2050', '#7a3366', '#b4507a', '#e98576'], .1), grassSide: M(['#341540', '#55245c', '#7a3a70'], .06),
+      earth: M(['#1c0f2c', '#2f1a44', '#48285e', '#6a3c7a'], .08), stone: M(['#2a1a40', '#46295c', '#6c4078', '#a0608e', '#dc9294'], .08),
+      leaf: M(['#33184a', '#552a64', '#843f76', '#bd5f84'], .09), leafTeal: M(['#2c1a50', '#46296c', '#6c408a', '#9e62a6'], .09),
+      leafYellow: M(['#5a2440', '#8c3a52', '#c45e5c', '#f08c66'], .09), autumn: M(['#6a2a2a', '#a8452e', '#e0703a', '#ffa65a'], .1),
+      pine: M(['#26123a', '#3e1f52', '#5f326c', '#8d4c86'], .07), trunk: M(['#1a0f24', '#2e1c3a', '#4a2e52'], .05),
+      cloud: M(['#7a3a6c', '#b55a78', '#ec8a7c', '#ffbf98'], .04), snow: M(['#9a5482', '#cd7a92', '#f4a89e', '#ffd6be'], .04),
+      mountain: M(['#36184c', '#582a66', '#87437a', '#bd6688'], .05), water: M(['#2a1440', '#5c2c6c', '#a24c7a', '#f08c6c'], .05),
+      cactus: M(['#2a1640', '#4a2556', '#7a3a66', '#b05a74'], .06),
+      glowcap: M(['#8a2e12', '#d45a1e', '#f78e30', '#ffc970'], .05), crystal: M(['#3a1c5e', '#6a36a0', '#a066d6', '#e0b8ff'], .05),
+    }),
+  };
   // characters keep their colors in every theme (identity), so they live outside the themes
   const charMat = {
     skin: M(['#b9774f', '#dc9b70', '#f2bb92', '#ffd8b4'], .03), hair: M(['#24170f', '#3e2a1d', '#5e4130', '#7f5a42'], .05),
@@ -860,6 +876,66 @@
     return obj;
   };
 
+  // spider monster (twins game, portrait phones — waiting for approval): the monster's colors (purple fur, green-yellow belly
+  // and plates, horn fangs). A big front head with three yellow eyes and angry brows; the abdomen above and behind it, where
+  // the thread is tied (it comes down head first). Eight legs bent up at the knee, wriggling (t). roar 0..1 spreads the fangs
+  // and opens the mouth. obj.top = the point where the thread is tied (for the game's line).
+  make.spider = function (o) {
+    const S = o.size || 100, seed = o.seed || 1, t = o.t || 0, rand = rng(seed * 97), d = clampD(o.detail == null ? 1 : o.detail);
+    const fur = mat.monster, light = mat.monsterBelly, roar = o.roar || 0, meshes = [], sway = Math.sin(t * 1.6) * .02 * S;
+    const hr = S * .25, hc = [sway * .5, 0, S * .34];
+    const head = icosphere(d, fur, seed * 97 + 1).jitter(.05, rand).scale(hr * 1.06, hr * .95, hr).move(hc[0], hc[1], hc[2]);
+    head.patch = { mat: light, dir: [0, -.25, -1], th: .74 };
+    const ac = [sway, S * .2, S * .7], ar = S * .28;
+    const abd = icosphere(d, fur, seed * 97 + 2).jitter(.06, rand).scale(ar, ar * .95, ar * 1.08).move(ac[0], ac[1], ac[2]);
+    abd.patch = { mat: light, dir: [0, -1, .1], th: .9 };
+    meshes.push(abd, limb([hc[0], hc[1] + hr * .3, hc[2] + hr * .4], [ac[0], ac[1] - ar * .3, ac[2] - ar * .4], hr * .4, ar * .35, fur, seed * 97 + 3), head);
+    // back plates along the top of the abdomen (the monster's signature)
+    for (let i = 0; i < 4; i++) {
+      const a = -.5 + i * .42, k = 1 - Math.abs(i - 1.5) / 4;
+      const pl = cone(4, light, seed * 97 + 10 + i, rand, .45).scale(.05 * S * k, .022 * S, .12 * S * k).move(ac[0], ac[1] + Math.sin(a) * ar * .9, ac[2] + Math.cos(a) * ar * 1.02);
+      pl.bias = S * .05; meshes.push(pl);
+    }
+    // legs: hip on the head's side, knee up and out, foot down and out; each pair wriggles a little out of step
+    [-1, 1].forEach(sx => {
+      for (let i = 0; i < 4; i++) {
+        const w1 = Math.sin(t * 7 + i * 1.3 + (sx > 0 ? 1.7 : 0)) * .03 * S, w2 = Math.cos(t * 6 + i * 1.1 + (sx > 0 ? .6 : 0)) * .035 * S;
+        // fanned out so all four show from the front: the first pair high, the last low
+        const fi = [.85, .35, -.1, -.55][i], hip = [hc[0] + sx * hr * .8, hc[1] + (-.06 + i * .06) * S, hc[2] + (.06 - i * .04) * S];
+        const knee = [hip[0] + sx * Math.cos(fi) * .28 * S, hip[1] + (i - 1.5) * .07 * S, hip[2] + Math.sin(fi) * .28 * S + .07 * S + w1 + roar * .05 * S];
+        const foot = [knee[0] + sx * (.13 + i * .015) * S, knee[1] + (i - 1.5) * .05 * S, knee[2] - (.3 - i * .03) * S + w2];
+        [limb(hip, knee, .042 * S, .034 * S, fur, seed * 97 + 20 + i * 2 + (sx > 0 ? 9 : 0), 5),
+          limb(knee, foot, .032 * S, .01 * S, fur, seed * 97 + 21 + i * 2 + (sx > 0 ? 9 : 0), 5),
+          icosphere(0, fur, seed * 97 + 40 + i + (sx > 0 ? 9 : 0)).scale(.046 * S).move(knee[0], knee[1], knee[2])]
+          .forEach((m, j) => { m.group = 'leg' + sx + i; m.order = j; meshes.push(m); });
+      }
+    });
+    // fangs below the face
+    [-1, 1].forEach((sx, i) => {
+      const f = limb([hc[0] + sx * .07 * S, hc[1] - hr * .78, hc[2] - .1 * S], [hc[0] + sx * (.05 + roar * .06) * S, hc[1] - hr * .95, hc[2] - .27 * S], .038 * S, .006 * S, mat.horn, seed * 97 + 60 + i, 5);
+      f.bias = S * .08; meshes.push(f);
+    });
+    const obj = place(meshes, Object.assign({ rot: 0 }, o), S * .3, { ordered: 'depth' });
+    const r = o.rot || 0, C = Math.cos(r), Sn = Math.sin(r), W = p => [obj.x + p[0] * C - p[1] * Sn, obj.y + p[0] * Sn + p[1] * C, obj.z + p[2]];
+    obj.top = W([ac[0], ac[1], ac[2] + ar * 1.08]);
+    obj.face = { c: W(hc), r: hr * 1.06, k: [.95 / 1.06, 1, 1 / 1.06], f: [Sn, -C, 0], u: [C, Sn, 0], style: 'spider', roar,
+      gaze: o.gaze, blink: o.blink, brows: o.brows };
+    return obj;
+  };
+  Object.assign(make, {
+    // glowing toadstools (the spider world — waiting for approval): two or three pale stalks with round orange caps
+    toadstool(o) {
+      const S = o.size || 50, seed = o.seed || 1, rand = rng(seed * 101), cap = o.mat || mat.glowcap || mat.mushroom, meshes = [];
+      const n = 2 + Math.floor(rand() * 2);
+      for (let i = 0; i < n; i++) {
+        const k = i ? .5 + rand() * .3 : 1, x = i ? (rand() < .5 ? -1 : 1) * S * (.25 + rand() * .15) : 0, y = i ? (rand() - .3) * S * .25 : 0, h = S * .55 * k;
+        meshes.push(limb([x, y, 0], [x, y, h], S * .07 * k, S * .055 * k, mat.white, seed * 101 + i * 3, 5));
+        meshes.push(icosphere(0, cap, seed * 101 + i * 3 + 1).jitter(.08, rand).floor(-.15).scale(S * .24 * k, S * .24 * k, S * .17 * k).move(x, y, h - S * .02 * k));
+      }
+      return place(meshes, Object.assign({ rot: rand() * 6.28 }, o), S * .3, { ordered: 'depth' });
+    },
+  });
+
   // ---------- characters ----------
   // a pose = joint angles (radians). leg/arm: swing forward; knee/elbow: bend forward; elbowSide: forearm turns further up/in (for raised arms);
   // side: raise outward (π ≈ straight up); bob: body lift (× height)
@@ -1150,7 +1226,7 @@
       q.vis = dot(v, toCam) > .2; return q;
     };
     const s = F.r * cam.s, E = '#2b2f33', R = '#8a2f35';
-    const EYE = F.eye || { kid: [.93, .36, .06], buddy: [.92, .33, .2], animal: [.62, .78, .22], monster: [.85, .45, .22], cyclops: [.97, 0, .12] }[style];
+    const EYE = F.eye || { kid: [.93, .36, .06], buddy: [.92, .33, .2], animal: [.62, .78, .22], monster: [.85, .45, .22], cyclops: [.97, 0, .12], spider: [.88, .42, .14] }[style];
     const both = [at(EYE[0], -EYE[1], EYE[2]), at(EYE[0], EYE[1], EYE[2])], m = at(.95, 0, F.mouthUp != null ? F.mouthUp : style === 'monster' ? -.3 : style === 'cyclops' ? -.42 : style === 'buddy' ? -.12 : -.36);
     const eyes = both.filter(e => e.vis);
     both.forEach((e, i) => { e.inner = Math.sign(both[1 - i][0] - e[0]) || 1; });
@@ -1198,6 +1274,24 @@
       { const w = s * .4, y = e[1] - s * .46, t = s * .13; // one wide brow
         const bo = F.brows ? (Array.isArray(F.brows[0]) ? F.brows : [F.brows, F.brows]) : null, L = bo ? -s * bo[0][1] : 0, Rr = bo ? -s * bo[1][1] : 0, Md = (L + Rr) / 2 - (bo ? s * (bo[0][0] + bo[1][0]) * .5 : 0);
         out += `<path d="M${f1(e[0] - w)},${f1(y + t * .4 + L)} Q${f1(e[0])},${f1(y - s * .12 + Md)} ${f1(e[0] + w)},${f1(y + t * .4 + Rr)} L${f1(e[0] + w * .9)},${f1(y + t * 1.1 + Rr)} Q${f1(e[0])},${f1(y - s * .12 + t * 1.4 + Md)} ${f1(e[0] - w * .9)},${f1(y + t * 1.1 + L)} Z" fill="#124d2c" stroke="#124d2c" stroke-width="${f1(s * .02)}" stroke-linejoin="round"/>`; }
+      return `<g class="face">${out}</g>`;
+    }
+    if (style === 'spider') {
+      // three yellow eyes in an arc (the middle one bigger and higher) with slit pupils that follow the gaze, angry brows,
+      // a grumpy mouth between the fangs that opens with the roar
+      const E3 = [at(.88, -.42, .14), at(.96, 0, .36), at(.88, .42, .14)], gx = gz[0] * 1.2, gy = gz[1] * 1.2;
+      E3.forEach((e, i) => { e.inner = i === 1 ? 1 : Math.sign(E3[1][0] - e[0]) || 1; });
+      E3.forEach((e, i) => {
+        if (!e.vis) return;
+        const k = i === 1 ? 1.45 : 1.15, rx = s * .12 * k, ry = s * .105 * k;
+        if (F.blink) { out += P(`M${f1(e[0] - rx)},${f1(e[1])} Q${f1(e[0])},${f1(e[1] + ry)} ${f1(e[0] + rx)},${f1(e[1])}`, .05); return; }
+        out += `<ellipse cx="${f1(e[0])}" cy="${f1(e[1])}" rx="${f1(rx)}" ry="${f1(ry)}" fill="#ffd23f"/><ellipse cx="${f1(e[0] + gx)}" cy="${f1(e[1] + gy)}" rx="${f1(s * .03 * k)}" ry="${f1(s * .085 * k)}" fill="${E}"/>`;
+      });
+      E3.forEach((e, i) => { if (e.vis && i !== 1) out += bigBrow(e, -.13, .2, 0, .85, '#1f1030'); });
+      if (E3[1].vis) { const e = E3[1], w = s * .17, y = e[1] - s * .2; out += `<path d="M${f1(e[0] - w)},${f1(y - s * .05)} L${f1(e[0])},${f1(y + s * .03)} L${f1(e[0] + w)},${f1(y - s * .05)}" fill="none" stroke="#1f1030" stroke-width="${f1(s * .07)}" stroke-linecap="round" stroke-linejoin="round"/>`; }
+      const mo = at(.95, 0, -.42);
+      if (mo.vis) out += F.roar > .05 ? `<ellipse cx="${f1(mo[0])}" cy="${f1(mo[1])}" rx="${f1(s * .12)}" ry="${f1(s * (.03 + .1 * F.roar))}" fill="${R}"/>`
+        : P(`M${f1(mo[0] - s * .1)},${f1(mo[1] + s * .03)} Q${f1(mo[0])},${f1(mo[1] - s * .05)} ${f1(mo[0] + s * .1)},${f1(mo[1] + s * .03)}`, .05);
       return `<g class="face">${out}</g>`;
     }
     if (style === 'monster') {
@@ -1783,6 +1877,27 @@
 
   // ---------- flat side-view parts (2D, for game layers that must line up exactly with the play grid) ----------
   const flat = {
+    // a spider web (waiting for approval): strands are thin lines, so it is flat. o.r = radius, o.kind 'round' | 'corner'
+    // (a quarter that fans out from 0,0 toward +x +y — flip or rotate it for other corners), o.spokes, o.rings, o.color,
+    // o.opacity, o.seed. → path markup around 0,0
+    web(o) {
+      o = o || {}; const r = o.r || 60, corner = o.kind === 'corner', n = o.spokes || (corner ? 5 : 9), rings = o.rings || 5, rand = rng(o.seed || 1);
+      const a0 = corner ? 0 : rand() * 6.28, sp = [];
+      for (let i = 0; i < n; i++) sp.push([corner ? a0 + Math.PI / 2 * i / (n - 1) : a0 + Math.PI * 2 * i / n, r * (.86 + rand() * .2)]);
+      const f1 = v => v.toFixed(1);
+      let d = '';
+      sp.forEach(([a, L]) => { d += `M0,0L${f1(Math.cos(a) * L)},${f1(Math.sin(a) * L)}`; });
+      for (let k = 1; k <= rings; k++) {
+        const f = k / (rings + .4), pts = sp.map(([a, L]) => { const q = L * f * (.92 + rand() * .12); return [Math.cos(a) * q, Math.sin(a) * q]; });
+        const list = corner ? pts : pts.concat([pts[0]]);
+        for (let i = 1; i < list.length; i++) {
+          const p = list[i - 1], q = list[i], mx = (p[0] + q[0]) / 2 * .9, my = (p[1] + q[1]) / 2 * .9; // each thread sags toward the middle
+          d += (i === 1 ? `M${f1(p[0])},${f1(p[1])}` : '') + `Q${f1(mx)},${f1(my)} ${f1(q[0])},${f1(q[1])}`;
+        }
+      }
+      const w = o.width || Math.max(.8, r * .014);
+      return `<path d="${d}" fill="none" stroke="${o.color || '#fff'}" stroke-opacity="${o.opacity == null ? .7 : o.opacity}" stroke-width="${w.toFixed(2)}" stroke-linecap="round"/>`;
+    },
     // a thin bridge seen from the side (approved design from the bridge game): a deck in one color per segment,
     // a post on every unit, a wooden rail on top. segs = [{n, color}], unit = px per unit. → {svg, w, h}
     bridge(o) {
@@ -1891,6 +2006,31 @@
         ['officeTower', 925, { size: 260, seed: 4, mat: 'violet', windows: 'windowLight', top: 'helipad' }]], 800, .3);
       return svg;
     },
+    // spider world backdrop (twins game, portrait phones — waiting for approval): LP.useTheme('spider') first. Dusk between
+    // purple and orange: a big low faceted sun, purple ridges running to the bottom in a warm fog, bare trees on the hills, webs in the
+    // top corners, long clouds, glowing spores. The middle third (x 380–820) is what a portrait phone sees.
+    spider(o) {
+      o = o || {}; const T = theme, W = 1200, id = o.id || 'spd', sx = 690, sy = 250;
+      let svg = `<defs><linearGradient id="${id}sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${T.sky[0]}"/><stop offset=".55" stop-color="${T.sky[1]}"/><stop offset="1" stop-color="${T.sky[2]}"/></linearGradient>
+        <radialGradient id="${id}glow"><stop offset="0" stop-color="${T.glow}" stop-opacity=".85"/><stop offset=".45" stop-color="${T.glow}" stop-opacity=".3"/><stop offset="1" stop-color="${T.glow}" stop-opacity="0"/></radialGradient></defs>
+        <rect width="${W}" height="800" fill="url(#${id}sky)"/><circle cx="${sx}" cy="${sy}" r="260" fill="url(#${id}glow)"/><polygon points="${Array.from({ length: 11 }, (_, i) => { const t = i / 11 * 6.283 + .3; return (sx + Math.cos(t) * 62).toFixed(1) + ',' + (sy + Math.sin(t) * 62).toFixed(1); }).join(' ')}" fill="${T.sun}"/>`;
+      [[300, 140, 170, 160], [900, 190, 150, 180]].forEach(([x, y, sz, dur], i) => {
+        svg += `<g class="cloud" style="animation-duration:${dur}s;animation-delay:${-(x / 1400 * dur).toFixed(1)}s" opacity=".55">${draw(make.cloud({ size: sz, seed: i + 5, detail: 1, kind: 'long' }), camera({ a: .16, ox: 0, oy: y }))}</g>`;
+      });
+      const rand = rng(41); for (let i = 0; i < 22; i++) { const x = rand() * W, y = 120 + rand() * 480, r = 1.4 + rand() * 2.2; svg += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="#ffc46a" opacity="${(.25 + rand() * .45).toFixed(2)}"/>`; }
+      const BASE = 860, ca = Math.cos(.16);
+      [{ oy: 520, width: 1700, h: 250, count: 6, seed: 7, fog: .5, snow: false }, { oy: 600, width: 1800, h: 180, count: 7, seed: 15, fog: .28, snow: false, mat: mat.leaf },
+       { oy: 650, width: 1900, h: 110, count: 8, seed: 23, fog: .1, snow: false, mat: mat.grass }].forEach(r => {
+        svg += draw(make.ridge(Object.assign({ skirt: (BASE - r.oy) / ca }, r)), camera({ a: .16, ox: W / 2, oy: r.oy }));
+      });
+      const trees = [[330, 632, 100, 1], [560, 620, 82, 2], [820, 634, 108, 3]];   // few: a bare tree is many facets
+      trees.forEach(([x, y, sz, k]) => { const l = facets(make.tree({ size: sz, seed: k * 11, kind: 'bare', fog: .2 }), camera({ a: .3, ox: x, oy: y })), b = bounds(l);
+        if (!o.clear || b.x + b.w < o.clear[0] || b.x > o.clear[1]) svg += polys(l); });
+      // webs hang in the top corners of what a portrait phone sees (x 390–810) and of the wide picture — never behind the game in the middle
+      [[392, 1, 150, 3], [808, -1, 150, 4], [0, 1, 190, 5], [1200, -1, 190, 6]].forEach(([x, k, r, sd]) => {
+        svg += `<g transform="translate(${x},0) scale(${k},1)">${flat.web({ r, kind: 'corner', seed: sd, opacity: .5, spokes: 6, rings: 6 })}</g>`; });
+      return svg;
+    },
     // meadow backdrop (approved in the bridge game, 21.11.2026): sky and sun glow from the theme, a far snowy ridge in fog,
     // two rows of green hills whose shapes run down to the bottom, drifting clouds of three kinds, a few low-detail trees. Markup for viewBox 0 0 1200 800 (use preserveAspectRatio
     // "xMidYMid slice"). Clouds come in <g class="cloud"> with a duration and delay: animate .cloud in the page to drift them.
@@ -1930,12 +2070,16 @@
     rocky:  { top: 'leafTeal', side: 'stone', decor: [['tree', { kind: 'bare' }, 2, 1], ['rock', {}, .16], ['stump', {}, .3]] },
     forest: { top: 'pine', side: 'trunk', decor: [['pine', {}, 2.4, 1], ['tree', { kind: 'round', detail: 0, mat: 'leafTeal' }, 2.1, 1], ['stump', {}, .3], ['log', {}, .28], ['bush', { mat: 'pine' }, .42]] },
     ice:    { top: 'snow', lip: 'snow', side: ['ice', 'stone'], decor: [['pine', { mat: 'ice' }, 2.2, 1], ['rock', { mat: 'ice' }, .15], ['bush', { mat: 'snow' }, .36]] },
+    // the spider world (LP.useTheme('spider') first — waiting for approval)
+    webwood: { top: ['spider', 'grass'], lip: ['spider', 'grassSide'], side: ['spider', 'earth'], decor: [['tree', { kind: 'bare', web: true }, 2.1, 1], ['toadstool', { mat: ['spider', 'glowcap'] }, .32], ['stump', {}, .3], ['rock', { mat: ['spider', 'stone'] }, .14]] },
+    crystal: { top: ['spider', 'leafTeal'], lip: ['spider', 'grassSide'], side: ['spider', 'stone'], decor: [['rock', { mat: ['spider', 'crystal'], h: 1.7 }, .8, 1], ['toadstool', { mat: ['spider', 'glowcap'] }, .32], ['rock', { mat: ['spider', 'stone'] }, .15]] },
+    ember:   { top: ['spider', 'autumn'], lip: ['spider', 'leafYellow'], side: ['spider', 'earth'], decor: [['tree', { kind: 'bare', web: true }, 2, 1], ['toadstool', { mat: ['spider', 'glowcap'] }, .3], ['log', {}, .28]] },
   };
   const matOf = v => (v == null ? undefined : Array.isArray(v) ? themes[v[0]].mat[v[1]] : mat[v]);
   // → { top, lip, side (ready for make.ground), decor: [{ size, tall, make(o) }] }
   function biome(name) {
     const b = biomes[name] || biomes.meadow, g = { name, top: matOf(b.top), lip: matOf(b.lip), side: matOf(b.side) };
-    g.decor = b.decor.map(([mk, opt, size, tall], i) => ({ id: name + i, size, tall: !!tall,
+    g.decor = b.decor.map(([mk, opt, size, tall], i) => ({ id: name + i, size, tall: !!tall, web: !!opt.web,
       make: o => make[mk](Object.assign({}, opt, opt.mat ? { mat: matOf(opt.mat) } : null, o)) }));
     return g;
   }

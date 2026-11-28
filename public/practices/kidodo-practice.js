@@ -6,6 +6,7 @@
  * The practice calls:
  *   KidodoPractice.answer(correct)   — one answer (saved as a stage-2 answer, does not count for mastery)
  *   KidodoPractice.complete(extra)   — marks stage 2 as done (returns a Promise, never throws)
+ *                                      extra.coins = a game where the child collects coins: it is paid what it collected (up to 100)
  *   KidodoPractice.next()            — back to the course, on the next stage (3)
  *   KidodoPractice.exit()            — back to the course, on this stage (2)
  *   KidodoPractice.claimCorner()     — inside the course: the top-left slot is free for the course's enlarge/shrink button
@@ -385,7 +386,8 @@
     var body = JSON.stringify({
       event: 'GAME_OVER', childId: ctx.childId, gameId: platformGame, timestamp: new Date().toISOString(),
       data: { stars: stars, score: Number(x.correct != null ? x.correct : x.firstTry) || 0,
-        correctAnswers: Number(x.correct != null ? x.correct : x.firstTry) || 0, totalQuestions: Number(x.answers != null ? x.answers : x.rounds) || 0 },
+        correctAnswers: Number(x.correct != null ? x.correct : x.firstTry) || 0, totalQuestions: Number(x.answers != null ? x.answers : x.rounds) || 0,
+      coins: x.coins != null ? Number(x.coins) : undefined },
     })
     var req = fetch('/api/sdk/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body, keepalive: true })
       .then(function (r) { return r.ok ? r.json().catch(function () { return true }) : false }).catch(function () { return false })
@@ -413,7 +415,8 @@
   }
 
   /* the coins earned, on every end screen: a coin and +N, counting up. 0 = today's coins were already taken */
-  var earned = null
+  var earned = null, collected = null   // collected: a game where the child gathers coins (complete({coins})) is paid what it gathered
+  function fallback() { return collected != null ? collected : reward() }
   var COIN = '<svg width="38" height="38" viewBox="0 0 24 24" style="display:block"><polygon points="12,1 17.5,2.5 21.5,6.5 23,12 21.5,17.5 17.5,21.5 12,23 6.5,21.5 2.5,17.5 1,12 2.5,6.5 6.5,2.5" fill="#cf981b"/><polygon points="12,3.6 18,6 20.4,12 18,18 12,20.4 6,18 3.6,12 6,6" fill="#f1c43e"/><polygon points="12,3.6 18,6 20.4,12 12,12" fill="#fff0a0"/><polygon points="3.6,12 12,12 12,20.4 6,18" fill="#e0ae2c"/></svg>'
   function coinBadge(el) {
     if (!el || el.kidodoCoins) return
@@ -421,8 +424,8 @@
     el.dir = 'ltr'
     el.setAttribute('role', 'status')
     el.style.cssText += ';display:inline-flex;flex-direction:column;align-items:center;gap:6px;visibility:hidden'
-    var wait = new Promise(function (res) { setTimeout(res, 3000) }).then(reward)
-    Promise.race([earned || Promise.resolve(reward()), wait]).then(function (n) {
+    var wait = new Promise(function (res) { setTimeout(res, 3000) }).then(fallback)
+    Promise.race([earned || Promise.resolve(fallback()), wait]).then(function (n) {
       el.style.visibility = ''
       el.innerHTML = '<span style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:34px;line-height:1;color:#9B6A00;background:rgba(255,255,255,.94);border-radius:26px;padding:6px 20px 6px 8px;box-shadow:0 4px 0 rgba(0,0,0,.16)">' + COIN + '<b style="font-weight:700;min-width:1.6em;text-align:left">+0</b></span>' +
         (n > 0 ? '' : '<span dir="rtl" style="font-size:16px;font-weight:500;color:#33373b;background:rgba(255,255,255,.9);border-radius:12px;padding:3px 12px">את המטבעות האלה כבר קיבלנו</span>')
@@ -445,8 +448,9 @@
     ctx: ctx,
     answer: function (correct) { post('/api/course/answer', { correct: !!correct }) },
     complete: function (extra) {
+      if (extra && extra.coins != null && isFinite(extra.coins)) collected = Math.max(0, Math.min(100, Math.round(extra.coins)))
       var r = platformGame ? platformOver(extra) : post('/api/course/progress', extra)
-      earned = (r.full || r).then(function (j) { return j && typeof j.coins === 'number' ? j.coins : reward() })
+      earned = (r.full || r).then(function (j) { return j && typeof j.coins === 'number' ? j.coins : fallback() })
       if (embedded) r.then(function () { tell('complete') })
       return r
     },

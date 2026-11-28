@@ -13,6 +13,7 @@
     "platformGame": { "first": 10, "repeat": 10, "repeatPerDay": 3 }
   },
   "surpriseGame": { "max": 60, "perDay": 3 },
+  "collectedGame": { "max": 100 },
   "giftBoxes": { "video": 0, "interactive": 0, "practice": 0, "enrichment": 0, "test": 0, "mastery": 0 },
 
   "boxes": [

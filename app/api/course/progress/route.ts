@@ -14,7 +14,7 @@ export async function GET(req: Request) {
   return NextResponse.json({ ...state, shop })
 }
 
-/** POST { childId, courseId, lessonId, stage, stars? } → סימון שלב כהושלם (סרטון / התנסות / משחק) + מטבעות. coins = כמה נוספו */
+/** POST { childId, courseId, lessonId, stage, stars?, coins? } → סימון שלב כהושלם (סרטון / התנסות / משחק) + מטבעות. coins = כמה נוספו */
 export async function POST(req: Request) {
   const b = await req.json().catch(() => ({}))
   const auth = await authorizeChild(String(b.childId ?? ''), String(b.courseId ?? ''))
@@ -22,8 +22,11 @@ export async function POST(req: Request) {
   if (!auth || !validLesson(auth.course, b.lessonId) || !(stage >= 1 && stage <= 4)) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
-  const stars = Number(b.stars)
-  const coins = await completeStage({ childId: b.childId, course: auth.course, lessonId: b.lessonId }, stage, b.stars != null && Number.isFinite(stars) ? { stars } : {})
+  const stars = Number(b.stars), collected = Number(b.coins)
+  const extra: { stars?: number; coins?: number } = {}
+  if (b.stars != null && Number.isFinite(stars)) extra.stars = stars
+  if (b.coins != null && Number.isFinite(collected)) extra.coins = collected   // a game where coins are collected
+  const coins = await completeStage({ childId: b.childId, course: auth.course, lessonId: b.lessonId }, stage, extra)
   return NextResponse.json({ ok: true, coins, shop: await loadShop(b.childId) })
 }
 

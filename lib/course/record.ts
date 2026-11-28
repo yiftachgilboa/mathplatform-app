@@ -1,7 +1,7 @@
 // שרת בלבד — רישום תשובות, השלמת שלבים ושליטה. משמש את api/course/* ואת api/sdk/event.
 import type { Course } from './content'
 import { adminClient, practiceAnswers } from './admin'
-import { reward } from '@/lib/shop/wallet'
+import { reward, rewardCollected } from '@/lib/shop/wallet'
 import type { RewardKind } from '@/lib/shop/config'
 import { PRACTICE_STAGE, practiceMastered, testPassed, windowAccuracy } from './progress'
 
@@ -34,8 +34,8 @@ export const stageRewardRef = (courseId: string, lessonId: string, stage: number
 
 export const STAGE_REWARD: Record<number, RewardKind> = { 1: 'video', 2: 'interactive', 3: 'practice', 4: 'enrichment', 5: 'test' }
 
-/** סימון שלב כהושלם (+ כוכבים / ציון) ותגמול במטבעות. completed=false שומר ציון בלי ✓ ובלי מטבעות. מחזיר כמה מטבעות נוספו. */
-export async function completeStage(ctx: Ctx, stage: number, extra: { stars?: number; score?: number; completed?: boolean } = {}): Promise<number> {
+/** סימון שלב כהושלם (+ כוכבים / ציון) ותגמול במטבעות (coins = משחק שאוספים בו מטבעות: משלמים את מה שנאסף). completed=false שומר ציון בלי ✓ ובלי מטבעות. מחזיר כמה מטבעות נוספו. */
+export async function completeStage(ctx: Ctx, stage: number, extra: { stars?: number; score?: number; completed?: boolean; coins?: number } = {}): Promise<number> {
   const row: Record<string, unknown> = {
     child_id: ctx.childId, course_id: ctx.course.courseId, lesson_id: ctx.lessonId, stage,
     updated_at: new Date().toISOString(),
@@ -47,7 +47,10 @@ export async function completeStage(ctx: Ctx, stage: number, extra: { stars?: nu
     .upsert(row, { onConflict: 'child_id,course_id,lesson_id,stage' })
   if (error) { console.error('[course] progress', error.message); return 0 }
   if (extra.completed !== false && STAGE_REWARD[stage]) {
-    return (await reward(ctx.childId, STAGE_REWARD[stage], stageRewardRef(ctx.course.courseId, ctx.lessonId, stage))) ?? 0
+    const ref = stageRewardRef(ctx.course.courseId, ctx.lessonId, stage)
+    // a game where the child collects coins: pay what was collected (instead of the fixed amount)
+    if (extra.coins != null) return (await rewardCollected(ctx.childId, STAGE_REWARD[stage], ref, extra.coins)) ?? 0
+    return (await reward(ctx.childId, STAGE_REWARD[stage], ref)) ?? 0
   }
   return 0
 }

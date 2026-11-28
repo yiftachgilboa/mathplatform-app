@@ -59,6 +59,27 @@ export async function giftBox(childId: string, ref: string, boxes = 1) {
   try { return await award(childId, 0, `gift:${ref}`, boxes) } catch (e) { console.error('[shop] gift', e); return false }
 }
 
+/**
+ * משחק שבו אוספים מטבעות (למשל ״תאומי עשר״): משלמים את מה שנאסף (עד collectedGame.max), באותו מזהה ובאותן פעמים ביום
+ * כמו התגמול הקבוע של אותו סוג (first, ואחר כך עד repeatPerDay ביום). null = הארנק עוד לא מותקן.
+ */
+export async function rewardCollected(childId: string, kind: RewardKind, base: string, collected: number): Promise<number | null> {
+  const r = SHOP.rewards[kind]
+  const amount = Math.max(0, Math.min(SHOP.collectedGame.max, Math.round(collected) || 0))
+  if (amount <= 0) return 0
+  try {
+    if (await award(childId, amount, base)) return amount
+    const day = `${base}:${today()}`
+    for (let n = 1; n <= r.repeatPerDay; n++) {
+      if (await award(childId, amount, `${day}:${n}`)) return amount
+    }
+    return 0
+  } catch (e) {
+    console.error('[shop] collected', e)
+    return null
+  }
+}
+
 /** משחק ״מטבעות הפתעה״: מה שנאסף, עם תקרה ומספר פעמים ביום. null = הארנק עוד לא מותקן */
 export async function rewardSurprise(childId: string, collected: number): Promise<number | null> {
   const amount = Math.max(0, Math.min(SHOP.surpriseGame.max, Math.round(collected) || 0))
