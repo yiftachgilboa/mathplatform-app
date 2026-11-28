@@ -129,16 +129,15 @@ const DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
 /* every number has its own colour (the kidodo palette and its relatives) */
 const NUMC={1:'#EF5C55',2:'#F79A2E',3:'#FFC531',4:'#8CC63F',5:'#1FB5A2',6:'#4FB3F0',7:'#3D5FD8',8:'#8E5CF0',9:'#EC6BAE'};
 const mix=(hex,t)=>{const n=parseInt(hex.slice(1),16),c=[n>>16,n>>8&255,n&255].map(v=>Math.round(t>0?v+(255-v)*t:v*(1+t)));return '#'+c.map(v=>v.toString(16).padStart(2,'0')).join('')};
-/* a rock: a cushion block, four faces lit from the top-left (the art library's light), with a chamfer */
+/* a rock: a bevelled tile lit from the top-left (the art library's light). An outer octagon, a straight centred inner face
+   (big enough for the number), and eight bevels between them, each shaded by the way it faces */
 const BLOCK_SVG={};
-for(let v=1;v<=9;v++){const b=NUMC[v],k=12,cx=47,cy=44;
-  const P=(...a)=>a.map(p=>p.join(',')).join(' ');
-  BLOCK_SVG[v]=`<svg viewBox="0 0 100 100" preserveAspectRatio="none">`+
-    `<polygon points="${P([0,k],[k,0],[100-k,0],[100,k],[cx,cy])}" fill="${mix(b,.32)}"/>`+
-    `<polygon points="${P([0,k],[cx,cy],[0,100-k])}" fill="${mix(b,.14)}"/>`+
-    `<polygon points="${P([100,k],[100,100-k],[cx,cy])}" fill="${mix(b,-.14)}"/>`+
-    `<polygon points="${P([0,100-k],[cx,cy],[100,100-k],[100-k,100],[k,100])}" fill="${mix(b,-.27)}"/>`+
-    `<polygon points="${P([cx-20,cy-18],[cx+22,cy-16],[cx+20,cy+20],[cx-18,cy+22])}" fill="${b}" opacity=".55"/></svg>`}
+{const oct=(a,b,k)=>[[a+k,a],[b-k,a],[b,a+k],[b,b-k],[b-k,b],[a+k,b],[a,b-k],[a,a+k]];
+  const O=oct(0,100,12), I=oct(19,81,7), SH=[.32,.22,-.14,-.22,-.27,-.06,.14,.24];   // top, top-right, right, bottom-right, bottom, bottom-left, left, top-left
+  const P=a=>a.map(p=>p.join(',')).join(' ');
+  for(let v=1;v<=9;v++){const b=NUMC[v];let g='';
+    for(let i=0;i<8;i++){const j=(i+1)%8;g+=`<polygon points="${P([O[i],O[j],I[j],I[i]])}" fill="${mix(b,SH[i])}" stroke="${mix(b,SH[i])}" stroke-width=".6"/>`}
+    BLOCK_SVG[v]=`<svg viewBox="0 0 100 100" preserveAspectRatio="none">${g}<polygon points="${P(I)}" fill="${b}"/><polygon points="${P([I[0],I[1],[I[1][0]-4,I[1][1]+5],[I[0][0]+4,I[0][1]+5]])}" fill="${mix(b,.12)}"/></svg>`}}
 
 /* the numbers of a pile: n/2 pairs, every kind of pair before any repeats */
 function pairVals(n){const out=[];let bag=[];while(out.length<n){if(!bag.length)bag=shuffle(PAIRS);const [a,b]=bag.pop();out.push(a,b)}return out}
@@ -285,10 +284,8 @@ function flyCoin(fromEl,toEl){
 }
 
 /* ---------- art: the kidodo Soft Low-Poly library ---------- */
-/* a phone held upright: a spider that comes down on a thread instead of the walking monster.
-   Decided by the device (not by the frame: in the course the game starts small and landscape, then grows). ?spider=1 / 0 to test */
-const SPIDER=/[?&]spider=1/.test(location.search)||(!/[?&]spider=0/.test(location.search)&&!!window.matchMedia&&matchMedia('(pointer: coarse)').matches
-  &&(screen.orientation&&screen.orientation.type?/portrait/.test(screen.orientation.type):innerHeight>innerWidth));
+/* the spider comes down on a thread from above, instead of the walking monster */
+const SPIDER=!/[?&]spider=0/.test(location.search);   // on every screen (?spider=0 = the walking monster)
 /* the spider world (purple-orange) on every screen; ?world=nature = the old nature world */
 const WEB=!/[?&]world=nature/.test(location.search);
 LP.useTheme(WEB?'spider':'day');
