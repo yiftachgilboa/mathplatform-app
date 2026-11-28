@@ -143,7 +143,7 @@ const TILE_O=(()=>{const oct=(a,b,k)=>[[a+k,a],[b-k,a],[b,a+k],[b,b-k],[b-k,b],[
 const TILE_SH=[.32,.22,-.14,-.22,-.27,-.06,.14,.24];   // top, top-right, right, bottom-right, bottom, bottom-left, left, top-left
 function tileSvg(b,cls){const [O,I]=TILE_O,P=a=>a.map(p=>p.join(',')).join(' ');let g='';
   for(let i=0;i<8;i++){const j=(i+1)%8;g+=`<polygon points="${P([O[i],O[j],I[j],I[i]])}" fill="${mix(b,TILE_SH[i])}" stroke="${mix(b,TILE_SH[i])}" stroke-width=".6"/>`}
-  return `<svg${cls?` class="${cls}"`:''} viewBox="0 0 100 100" preserveAspectRatio="none">${g}<polygon points="${P(I)}" fill="${b}"/><polygon points="${P([I[0],I[1],[I[1][0]-4,I[1][1]+5],[I[0][0]+4,I[0][1]+5]])}" fill="${mix(b,.12)}"/></svg>`}
+  return `<svg${cls?` class="${cls}"`:''} viewBox="0 0 100 100" preserveAspectRatio="none">${g}<polygon points="${P(I)}" fill="${b}"/></svg>`}
 const BLOCK_SVG={};for(let v=1;v<=9;v++)BLOCK_SVG[v]=tileSvg(NUMC[v]);
 const MON_COLS=['#7a42a8','#52287a','#a874d1','#b2cf3a','#86a822','#e6d9b8'];   // the monster / spider, for its particles
 
